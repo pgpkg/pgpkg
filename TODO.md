@@ -1,19 +1,15 @@
 # pgpkg todo
 
-- [ ] move to commandquery
-- [ ] remove old pgpkg from cq and install new version 
 - [ ] implement tests
 - [ ] nice error logging for parser errors
 - [ ] nice error logging for test failures
+- [ ] clean up old code from github
 - [ ] make it possible to download/include multiple packages in a project. cli tools? dir format?
-- [ ] not all function parameter types are implemented yet, e.g. setof
+      need a package registry too
 - [ ] make sure only one package can use a schema name at a time
-- [ ] function return type should be recorded in object state
-      this lets us know if we need to drop them or not.
-- [ ] we might want to make it so a function can be replaced, e.g.
-      this would allow tables to depend on a function or view.
+- [ ] not all function parameter types are implemented yet, e.g. setof. need tests for that. check pgsql syntax too.
 - [ ] load bundles in any order, anything not in schema or tests is
-      added to applications, which will allow mixing SQL with Go code.
+      added to applications, which will allow mixing SQL with Go code, big win!
 - [ ] loadBundle doesn't support nested directories.
 
 # Done
@@ -35,3 +31,4 @@
 - [X] array modifier isn't included when generating function names. 
 - [X] get it working as a CLI
 - [X] "pgpkg" folder is redundant. just needs a pgpkg.toml file
+- [X] move to commandquery
