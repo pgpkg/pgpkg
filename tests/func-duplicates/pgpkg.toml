@@ -1,0 +1,3 @@
+# A deliberate syntax error to help with test reporting.
+Package = "github.com/commandquery/pgpkg-func-duplicates"
+Schema = "func_duplicates"

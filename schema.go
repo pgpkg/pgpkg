@@ -40,14 +40,17 @@ func (p *Package) loadSchema(path string) (*Schema, error) {
 }
 
 func (s *Schema) ApplyUnit(tx *sql.Tx, u *Unit) error {
+	// unfortunately parser errors return almost no information, so the best
+	// we can do is identify the build unit. This seems to be a problem with
+	// pg_query_go rather than the underlying PG parser itself.
 	if err := u.Parse(); err != nil {
-		panic(err)
+		return fmt.Errorf("unable to upgrade schema: %w", err)
 	}
 
 	for _, stmt := range u.Statements {
-		err := stmt.Exec(tx)
+		_, err := stmt.Try(tx)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to upgrade schema: %w", err)
 		}
 	}
 

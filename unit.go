@@ -62,12 +62,12 @@ func (u *Unit) addStatement(lineNumber int, sql string, tree *pg_query.RawStmt) 
 func (u *Unit) Parse() error {
 	r, err := u.Bundle.Open(u.Path)
 	if err != nil {
-		return err
+		return PKGErrorf(u, err, "unable to parse")
 	}
 
 	b, err := io.ReadAll(r)
 	if err != nil {
-		return err
+		return PKGErrorf(u, err, "unable to read")
 	}
 
 	// Automatically add a semicolon to the source if one
@@ -80,7 +80,10 @@ func (u *Unit) Parse() error {
 
 	parseResult, err := pg_query.Parse(source)
 	if err != nil {
-		return err
+		// unfortunately parser errors return almost no information, so the best
+		// we can do is identify the build unit. This seems to be a problem with
+		// pg_query_go rather than the underlying PG parser itself.
+		return PKGErrorf(u, err, "unable to parse")
 	}
 
 	lineNumber := 1
@@ -102,5 +105,12 @@ func (u *Unit) Location() string {
 		return u.Bundle.Location() + "/" + u.Path
 	} else {
 		return "<internal>"
+	}
+}
+
+func (u *Unit) DefaultContext() *PKGErrorContext {
+	return &PKGErrorContext{
+		Source:     u.Source,
+		LineNumber: 1,
 	}
 }

@@ -1,16 +1,20 @@
 # pgpkg todo
 
-- [ ] implement tests
-- [ ] nice error logging for parser errors
-- [ ] nice error logging for test failures
-- [ ] clean up old code from github
+- [ ] when tests/table-ref/schema/ref.sql fails, the context is technically correct but visually stupid. 
+- [ ] when printing a stack trace (error context), only show the context source for the current package
+      e.g. if a test fails when it calls some other package, show the source code location in the test package
+      this would make assertions in the pgpkg package (like, =!) work well too.
+- [ ] line number in error location headers is wrong (line number doesn't come from context)
+- [ ] add support for stored *procedures*
+- [ ] delete old code from github
 - [ ] make it possible to download/include multiple packages in a project. cli tools? dir format?
-      need a package registry too
-- [ ] make sure only one package can use a schema name at a time
-- [ ] not all function parameter types are implemented yet, e.g. setof. need tests for that. check pgsql syntax too.
+- [ ] make sure only one package can use a schema name at a time (package registration table)
+- [ ] not all function parameter types are implemented yet in name generation, e.g. setof. need tests for that. check pgsql syntax too.
 - [ ] load bundles in any order, anything not in schema or tests is
       added to applications, which will allow mixing SQL with Go code, big win!
 - [ ] loadBundle doesn't support nested directories.
+- [ ] generate Go stubs, maybe even Java stubs :-)
+- [ ] create a role for schemas so (in theory?) they can't escape the sandbox
 
 # Done
 
@@ -32,3 +36,13 @@
 - [X] get it working as a CLI
 - [X] "pgpkg" folder is redundant. just needs a pgpkg.toml file
 - [X] move to commandquery
+- [X] upgrade to go 20
+- [X] getContext() needs to return the statement context if none is found in an error.
+- [X] runtime context should return all the contexts up the stack
+- [X] move where.go functions into statement.go
+- [X] statement.Exec doesn't record the line number or position of errors
+- [X] nice error logging for parser errors
+- [X] nice error logging for test failures
+- [X] implement tests
+- [X] tests should be function definitions in the form test_XXX() and called in order
+- [X] s.Exec() isn't sufficent, all statements need to be in savepoints

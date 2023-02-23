@@ -1,0 +1,3 @@
+# A deliberate syntax error to help with test reporting.
+Package = "github.com/commandquery/pgpkg-table-ref"
+Schema = "table_ref"

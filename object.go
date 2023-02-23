@@ -1,7 +1,6 @@
 package pgpkg
 
 import (
-	"errors"
 	"fmt"
 	pg_query "github.com/pganalyze/pg_query_go/v4"
 	"strings"
@@ -39,12 +38,11 @@ func (s *Statement) getFunctionObject() (*Object, error) {
 	schema := AsString(createFunctionStmt.Funcname[0])
 
 	if schema == "" {
-		return nil, ErrorAt(s, errors.New("no function schema declared"))
+		return nil, PKGErrorf(s, nil, "no function schema declared")
 	}
 
 	if schema != pkgSchema {
-		return nil, ErrorAt(s, fmt.Errorf("declared schema %s does not match package schema %s",
-			schema, pkgSchema))
+		return nil, PKGErrorf(s, nil, "declared schema %s does not match package schema %s", schema, pkgSchema)
 	}
 
 	return &Object{
@@ -63,12 +61,11 @@ func (s *Statement) getTriggerObject() (*Object, error) {
 	table := createTrigStmt.Relation.Relname
 
 	if schema == "" {
-		return nil, ErrorAt(s, errors.New("no schema declared on trigger table"))
+		return nil, PKGErrorf(s, nil, "no schema declared on trigger table")
 	}
 
 	if schema != pkgSchema {
-		return nil, ErrorAt(s, fmt.Errorf("trigger table schema %s does not match package schema %s",
-			schema, pkgSchema))
+		return nil, PKGErrorf(s, nil, "trigger table schema %s does not match package schema %s", schema, pkgSchema)
 	}
 
 	//name := GetTriggerDeclaration(createTrigStmt)
@@ -87,12 +84,11 @@ func (s *Statement) getViewObject() (*Object, error) {
 	name := viewStmt.View.Relname
 
 	if schema == "" {
-		return nil, ErrorAt(s, errors.New("no schema declared on view"))
+		return nil, PKGErrorf(s, nil, "no schema declared on view")
 	}
 
 	if schema != pkgSchema {
-		return nil, ErrorAt(s, fmt.Errorf("view schema %s does not match package schema %s",
-			schema, pkgSchema))
+		return nil, PKGErrorf(s, nil, "view schema %s does not match package schema %s", schema, pkgSchema)
 	}
 
 	return &Object{
@@ -134,5 +130,5 @@ func (s *Statement) GetObject() (*Object, error) {
 		return s.object, nil
 	}
 
-	return nil, ErrorAt(s, errors.New("only functions, triggers and views are supported in API"))
+	return nil, PKGErrorf(s, nil, "only functions, triggers and views are supported in API")
 }

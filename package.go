@@ -53,6 +53,7 @@ type Package struct {
 	StatViewCount      int // Stat showing the number of views in the package
 	StatTriggerCount   int // Stat showing the number of triggers in the package
 	StatMigrationCount int // Stat showing how many migration scripts were run
+	StatTestCount      int // Stat showing how many tests there are.
 
 	Schema *Schema // probably not a bundle, unless bundles can load on demand
 	API    *API
@@ -176,17 +177,23 @@ func (p *Package) Apply(tx *sql.Tx) error {
 	if p.Schema != nil {
 		err := p.Schema.Apply(tx)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	} else {
 		if p.Options.Verbose {
-			fmt.Fprintf(os.Stderr, "note: %s: no schema defined", p.Name)
+			fmt.Fprintf(os.Stderr, "note: %s: no schema defined\n", p.Name)
 		}
 	}
 
 	if p.API != nil {
 		if err := p.API.Apply(tx); err != nil {
-			panic(err)
+			return err
+		}
+	}
+
+	if p.Tests != nil {
+		if err := p.Tests.Run(tx); err != nil {
+			return err
 		}
 	}
 
@@ -252,5 +259,6 @@ func LoadPackage(location string, root fs.FS, options *Options) (*Package, error
 }
 
 func (b *Bundle) Location() string {
-	return filepath.Join(b.Package.Name, b.Path)
+	return filepath.Join(b.Package.Location, b.Path)
+	//return b.Path
 }

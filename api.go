@@ -50,13 +50,15 @@ type stmtApplyState struct {
 
 func (a *API) Parse() error {
 	var pending []*Statement
+	definitions := make(map[string]*Statement)
 
 	for _, u := range a.Units {
-		if err := u.Parse(); err != nil {
-			return err
+		if a.Package.Options.Verbose {
+			fmt.Println("parsing api", u.Path)
 		}
-
-		definitions := make(map[string]*Statement)
+		if err := u.Parse(); err != nil {
+			return fmt.Errorf("unable to parse API: %w", err)
+		}
 
 		for _, stmt := range u.Statements {
 			obj, err := stmt.GetObject()
@@ -69,9 +71,9 @@ func (a *API) Parse() error {
 			objName := obj.ObjectType + ":" + obj.ObjectName
 			dupeStmt, dupe := definitions[objName]
 			if dupe {
-				return ErrorAt(stmt,
-					fmt.Errorf("duplicate declaration for %s %s; also defined in %s",
-						obj.ObjectType, obj.ObjectName, dupeStmt.Location()))
+				return PKGErrorf(stmt, nil,
+					"duplicate declaration for %s %s; also defined in %s",
+					obj.ObjectType, obj.ObjectName, dupeStmt.Location())
 			}
 			definitions[objName] = stmt
 
@@ -129,7 +131,7 @@ func (a *API) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
 	rows, err := tx.Query("select obj_type, obj_name from pgpkg.api where pkg=$1 order by seq desc",
 		a.Package.Name)
 	if err != nil {
-		return nil, ErrorFat(a, err, "unable to load API state")
+		return nil, PKGErrorf(a, err, "unable to load API state")
 	}
 
 	var stateList []stmtStoredState
@@ -137,7 +139,7 @@ func (a *API) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
 	for rows.Next() {
 		state := stmtStoredState{}
 		if err := rows.Scan(&state.objType, &state.objName); err != nil {
-			return nil, ErrorFat(a, err, "error during load of API state")
+			return nil, PKGErrorf(a, err, "error during load of API state")
 		}
 		stateList = append(stateList, state)
 
@@ -164,7 +166,7 @@ func applyState(tx *sql.Tx, state *stmtApplyState) error {
 
 		if len(state.pending) == lenPending {
 			ps := state.pending[0]
-			return fmt.Errorf("unable to make progress: %w", ErrorAt(ps, ps.Error))
+			return PKGErrorf(ps, ps.Error, "unable to install API")
 		}
 	}
 
@@ -227,6 +229,10 @@ func (a *API) Location() string {
 	return a.Package.Name
 }
 
+func (a *API) DefaultContext() *PKGErrorContext {
+	return nil
+}
+
 // Apply performs the SQL required to create the objects listed in the
 // API object, to register them in the pgpkg.object table.
 // Since objects in an API may depend on one another, this
@@ -245,7 +251,7 @@ func (a *API) Location() string {
 // Returns the statements in the order they were successfully executed.
 func (a *API) Apply(tx *sql.Tx) error {
 	if a.state == nil {
-		panic("please call Parse() before calling Apply()")
+		panic("please call API.Parse() before calling API.Apply()")
 	}
 
 	err := applyState(tx, a.state)
