@@ -126,11 +126,6 @@ func (p *Package) loadBundle(path string) (*Bundle, error) {
 			return nil, fmt.Errorf("bundle subdirectories are not yet supported: %s/%s", path, entry.Name())
 		}
 
-		//unitFile, err := root.Open(entry.Name())
-		//if err != nil {
-		//	return nil, fmt.Errorf("unable to open %s/%s: %w", path, entry.Name(), err)
-		//}
-
 		name := entry.Name()
 		if strings.HasSuffix(name, ".sql") {
 			err = bundle.addUnit(entry.Name())

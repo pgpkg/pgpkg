@@ -1,0 +1,17 @@
+# Theme to use for this site
+theme = "test"
+
+# Watch for changes? (dev mode)
+watch = true
+
+#
+# The "Extension" setting lets us define properties on the fly,
+# for example when mucking about with CSS.
+#
+# Extensions is for experimenting, not production; experiments that
+# we decide to keep should migrate into the top-level (or perhaps a new CSS section),
+# and be well-defined as fields in Settings.go.
+#
+[Extensions]
+# backgroundColor = "#f9f9f9"   # default is #f9f9f9
+color = "#4a4a4a"   # default is #4a4a4a

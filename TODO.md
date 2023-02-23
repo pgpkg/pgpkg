@@ -1,5 +1,7 @@
 # pgpkg todo
 
+- [ ] loadBundle doesn't support nested subdirectories.
+- [ ] make it possible to download/include multiple packages in a project. cli tools? dir format?
 - [ ] when tests/table-ref/schema/ref.sql fails, the context is technically correct but visually stupid. 
 - [ ] when printing a stack trace (error context), only show the context source for the current package
       e.g. if a test fails when it calls some other package, show the source code location in the test package
@@ -7,14 +9,13 @@
 - [ ] line number in error location headers is wrong (line number doesn't come from context)
 - [ ] add support for stored *procedures*
 - [ ] delete old code from github
-- [ ] make it possible to download/include multiple packages in a project. cli tools? dir format?
 - [ ] make sure only one package can use a schema name at a time (package registration table)
 - [ ] not all function parameter types are implemented yet in name generation, e.g. setof. need tests for that. check pgsql syntax too.
 - [ ] load bundles in any order, anything not in schema or tests is
       added to applications, which will allow mixing SQL with Go code, big win!
-- [ ] loadBundle doesn't support nested directories.
 - [ ] generate Go stubs, maybe even Java stubs :-)
 - [ ] create a role for schemas so (in theory?) they can't escape the sandbox
+- [ ] what happens with quoted identifiers? what happens if the declared schema name is invalid?
 
 # Done
 
