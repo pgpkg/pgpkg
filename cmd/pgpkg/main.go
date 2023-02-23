@@ -4,7 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/commandquery/pgpkg"
+	"github.com/pgpkg/pgpkg"
 	"os"
 )
 
@@ -86,7 +86,7 @@ func main() {
 	}
 
 	if options.Verbose {
-		fmt.Printf("installed %d function(s), %d view(s) and %d trigger(s). %d migration(s) needed.\n",
-			pkg.StatFuncCount, pkg.StatViewCount, pkg.StatTriggerCount, pkg.StatMigrationCount)
+		fmt.Printf("installed %d function(s), %d view(s) and %d trigger(s). %d migration(s) needed. %d test(s) run\n",
+			pkg.StatFuncCount, pkg.StatViewCount, pkg.StatTriggerCount, pkg.StatMigrationCount, pkg.StatTestCount)
 	}
 }

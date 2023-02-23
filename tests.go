@@ -1,7 +1,10 @@
 package pgpkg
 
 // This file runs the tests. Tests are a bit more complicated than you might expect because
+// we don't want any results to be written to the database, but we need to maintain
+// various states so we can report errors and get stack traces.
 //
+// Nothing is overly complex; but it's not as simple as just running the units.
 
 import (
 	"database/sql"
@@ -43,7 +46,7 @@ func (t *Tests) parse() error {
 
 	for _, u := range t.Units {
 		if t.Package.Options.Verbose {
-			fmt.Println("parsing tests", u.Path)
+			fmt.Println("parsing tests", u.Location())
 		}
 
 		if err := u.Parse(); err != nil {
@@ -58,6 +61,10 @@ func (t *Tests) parse() error {
 
 			if obj.ObjectType != "function" {
 				return PKGErrorf(stmt, nil, "only functions can be defined in tests; %s %s", obj.ObjectType, obj.ObjectName)
+			}
+
+			if len(obj.ObjectArgs) != 0 {
+				return PKGErrorf(stmt, nil, "test functions cannot receive arguments: %s %s", obj.ObjectType, obj.ObjectName)
 			}
 
 			// Check for duplicate test definitions. This can be a subtle bug because
@@ -89,6 +96,8 @@ func (t *Tests) parse() error {
 }
 
 // testStmt is the statement containing the test function.
+// testStmt was executed when the tests were parsed, so it is only used to work out where
+// problems might have happened.
 func (t *Tests) runTest(tx *sql.Tx, testName string, testStmt *Statement) error {
 	if _, spErr := tx.Exec("savepoint unittest"); spErr != nil {
 		return fmt.Errorf("unable to begin savepoint for test %s: %w", testName, spErr)
@@ -103,6 +112,9 @@ func (t *Tests) runTest(tx *sql.Tx, testName string, testStmt *Statement) error 
 	}
 
 	if testErr == nil {
+		if t.Package.Options.Verbose {
+			fmt.Println("[PASS]", testName)
+		}
 		return nil
 	}
 

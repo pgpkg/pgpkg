@@ -12,6 +12,7 @@ type Object struct {
 	ObjectSchema string
 	ObjectType   string
 	ObjectName   string
+	ObjectArgs   []string
 }
 
 func getParamType(fp *pg_query.FunctionParameter) string {
@@ -49,6 +50,7 @@ func (s *Statement) getFunctionObject() (*Object, error) {
 		ObjectSchema: schema,
 		ObjectType:   "function",
 		ObjectName:   fmt.Sprintf("%s.%s(%s)", schema, AsString(createFunctionStmt.Funcname[1]), strings.Join(args, ",")),
+		ObjectArgs:   args,
 	}, nil
 }
 

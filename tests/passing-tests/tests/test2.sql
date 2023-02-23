@@ -16,6 +16,6 @@ $$;
 
 create or replace function passing_tests.test_5() returns void language plpgsql as $$
 begin
-    raise exception 'test 5';
+    raise notice 'test 5';
 end;
 $$;

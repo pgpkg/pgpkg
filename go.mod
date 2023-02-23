@@ -1,4 +1,4 @@
-module github.com/commandquery/pgpkg
+module github.com/pgpkg/pgpkg
 
 go 1.19
 
