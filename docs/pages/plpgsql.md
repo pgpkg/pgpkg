@@ -128,8 +128,7 @@ then that will probably cause you trouble as well.
 
 To resolve this problem, simply make sure you use a regular naming scheme.
 
-* Always declare arguments and local variables using an underscore prefix:
-
+### Declare arguments and local variables using an underscore prefix:
 
     create or replace function example(_report_k integer) returns void language plpgsql as $$
         declare
@@ -139,7 +138,7 @@ To resolve this problem, simply make sure you use a regular naming scheme.
         end;
     $$;
 
-* Use a naming convention for variables.
+### Use a naming convention for data types.
 
 Variable names can also become ambiguous; for example, your `account` table has a primary key, and you will
 often pass the primary key around. Since `account` is the name of a table (as well as the name of the type
@@ -171,7 +170,7 @@ Data types that don't have a suffix - such as `report` - are assumed to be table
 
 *Oh, yeah.*
 
-## Use Schemas
+## Schemas
 
 `pgpkg` requires that you use schemas for your packages, but it's a good idea for your code anyway:
 
