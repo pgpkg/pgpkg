@@ -68,7 +68,12 @@ in style to Go tests.
 * [Installation Phases](pages/phases.md)
 * [Writing attractive plpgsql](pages/plpgsql.md)
 * [Safety and Security](pages/safety.md)
-* [Example Packages](pages/examples.md)
+
+## Example Package
+
+A basic example package can be [found here](https://github.com/pgpkg/pgpkg-test).
+
+I hope to provide more detailed examples in the future.
 
 ## Status
 
