@@ -66,6 +66,14 @@ func (a *API) Parse() error {
 				return err
 			}
 
+			if obj.ObjectType == "function" {
+				// Rewrite the statement to set the schema and security options.
+				err = rewrite(stmt)
+				if err != nil {
+					return err
+				}
+			}
+
 			// Check for duplicate definitions in the API. This can be a subtle bug because
 			// all the statements are probably "create or replace".
 			objName := obj.ObjectType + ":" + obj.ObjectName
@@ -254,10 +262,5 @@ func (a *API) Apply(tx *sql.Tx) error {
 		panic("please call API.Parse() before calling API.Apply()")
 	}
 
-	err := applyState(tx, a.state)
-	if err != nil {
-		return err
-	}
-
-	return a.updateState(tx)
+	return applyState(tx, a.state)
 }

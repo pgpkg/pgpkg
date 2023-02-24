@@ -1,13 +1,24 @@
 # pgpkg todo
 
 - [ ] loadBundle doesn't support nested subdirectories.
-- [ ] make it possible to download/include multiple packages in a project. cli tools? dir format?
+- [ ] create roles for each package
+- [ ] use set session auth instead of set role? can't allow set role inside sql?
+- [ ] add search_path and `security definer` to created functions. (nb: views and triggers will Just Work™)
+- [ ] ensure search_path and `security definer` are not specified in function definitions
+- [ ] ensure that statements being executed aren't equivalent to "commit", "rollback", "savepoint", "release", etc
+- [ ] ensure that statements being executed aren't SET ROLE or RESET ROLE.
+- [ ] views need security definers too
+- [ ] introspect SQL and plpgsql functions for unwanted statements / set role etc.
+- [ ] packages are able to improperly create circular dependencies, which is a security issue, because a dependency
+      could trick pgpkg into providing access to a higher level package.
+- [ ] potential code injection in Package.sql: 	p.Exec(tx, fmt.Sprintf(`grant usage on schema "%s" to "%s"`)...
+- [ ] dependency management, download, registration, etc
 - [ ] when tests/table-ref/schema/ref.sql fails, the context is technically correct but visually stupid. 
 - [ ] when printing a stack trace (error context), only show the context source for the current package
       e.g. if a test fails when it calls some other package, show the source code location in the test package
       this would make assertions in the pgpkg package (like, =!) work well too.
 - [ ] line number in error location headers is wrong (line number doesn't come from context)
-- [ ] add support for stored *procedures*
+- [ ] add api support for stored *procedures*
 - [ ] delete old code from github
 - [ ] make sure only one package can use a schema name at a time (package registration table)
 - [ ] not all function parameter types are implemented yet in name generation, e.g. setof. need tests for that. check pgsql syntax too.

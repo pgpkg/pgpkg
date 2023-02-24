@@ -37,7 +37,6 @@ func (s *Statement) getFunctionObject() (*Object, error) {
 		args = append(args, fmt.Sprintf("%s %s", fp.Name, getParamType(fp)))
 	}
 	schema := AsString(createFunctionStmt.Funcname[0])
-
 	if schema == "" {
 		return nil, PKGErrorf(s, nil, "no function schema declared")
 	}

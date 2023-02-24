@@ -6,15 +6,25 @@
 
 #
 # The unique name for this package.
-# This should ideally be a Go module name.
+# Currently a Go module name.
 #
 Package = "github.com/bookwork/pgpkg"
 
 #
-# The schema or schemas managed by this package.
+# The schema managed by this package.
 # Schema ownership is managed by Pgpkg. If a schema
 # already exists and is not owned by a Pgpkg package,
 # or is owned by some other Pgpkg package, then
 # the upgrade will be aborted.
 #
 Schema = "pgpkg"
+
+#
+# Extensions required by this package
+#
+# Extensions = []
+
+#
+# Other packages used by this package.
+#
+# Uses = []

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/BurntSushi/toml"
+	"github.com/lib/pq"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -58,6 +59,16 @@ type Package struct {
 	Schema *Schema // probably not a bundle, unless bundles can load on demand
 	API    *API
 	Tests  *Tests
+
+	config *configType
+}
+
+// Load the settings
+type configType struct {
+	Package    string
+	Schema     string
+	Extensions []string
+	Uses       []string
 }
 
 // Bundle represents functional unit of a package, consisting of many Units.
@@ -139,6 +150,130 @@ func (p *Package) loadBundle(path string) (*Bundle, error) {
 	return bundle, nil
 }
 
+func (p *Package) logQuery(query string, args []any) {
+	if !p.Options.Verbose {
+		return
+	}
+
+	if args == nil || len(args) == 0 {
+		fmt.Println(query)
+	} else {
+		fmt.Println(query, args)
+	}
+}
+
+func (p *Package) Exec(tx *sql.Tx, query string, args ...any) (sql.Result, error) {
+	p.logQuery(query, args)
+	return tx.Exec(query, args...)
+}
+
+func (p *Package) QueryRow(tx *sql.Tx, query string, args ...any) *sql.Row {
+	p.logQuery(query, args)
+	return tx.QueryRow(query, args...)
+}
+
+func (p *Package) setRole(tx *sql.Tx) {
+	_, err := p.Exec(tx, fmt.Sprintf("set role \"%s\"", p.SchemaName))
+	if err != nil {
+		panic(fmt.Errorf("unable to change to role %s: %w", p.SchemaName, err))
+	}
+}
+
+func (p *Package) resetRole(tx *sql.Tx) {
+	_, err := p.Exec(tx, fmt.Sprintf("reset role"))
+	if err != nil {
+		panic(fmt.Errorf("unable to change to role %s: %w", p.SchemaName, err))
+	}
+}
+
+func (p *Package) hasRole(tx *sql.Tx) bool {
+	var roleCount int
+	row := p.QueryRow(tx, "select count(*) from pg_roles where rolname=$1", p.SchemaName)
+	err := row.Scan(&roleCount)
+	if err != nil {
+		panic(err)
+	}
+	return roleCount == 1
+}
+
+func (p *Package) createSchema(tx *sql.Tx) error {
+	LogQuieter()
+	defer LogLouder()
+
+	if !p.hasRole(tx) {
+		_, err := p.Exec(tx, fmt.Sprintf("create role \"%s\"", p.SchemaName))
+		if err != nil {
+			return fmt.Errorf("unable to create role %s: %w", p.SchemaName, err)
+		}
+	}
+
+	_, err := p.Exec(tx, fmt.Sprintf("create schema if not exists \"%s\" authorization \"%s\"", p.SchemaName, p.SchemaName))
+	if err != nil {
+		return fmt.Errorf("unable to create schema %s: %w", p.SchemaName, err)
+	}
+
+	exts := p.config.Extensions
+	if exts != nil {
+		for _, ext := range p.config.Extensions {
+			if _, err = p.Exec(tx, fmt.Sprintf("create extension if not exists \"%s\" with schema public", ext)); err != nil {
+				return fmt.Errorf("unable to create package extension %s: %w", ext, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// Register this package in the pgpkg.pkg table.
+func (p *Package) register(tx *sql.Tx) error {
+	_, err := p.Exec(tx, "insert into pgpkg.pkg (pkg, schema_name, uses) values ($1, $2, $3) "+
+		"on conflict (pkg) do update set schema_name=excluded.schema_name, uses=excluded.uses",
+		p.Name, p.SchemaName, pq.Array(p.config.Uses))
+
+	return err
+}
+
+func (p *Package) grantPackage(tx *sql.Tx, pkgName string) error {
+	var schemaName string
+	r := p.QueryRow(tx, "select schema_name from pgpkg.pkg where pkg=$1", pkgName)
+	if err := r.Scan(&schemaName); err != nil {
+		return err
+	}
+
+	if _, err := p.Exec(tx, fmt.Sprintf(`grant usage on schema "%s" to "%s"`, schemaName, p.SchemaName)); err != nil {
+		return err
+	}
+
+	if _, err := p.Exec(tx, fmt.Sprintf(`grant execute on all functions in schema "%s" to "%s"`, schemaName, p.SchemaName)); err != nil {
+		return err
+	}
+
+	if _, err := p.Exec(tx, fmt.Sprintf(`grant select, update, insert, references on all tables in schema "%s" to "%s"`, schemaName, p.SchemaName)); err != nil {
+		return err
+	}
+
+	if _, err := p.Exec(tx, fmt.Sprintf(`grant usage on all sequences in schema "%s" to "%s"`, schemaName, p.SchemaName)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Allow this package to access the packages in the Uses clause of the definition.
+func (p *Package) grant(tx *sql.Tx) error {
+	if p.config.Uses == nil {
+		return nil
+	}
+
+	for _, pkg := range p.config.Uses {
+		if err := p.grantPackage(tx, pkg); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (p *Package) Apply(tx *sql.Tx) error {
 
 	// Stop any other pgpkg process from running simultaneously.
@@ -146,32 +281,51 @@ func (p *Package) Apply(tx *sql.Tx) error {
 		return fmt.Errorf("pgpkg: unable to obtain package lock: %w", err)
 	}
 
-	LogQuieter()
-	_, err := tx.Exec(fmt.Sprintf("create schema if not exists \"%s\"", p.SchemaName))
-	LogLouder()
+	err := p.createSchema(tx)
 	if err != nil {
-		return fmt.Errorf("unable to create schema %s: %w", p.SchemaName, err)
+		return err
 	}
 
 	if p.API != nil {
-		err := p.API.Parse()
+		err = p.API.Parse()
 		if err != nil {
 			return err
 		}
 
+		// This runs as pgpkg user since it's accessing pgpkg tables
+		// and deleting stuff from the schema.
 		err = p.API.purge(tx)
 		if err != nil {
 			return err
 		}
+
 	} else {
 		if p.Options.Verbose {
 			fmt.Fprintf(os.Stderr, "note: %s: no API defined\n", p.Name)
 		}
 	}
 
+	// Grant access to any schema declared in the Uses section of the TOML.
+	if err = p.grant(tx); err != nil {
+		return err
+	}
+
 	if p.Schema != nil {
-		err := p.Schema.Apply(tx)
-		if err != nil {
+		// Load the migration state outside the schema role.
+		if err = p.Schema.loadMigrationState(tx); err != nil {
+			return err
+		}
+
+		p.setRole(tx)
+
+		if err = p.Schema.Apply(tx); err != nil {
+			return err
+		}
+
+		p.resetRole(tx)
+
+		// Save the migrated state, also outside the schema role
+		if err = p.Schema.saveMigrationState(tx); err != nil {
 			return err
 		}
 	} else {
@@ -181,15 +335,27 @@ func (p *Package) Apply(tx *sql.Tx) error {
 	}
 
 	if p.API != nil {
-		if err := p.API.Apply(tx); err != nil {
+		p.setRole(tx)
+		if err = p.API.Apply(tx); err != nil {
+			return err
+		}
+		p.resetRole(tx)
+
+		if err = p.API.updateState(tx); err != nil {
 			return err
 		}
 	}
 
+	if err = p.register(tx); err != nil {
+		return err
+	}
+
 	if p.Tests != nil {
+		p.setRole(tx)
 		if err := p.Tests.Run(tx); err != nil {
 			return err
 		}
+		p.resetRole(tx)
 	}
 
 	return nil
@@ -206,11 +372,6 @@ func LoadPackage(location string, root fs.FS, options *Options) (*Package, error
 
 	defer pkgConfigReader.Close()
 
-	// Load the settings
-	type configType struct {
-		Package string
-		Schema  string
-	}
 	var config configType
 
 	if _, err := toml.NewDecoder(pkgConfigReader).Decode(&config); err != nil {
@@ -224,6 +385,7 @@ func LoadPackage(location string, root fs.FS, options *Options) (*Package, error
 	pkg := &Package{
 		Name:       config.Package,
 		SchemaName: config.Schema,
+		config:     &config,
 		Location:   location,
 		Root:       root,
 		Options:    options,

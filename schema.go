@@ -20,6 +20,8 @@ import (
 
 type Schema struct {
 	*Bundle
+	migrationState map[string]bool
+	migratedState  map[string]bool
 }
 
 func (p *Package) loadSchema(path string) (*Schema, error) {
@@ -84,21 +86,8 @@ func (s *Schema) readCatalog(reader fs.File) ([]*Unit, error) {
 	return units, nil
 }
 
-// Apply executes the schema statements in order.
-func (s *Schema) Apply(tx *sql.Tx) error {
-
-	// The catalog lists schema migration files in strict order.
-	catalog, err := s.Bundle.Open("@index.pgpkg")
-	if err != nil {
-		return err
-	}
-
-	units, err := s.readCatalog(catalog)
-	if err != nil {
-		return err
-	}
-
-	migrationStatus := make(map[string]bool)
+func (s *Schema) loadMigrationState(tx *sql.Tx) error {
+	migrationState := make(map[string]bool)
 
 	// Grab the list of updates that have already been performed
 	// This check is disabled when pgpkg decides it needs to self-install.
@@ -113,32 +102,57 @@ func (s *Schema) Apply(tx *sql.Tx) error {
 			if err = migrations.Scan(&path); err != nil {
 				return fmt.Errorf("unexpected error: %w", err)
 			}
-			migrationStatus[path] = true
+			migrationState[path] = true
 		}
 	}
 
+	s.migrationState = migrationState
+	return nil
+}
+
+func (s *Schema) saveMigrationState(tx *sql.Tx) error {
+	// Update the pgpkg.migration table to reflect the migration state.
+	for path, _ := range s.migratedState {
+		if _, err := tx.Exec("insert into pgpkg.migration (pkg, path) values ($1, $2)", s.Package.Name, path); err != nil {
+			return fmt.Errorf("unable to save migration state: %w", err)
+		}
+	}
+	return nil
+}
+
+// Apply executes the schema statements in order.
+func (s *Schema) Apply(tx *sql.Tx) error {
+	if s.migrationState == nil {
+		panic("please call loadMigrationState before calling Apply")
+	}
+
+	// The catalog lists schema migration files in strict order.
+	catalog, err := s.Bundle.Open("@index.pgpkg")
+	if err != nil {
+		return err
+	}
+
+	units, err := s.readCatalog(catalog)
+	if err != nil {
+		return err
+	}
+
 	// Keep track of the migrations that have been applied.
-	var applied []string
+	migratedState := make(map[string]bool)
 
 	for _, u := range units {
-		if !migrationStatus[u.Path] {
-			err := s.ApplyUnit(tx, u)
+		if !s.migrationState[u.Path] {
+			err = s.ApplyUnit(tx, u)
 			if err != nil {
 				return err
 			}
 
 			s.Package.StatMigrationCount++
-			applied = append(applied, u.Path)
+			migratedState[u.Path] = true
 		}
 	}
 
-	// Finally, update the pgpkg.migration table. If this is the first time pgpkg
-	// has run, the migration table should now exist.
-	for _, path := range applied {
-		if _, err = tx.Exec("insert into pgpkg.migration (pkg, path) values ($1, $2)", s.Package.Name, path); err != nil {
-			return fmt.Errorf("unable to save migration state: %w", err)
-		}
-	}
+	s.migratedState = migratedState
 
 	return nil
 }

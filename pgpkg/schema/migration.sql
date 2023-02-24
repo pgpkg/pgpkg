@@ -3,6 +3,8 @@
 --
 
 create table pgpkg.migration (
+    primary key (pkg, path),
+
     -- name of the package
     pkg text,
 

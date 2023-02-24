@@ -7,16 +7,18 @@
 pgpkg is a small and fast command-line package manager for pl/pgsql, the built-in Postgres programming language.
 It's a single binary, written in Go, and tries to make as few assumptions about your database as possible.
 
-pgpkg is intended to make writing SQL stored functions as easy as writing code in a language like Go, Java or Python.
-You can use pgpkg to manage just the schema for your application - including functions and migrations - or you can use
-it to import and manage multiple schemas, just like you would include dependencies in a Go program.
+pgpkg is designed to make writing SQL stored functions as easy as writing code in a language like Go, Java or Python.
+It eliminates the need to write migration scripts for functions, views and triggers. You can
+simply edit these objects, and pgpkg will deal with upgrading them.
+pgpkg also supports traditional migration scripts for tables, UDTs and other objects.
 
-In particular, pgpkg eliminates the need to write migration scripts for functions, views
-and triggers. You can simply edit these objects, and pgpkg will deal with upgrading them.
+You can use pgpkg to manage the schema for a single application, or you can use
+it to import and manage multiple schemas, just like you would include dependencies in
+a Go, Java or Python program.
 
-pgpkg installs itself into a database, and does not require any extensions. (pgpkg is itself
-a pgpkg package). pgpkg and dependencies can be incorporated directly into Go programs as a
-library (making a Go database self-migrating), and the binary and packages can be included
+pgpkg installs itself into a database, and does not require any extensions - pgpkg is itself
+a pgpkg package. pgpkg and dependencies can be incorporated directly into Go programs as a
+library, making a Go database self-migrating, and the binary and packages can be included
 as part of deployments for other languages such as Java or Python.
 
 pgpkg was first released on 23rd Feb 2023, and should be considered early alpha quality.
@@ -79,7 +81,9 @@ Major features that need implementing include:
   from being able to access data outside their own schema, but this is not yet done. Don't install
   packages you haven't personally audited.
 * schema relocation. pgpkg uses Postgres' own parser, so it's probably feasible,
-  but it will most likely be quite complex.
+  but it will most likely be complex. An alternative might be to use search_path in functions,
+  which could simply include the schema of any dependencies, making scripts fully
+  relocatable... hmm.
 * File locations. One goal of pgpkg is to allow SQL procedures to appear in your source tree
   next to your Go or Java code. But that hasn't happened yet.
 
