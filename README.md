@@ -34,7 +34,7 @@ Initial set of documentation is [here](docs/index.md).
 
 ## License
 
-pgpkg is [licensed](LICENSE) under the same terms as Postgresql itself.
+pgpkg is [licensed](LICENSE.md) under the same terms as Postgresql itself.
 
 ## Contributing
 
