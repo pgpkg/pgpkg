@@ -5,7 +5,7 @@ import (
 )
 
 // Rewrite and the statement source to:
-// * Add a SECURITY DEFINER
+// * Add a SECURITY DEFINER - not sure if we want this any more
 // * Set the search_path
 //
 // This allows functions to be written without referring to their schema name, which (at least in theory)
@@ -20,7 +20,7 @@ func rewrite(stmt *Statement) error {
 
 	// FIXME: fire an error if search_path or SECURITY DEFINER is already set.
 
-	createFuncStmt.Options = append(createFuncStmt.Options, getSecurityDefinerOption(), getSetSchemaOption(stmt.Unit.Bundle.Package.SchemaName))
+	createFuncStmt.Options = append(createFuncStmt.Options /* getSecurityDefinerOption(),*/, getSetSchemaOption(stmt.Unit.Bundle.Package.SchemaName))
 
 	stmt.Source, err = pg_query.Deparse(parseResult)
 	if err != nil {

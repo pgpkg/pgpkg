@@ -5,11 +5,13 @@
 ## What is pgpkg?
 
 pgpkg is a small and fast command-line package manager for pl/pgsql, the built-in Postgres programming language.
-It's a single binary, written in Go, and tries to make as few assumptions about your database as possible.
+It's a single binary, written in Go, and tries to make minimal assumptions about your database beyond what
+pgpkg touches.
 
-pgpkg is designed to make writing SQL stored functions as easy as writing code in a language like Go, Java or Python.
-It eliminates the need to write migration scripts for functions, views and triggers. You can
+pgpkg is designed to make writing Postgresql stored functions as easy as writing functions in a language like
+Go, Java or Python. It eliminates the need to write migration scripts for functions, views and triggers. You can
 simply edit these objects, and pgpkg will deal with upgrading them.
+
 pgpkg also supports traditional migration scripts for tables, UDTs and other objects.
 
 You can use pgpkg to manage the schema for a single application, or you can use
@@ -47,12 +49,12 @@ This will install pgpkg in your GOBIN directory. If that's in your `$PATH` then 
 
 ## What it does
 
-pgpkg is:
+pgpkg aims to be:
 
-* a standardised directory layout for distributing code for pl/pgsql
-* a simple, atomic, fast, safe, and easy database migration tool
+* a directory structure specification for distributing Postgresql code in pl/pgsql or SQL.
+* a simple, atomic, fast, safe, and easy schema migration tool
 * a tool to download and manage remotely hosted code (and dependencies), and
-* a tool to install the code and tables into a database
+* a tool to install the packages into a database
 
 pgpkg also lets you define and run tests, all of which are required to pass before
 a schema migration will be committed. Tests are written as pl/pgsql functions, similar
@@ -61,8 +63,8 @@ in style to Go tests.
 ## Documentation
 
 * [Features](pages/features.md)
-* [Package Structure](pages/packages.md)
 * [Installing Packages](pages/installing.md)
+* [Package Structure](pages/packages.md)
 * [Installation Phases](pages/phases.md)
 * [Writing attractive plpgsql](pages/plpgsql.md)
 * [Safety and Security](pages/safety.md)
@@ -70,24 +72,23 @@ in style to Go tests.
 
 ## Status
 
-pgpkg is **early alpha**. I use it for my own work every day, but there is still work to be done.
+pgpkg is **early alpha**. I use it for my own work every day, but there is still much to be done.
 Major features that need implementing include:
 
 * plpgsql doesn't yet support subdirectories in api, schema or tests. It's on the TODO list.
 * dependency management, download & install. While you can have multiple pgpkg packages in a single
-  database, each one must currently be installed manually at the moment, and there is no way to
-  define dependencies between them.
-* security. I have ideas about using Postgres' role-based security to prevent pgpkg packages
-  from being able to access data outside their own schema, but this is not yet done. Don't install
-  packages you haven't personally audited.
-* schema relocation. pgpkg uses Postgres' own parser, so it's probably feasible,
-  but it will most likely be complex. An alternative might be to use search_path in functions,
-  which could simply include the schema of any dependencies, making scripts fully
-  relocatable... hmm.
+  database, and pgpkg manages isolation (to a point), each dependency must currently be installed
+  manually.
+* security. pgpkg makes some effort to isolate packages through the judicious use of roles,
+  but this support is incomplete and easy to defeat.
+* schema relocation. in the event that two packages use the same schema, it would be good to be able
+  to place the packages in a schema other than the one defined by the package maintainer.
+  Some work has been done towards making this possible, but it is incomplete.
 * File locations. One goal of pgpkg is to allow SQL procedures to appear in your source tree
   next to your Go or Java code. But that hasn't happened yet.
 
 ## Inspiration
 
-The inspiration for pgpkg is, perhaps naturally, the [Go programming language](https://go.dev) in which pgpkg is written. The idea is
-to provide a mechanism whereby people can write and share libraries of SQL code as easily as they can share Go code.
+The inspiration for pgpkg is, perhaps naturally, the [Go programming language](https://go.dev) in which pgpkg is
+written. The ultimate goal is to contribute to the growth of the plpgsql user community, by providing tools that enable
+the creation and sharing interesting Postgresql database functionality, as easily as they can share Go code.

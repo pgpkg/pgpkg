@@ -1,17 +1,15 @@
 # pgpkg todo
 
 - [ ] loadBundle doesn't support nested subdirectories.
-- [ ] create roles for each package
-- [ ] use set session auth instead of set role? can't allow set role inside sql?
-- [ ] add search_path and `security definer` to created functions. (nb: views and triggers will Just Work™)
 - [ ] ensure search_path and `security definer` are not specified in function definitions
 - [ ] ensure that statements being executed aren't equivalent to "commit", "rollback", "savepoint", "release", etc
 - [ ] ensure that statements being executed aren't SET ROLE or RESET ROLE.
 - [ ] views need security definers too
+- [ ] there are still a few tx.Exec / tx.Query that should be logged via the package instead
 - [ ] introspect SQL and plpgsql functions for unwanted statements / set role etc.
 - [ ] packages are able to improperly create circular dependencies, which is a security issue, because a dependency
       could trick pgpkg into providing access to a higher level package.
-- [ ] potential code injection in Package.sql: 	p.Exec(tx, fmt.Sprintf(`grant usage on schema "%s" to "%s"`)...
+- [ ] unsanitized input in Package.sql, maybe other places: `p.Exec(tx, fmt.Sprintf('grant usage on schema "%s" to "%s"')...`
 - [ ] dependency management, download, registration, etc
 - [ ] when tests/table-ref/schema/ref.sql fails, the context is technically correct but visually stupid. 
 - [ ] when printing a stack trace (error context), only show the context source for the current package
@@ -58,3 +56,5 @@
 - [X] implement tests
 - [X] tests should be function definitions in the form test_XXX() and called in order
 - [X] s.Exec() isn't sufficent, all statements need to be in savepoints
+- [X] create roles for each package
+- [X] add search_path to created functions. (nb: views and triggers will Just Work™)

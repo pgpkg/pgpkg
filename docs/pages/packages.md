@@ -2,7 +2,11 @@
 
 pgpkg takes a directory structure and applies it to a database.
 
-A pgpkg package is simply a directory that looks like this:
+> There is an example package at https://github.com/pgpkg/pgpkg-test which you can clone. The entire
+> package runs to about 50 lines, most of which is easy to understand SQL.
+
+A pgpkg package is any directory that contains a pgpkg.toml file. Such a package will normally also include
+a standard set of directories:
 
     pgpkg.toml
     api/
@@ -28,14 +32,24 @@ from an existing schema, without worrying that objects defined outside pgpkg wil
 
 ## pgpkg.toml
 
-The pgpkg.toml file describes the package itself. Currently, this file is pretty small:
+The pgpkg.toml file describes the package itself.
 
     # A working test package for pgpkg.
     Package = "github.com/pgpkg/example"
     Schema = "example"
+    Uses = [ "github.com/pgpkg/another-example" ]
+    Extensions = [ "uuid-ossp" ]
 
-In the future, this file will also list dependencies and may be used to provide more information
-about packages.
+`Uses` is a list of dependencies. This field tells pgpkg to grant permission for the schema
+to access the depenency schema.
+
+> pgpkg won't currently download dependencies automatically. You have to install them manually.
+> However, pgpkg does keep track of which packages have been installed.
+
+`Extensions` is a list of extensions that the package requires.
+
+Packages are installed into the named schema, and a role with that name is also created.
+See [safety](safety.md) for more information.
 
 ## Schema Directory
 
