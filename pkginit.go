@@ -24,7 +24,7 @@ func Init(tx *sql.Tx, options *Options) error {
 		return fmt.Errorf("unable to find pgpkg package: %w", err)
 	}
 
-	pkg, err := LoadPackage("embedded pgpkg", subFS, options)
+	pkg, err := loadPackage("embedded pgpkg", subFS, options)
 	if err != nil {
 		return fmt.Errorf("unable to load pgpkg package: %w", err)
 	}

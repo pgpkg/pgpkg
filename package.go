@@ -361,9 +361,9 @@ func (p *Package) Apply(tx *sql.Tx) error {
 	return nil
 }
 
-// LoadPackage reads and parses the entire contents of a package,
+// loadPackage reads and parses the entire contents of a package,
 // dividing it up into bundles, units and statements.
-func LoadPackage(location string, root fs.FS, options *Options) (*Package, error) {
+func loadPackage(location string, root fs.FS, options *Options) (*Package, error) {
 
 	pkgConfigReader, err := root.Open("pgpkg.toml")
 	if err != nil {

@@ -58,7 +58,7 @@ You can include just about anything in a `raise exception` using the interpolati
 
 ## Use The Force
 
-Postgresql has a lot of features that are rarely used. Among my favourites:
+Postgresql has a lot of features that are rarely discussed in polite company. Among my favourites:
 
 ### User defined types
 

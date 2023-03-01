@@ -1,7 +1,7 @@
-# Theme to use for this site
-theme = "test"
+# Specifies the theme to use.
+theme = "sakura"
 
-# Watch for changes? (dev mode)
+# Watch for changes?
 watch = true
 
 #
@@ -13,5 +13,6 @@ watch = true
 # and be well-defined as fields in Settings.go.
 #
 [Extensions]
-# backgroundColor = "#f9f9f9"   # default is #f9f9f9
-color = "#4a4a4a"   # default is #4a4a4a
+# backgroundColor = "#0f0f0f"   # default is #f9f9f9
+# color = "#4a4a4a"   # default is #4a4a4a
+

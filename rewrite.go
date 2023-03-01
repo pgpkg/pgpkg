@@ -20,7 +20,7 @@ func rewrite(stmt *Statement) error {
 
 	// FIXME: fire an error if search_path or SECURITY DEFINER is already set.
 
-	createFuncStmt.Options = append(createFuncStmt.Options /* getSecurityDefinerOption(),*/, getSetSchemaOption(stmt.Unit.Bundle.Package.SchemaName))
+	createFuncStmt.Options = append(createFuncStmt.Options, getSecurityDefinerOption(), getSetSchemaOption(stmt.Unit.Bundle.Package.SchemaName))
 
 	stmt.Source, err = pg_query.Deparse(parseResult)
 	if err != nil {
@@ -47,6 +47,8 @@ func getSecurityDefinerOption() *pg_query.Node {
 	}
 }
 
+// Set search path for all functions in the package.
+// See https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY
 func getSetSchemaOption(schema string) *pg_query.Node {
 	return &pg_query.Node{
 		Node: &pg_query.Node_DefElem{
@@ -62,6 +64,13 @@ func getSetSchemaOption(schema string) *pg_query.Node {
 									Node: &pg_query.Node_AConst{
 										AConst: &pg_query.A_Const{
 											Val: &pg_query.A_Const_Sval{&pg_query.String{Sval: schema}},
+										},
+									},
+								},
+								&pg_query.Node{
+									Node: &pg_query.Node_AConst{
+										AConst: &pg_query.A_Const{
+											Val: &pg_query.A_Const_Sval{&pg_query.String{Sval: "pg_temp"}},
 										},
 									},
 								},

@@ -1,5 +1,11 @@
 # pgpkg todo
 
+- [ ] Allow more complete integration with source trees:
+  - [ ] instead of tests folder, use xxx_test.sql (similar to go)
+  - [ ] migration should be any folder that contains @migration.sql (instead of index.sql) - only one folder is possible
+  - [ ] walk the filesystem from any root (but handle @migration dirs separately)
+  - [ ] anything *.sql, not in a folder with @migration.sql and not ending in _test is an API.
+  - [ ] this will also enable //go:generate for stubs!
 - [ ] loadBundle doesn't support nested subdirectories.
 - [ ] ensure search_path and `security definer` are not specified in function definitions
 - [ ] ensure that statements being executed aren't equivalent to "commit", "rollback", "savepoint", "release", etc
@@ -20,8 +26,6 @@
 - [ ] delete old code from github
 - [ ] make sure only one package can use a schema name at a time (package registration table)
 - [ ] not all function parameter types are implemented yet in name generation, e.g. setof. need tests for that. check pgsql syntax too.
-- [ ] load bundles in any order, anything not in schema or tests is
-      added to applications, which will allow mixing SQL with Go code, big win!
 - [ ] generate Go stubs, maybe even Java stubs :-)
 - [ ] create a role for schemas so (in theory?) they can't escape the sandbox
 - [ ] what happens with quoted identifiers? what happens if the declared schema name is invalid?
@@ -58,3 +62,4 @@
 - [X] s.Exec() isn't sufficent, all statements need to be in savepoints
 - [X] create roles for each package
 - [X] add search_path to created functions. (nb: views and triggers will Just Work™)
+- [X] support for ZIP files containing schemas.
