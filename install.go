@@ -31,10 +31,18 @@ func Install(tx *sql.Tx, options *Options, pkgPaths ...string) error {
 		var pkgFS fs.FS
 		var err error
 
+		// For the time being, ZIP files need to contain a "pgpkg" directory;
+		// it is this directory which is used to build the package representation.
+		// Note that in the future, this constraint will be removed.
 		if strings.HasSuffix(pkgPath, ".zip") {
-			pkgFS, err = zip.OpenReader(pkgPath)
+			zipFS, err := zip.OpenReader(pkgPath)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to open zip archive: %w", err)
+			}
+
+			pkgFS, err = fs.Sub(zipFS, "pgpkg")
+			if err != nil {
+				return fmt.Errorf("unable to find pgpkg folder in zip archive: %w", err)
 			}
 		} else {
 			pkgFS = os.DirFS(pkgPath)
