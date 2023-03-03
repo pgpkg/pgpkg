@@ -13,9 +13,11 @@ functions in a language like Go, Java or Python.
 
 **pgpkg eliminates the need to write migration scripts for functions,
 views and triggers**. You can simply edit these objects in your regular text editor, and pgpkg will deal
-with upgrading them.
+with upgrading them. If you like, you can even mix SQL files with your
+regular code, placing like-named files together in your directory tree.
 
-pgpkg supports traditional, incremental migration scripts for tables, UDTs and other objects.
+pgpkg supports traditional, incremental migration scripts for tables, user-defined
+types, and other objects.
 
 You can use pgpkg to manage the schema for a single application, or you can use
 it to import and manage multiple schemas (coming soon), just like you would include dependencies in
@@ -23,7 +25,7 @@ a Go, Java or Python program.
 
 pgpkg installs itself into a database, and does not require any extensions - pgpkg is itself
 a pgpkg package! pgpkg and dependencies can be incorporated directly into Go programs as a
-library, making a Go database self-migrating. The binary and packages can be included
+library, making Go applications self-migrating. The binary and packages can be included
 as part of deployments for other languages such as Java or Python.
 
 ## Status
