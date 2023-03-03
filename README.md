@@ -1,5 +1,7 @@
 # pgpkg - a package manager for Postgresql
 
+![pgpkg logo](docs/logo-small.png)
+
 pgpkg is a small and fast package manager for pl/pgsql, the built-in Postgres programming language.
 It's a single binary (written in Go), and tries to make minimal assumptions about your database beyond what
 pgpkg itself touches.

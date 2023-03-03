@@ -1,5 +1,7 @@
 # pgpkg - a simple package manager for pl/pgsql
 
+![pgpkg logo](docs/logo-small.png)
+
 [Scroll to documentation](#documentation)
 
 ## What is pgpkg?

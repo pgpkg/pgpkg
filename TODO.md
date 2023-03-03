@@ -1,5 +1,6 @@
 # pgpkg todo
 
+- [ ] update docs to explain the new package layout / structure
 - [ ] Allow more complete integration with source trees:
     - [ ] change "@index.pgpkg" to "@migration.pgpkg"
     - [ ] try it out using mixed sql + go code
