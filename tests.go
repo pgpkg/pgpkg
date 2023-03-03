@@ -15,7 +15,7 @@ import (
 )
 
 type Tests struct {
-	Bundle
+	*Bundle
 	state      *stmtApplyState
 	NamedTests map[string]*Statement
 }
@@ -25,14 +25,14 @@ func (p *Package) loadTests(path string) (*Tests, error) {
 
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return &Tests{}, nil
+			return &Tests{Bundle: &Bundle{}}, nil
 		}
 
 		return nil, err
 	}
 
 	tests := &Tests{
-		Bundle: *bundle,
+		Bundle: bundle,
 	}
 
 	return tests, nil

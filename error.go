@@ -69,8 +69,8 @@ func (e *PKGError) GetContext() *PKGErrorContext {
 	return e.Object.DefaultContext()
 }
 
-// PrintContext prints useful information about this error.
-func (e *PKGError) PrintRootContext(contextCount int) {
+// Print prints useful information about this error.
+func (e *PKGError) PrintRootContext(contextLines int) {
 	r := e.Root()
 	c := r.Context
 
@@ -81,6 +81,19 @@ func (e *PKGError) PrintRootContext(contextCount int) {
 
 	fmt.Fprintln(os.Stderr, r.Error())
 
+	c.Print(contextLines)
+}
+
+func PKGErrorf(object PKGObject, err error, msg string, args ...any) *PKGError {
+	return &PKGError{
+		Message: fmt.Sprintf(msg, args...),
+		Object:  object,
+		Err:     err,
+		// Context: object.DefaultContext(),   // don't set default context, use pkgerr.GetContext() instead.
+	}
+}
+
+func (c *PKGErrorContext) Print(contextLines int) {
 	sourceLine := c.LineNumber - 1
 
 	if c == nil {
@@ -90,7 +103,7 @@ func (e *PKGError) PrintRootContext(contextCount int) {
 	lines := strings.Split(c.Source, "\n")
 	lineCount := len(lines)
 
-	for cl := sourceLine - contextCount; cl <= sourceLine+contextCount; cl++ {
+	for cl := sourceLine - contextLines; cl <= sourceLine+contextLines; cl++ {
 		if cl >= 0 && cl < lineCount {
 			if cl != sourceLine {
 				fmt.Printf("    %4d: %s\n", cl+1, lines[cl])
@@ -104,14 +117,5 @@ func (e *PKGError) PrintRootContext(contextCount int) {
 	for trace != nil {
 		fmt.Fprintln(os.Stderr, trace.Location)
 		trace = trace.Next
-	}
-}
-
-func PKGErrorf(object PKGObject, err error, msg string, args ...any) *PKGError {
-	return &PKGError{
-		Message: fmt.Sprintf(msg, args...),
-		Object:  object,
-		Err:     err,
-		// Context: object.DefaultContext(),   // don't set default context, use pkgerr.GetContext() instead.
 	}
 }

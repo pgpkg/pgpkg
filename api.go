@@ -54,7 +54,7 @@ func (a *API) Parse() error {
 
 	for _, u := range a.Units {
 		if a.Package.Options.Verbose {
-			fmt.Println("parsing api", u.Path)
+			fmt.Println("parsing api", u.Location())
 		}
 		if err := u.Parse(); err != nil {
 			return fmt.Errorf("unable to parse API: %w", err)

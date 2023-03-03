@@ -1,11 +1,14 @@
 # pgpkg todo
 
 - [ ] Allow more complete integration with source trees:
-  - [ ] instead of tests folder, use xxx_test.sql (similar to go)
-  - [ ] migration should be any folder that contains @migration.sql (instead of index.sql) - only one folder is possible
-  - [ ] walk the filesystem from any root (but handle @migration dirs separately)
-  - [ ] anything *.sql, not in a folder with @migration.sql and not ending in _test is an API.
-  - [ ] this will also enable //go:generate for stubs!
+    - [ ] change "@index.pgpkg" to "@migration.pgpkg"
+    - [ ] try it out using mixed sql + go code
+- [ ] move Bundle methods out of package and into their own file
+- [ ] **important** pretty sure we don't delete from the object list in the database after a purge
+      results in old object signatures being repeatedly "drop ... if exists"
+- [ ] toml Uses[] fails with 'sql: no rows in result set' if a package is not registered. error is ambiguous
+- [ ] unsanitized input in Package.sql, maybe other places: `p.Exec(tx, fmt.Sprintf('grant usage on schema "%s" to "%s"')...`
+- [ ] schema name is missing from function call errors, preventing nice stack traces
 - [ ] loadBundle doesn't support nested subdirectories.
 - [ ] ensure search_path and `security definer` are not specified in function definitions
 - [ ] ensure that statements being executed aren't equivalent to "commit", "rollback", "savepoint", "release", etc
@@ -15,7 +18,6 @@
 - [ ] introspect SQL and plpgsql functions for unwanted statements / set role etc.
 - [ ] packages are able to improperly create circular dependencies, which is a security issue, because a dependency
       could trick pgpkg into providing access to a higher level package.
-- [ ] unsanitized input in Package.sql, maybe other places: `p.Exec(tx, fmt.Sprintf('grant usage on schema "%s" to "%s"')...`
 - [ ] dependency management, download, registration, etc
 - [ ] when tests/table-ref/schema/ref.sql fails, the context is technically correct but visually stupid. 
 - [ ] when printing a stack trace (error context), only show the context source for the current package
@@ -23,7 +25,6 @@
       this would make assertions in the pgpkg package (like, =!) work well too.
 - [ ] line number in error location headers is wrong (line number doesn't come from context)
 - [ ] add api support for stored *procedures*
-- [ ] delete old code from github
 - [ ] make sure only one package can use a schema name at a time (package registration table)
 - [ ] not all function parameter types are implemented yet in name generation, e.g. setof. need tests for that. check pgsql syntax too.
 - [ ] generate Go stubs, maybe even Java stubs :-)
@@ -63,3 +64,9 @@
 - [X] create roles for each package
 - [X] add search_path to created functions. (nb: views and triggers will Just Work™)
 - [X] support for ZIP files containing schemas.
+- [X] instead of tests folder, use xxx_test.sql (similar to go)
+- [X] migration should be any folder that contains @index.pgpkg
+- [X] walk the filesystem from any root (but handle @migration dirs separately)
+- [X] anything *.sql, not in a folder with @migration.sql and not ending in _test is an API.
+- [X] Schema.readCatalog() is redundant if loadPackage2 works. (it's called from Schema.Apply())
+- [X] reduce logVolume when installing extensions to avoid 'extension "uuid-ossp" already exists"

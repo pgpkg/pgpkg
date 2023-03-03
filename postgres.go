@@ -27,32 +27,12 @@ func noticeHandler(options *Options, err *pq.Error) {
 	}
 }
 
-func Open(conninfo string, options *Options) (*sql.DB, error) {
-	base, err := pq.NewConnector(conninfo)
-	if err != nil {
-		return nil, fmt.Errorf("connection to database: %w", err)
-	}
-
-	// Wrap the connector to simply print out the message. Capture the options
-	// so we can enable verbose, etc.
-	connector := pq.ConnectorWithNoticeHandler(base,
-		func(err *pq.Error) {
-			noticeHandler(options, err)
-		})
-
-	// Open the database
-	db := sql.OpenDB(connector)
-	db.SetMaxOpenConns(8)
-	db.SetMaxIdleConns(8)
-	return db, nil
-}
-
 func LogQuieter() {
-	logVolume++
+	logVolume--
 }
 
 func LogLouder() {
-	logVolume--
+	logVolume++
 }
 
 var fnamePattern = regexp.MustCompile("function ([a-z_][a-z0-9_.]*[(].*[)])")

@@ -85,6 +85,11 @@ type Bundle struct {
 	Units   []*Unit          // Ordered list of build units within the bundle
 }
 
+// HasUnits indicates if any build units were found for this bundle.
+func (b *Bundle) HasUnits() bool {
+	return b.Units != nil && len(b.Units) > 0
+}
+
 // Open an arbitrary file from the bundle.
 func (b *Bundle) Open(path string) (fs.File, error) {
 	return b.Package.Root.Open(filepath.Join(b.Path, path))
@@ -98,6 +103,10 @@ func (b *Bundle) getUnit(path string) (*Unit, bool) {
 // addUnit adds a new unit to the package. Note that it doesn't read or parse the unit
 // until requested.
 func (b *Bundle) addUnit(path string) error {
+	if b.Package.Options.Verbose {
+		fmt.Println("add unit:", path)
+	}
+
 	unit := &Unit{
 		Bundle: b,
 		Path:   path,
@@ -108,9 +117,21 @@ func (b *Bundle) addUnit(path string) error {
 	return nil
 }
 
+func (p *Package) newBundle() *Bundle {
+	return &Bundle{
+		Path:    "",
+		Package: p,
+		Index:   make(map[string]*Unit),
+	}
+}
+
 // Add a bundle. The files within the provided root are the bundle contents.
 // Bundles (and the build units they are made up of) are lazily loaded.
 func (p *Package) loadBundle(path string) (*Bundle, error) {
+	if p.Options.Verbose {
+		fmt.Println("load bundle:", path)
+	}
+
 	contents, err := p.Root.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open %s: %w", path, err)
@@ -286,7 +307,7 @@ func (p *Package) Apply(tx *sql.Tx) error {
 		return err
 	}
 
-	if p.API != nil {
+	if p.API != nil && p.API.HasUnits() {
 		err = p.API.Parse()
 		if err != nil {
 			return err
@@ -310,7 +331,7 @@ func (p *Package) Apply(tx *sql.Tx) error {
 		return err
 	}
 
-	if p.Schema != nil {
+	if p.Schema != nil && p.Schema.HasUnits() {
 		// Load the migration state outside the schema role.
 		if err = p.Schema.loadMigrationState(tx); err != nil {
 			return err
@@ -334,7 +355,7 @@ func (p *Package) Apply(tx *sql.Tx) error {
 		}
 	}
 
-	if p.API != nil {
+	if p.API != nil && p.API.HasUnits() {
 		p.setRole(tx)
 		if err = p.API.Apply(tx); err != nil {
 			return err
@@ -350,7 +371,7 @@ func (p *Package) Apply(tx *sql.Tx) error {
 		return err
 	}
 
-	if p.Tests != nil {
+	if p.Tests != nil && p.Tests.HasUnits() {
 		p.setRole(tx)
 		if err := p.Tests.Run(tx); err != nil {
 			return err
@@ -358,16 +379,25 @@ func (p *Package) Apply(tx *sql.Tx) error {
 		p.resetRole(tx)
 	}
 
+	if p.Options.Verbose || p.Options.Summary {
+		fmt.Printf("%s: installed %d function(s), %d view(s) and %d trigger(s). %d migration(s) needed. %d test(s) run\n",
+			p.Name, p.StatFuncCount, p.StatViewCount, p.StatTriggerCount, p.StatMigrationCount, p.StatTestCount)
+	}
+
 	return nil
 }
 
-// loadPackage reads and parses the entire contents of a package,
-// dividing it up into bundles, units and statements.
-func loadPackage(location string, root fs.FS, options *Options) (*Package, error) {
+// Read the configuration TOML file and update the package accordingly.
+// If the package is already configured, it's an error.
+func (p *Package) loadConfig(tomlPath string) error {
 
-	pkgConfigReader, err := root.Open("pgpkg.toml")
+	if p.config != nil {
+		return fmt.Errorf("duplicate configuration found: %s", tomlPath)
+	}
+
+	pkgConfigReader, err := p.Root.Open(tomlPath)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	defer pkgConfigReader.Close()
@@ -375,41 +405,72 @@ func loadPackage(location string, root fs.FS, options *Options) (*Package, error
 	var config configType
 
 	if _, err := toml.NewDecoder(pkgConfigReader).Decode(&config); err != nil {
-		return nil, fmt.Errorf("unable to read package config: %w", err)
+		return fmt.Errorf("unable to read package config: %w", err)
 	}
 
 	if !pgIdentifierRegexp.MatchString(config.Schema) {
-		return nil, fmt.Errorf("illegal schema name in pgpkg.toml: %s", config.Schema)
+		return fmt.Errorf("illegal schema name in pgpkg.toml: %s", config.Schema)
 	}
+
+	p.Name = config.Package
+	p.SchemaName = config.Schema
+	p.config = &config
+
+	return nil
+}
+
+var validNames = regexp.MustCompile("[^#]*")
+
+func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
+
+	if err != nil {
+		return err
+	}
+
+	name := d.Name()
+
+	if name == "pgpkg.toml" {
+		return p.loadConfig(path)
+	}
+
+	if d.IsDir() {
+		// If this is a directory, and it contains migrations, then
+		// process it with a separate walk().
+		if _, err = fs.Stat(p.Root, filepath.Join(path, "@index.pgpkg")); err == nil {
+			if err = p.Schema.loadMigrations(path); err != nil {
+				return err
+			}
+			return fs.SkipDir
+		}
+	}
+
+	if strings.HasSuffix(name, "_test.sql") {
+		return p.Tests.addUnit(path)
+	}
+
+	if strings.HasSuffix(name, ".sql") {
+		return p.API.addUnit(path)
+	}
+
+	// Files that aren't recognised are just ignored. This lets us mix pgpkg sql with
+	// other files.
+	return nil
+}
+
+func loadPackage(location string, root fs.FS, options *Options) (*Package, error) {
 
 	pkg := &Package{
-		Name:       config.Package,
-		SchemaName: config.Schema,
-		config:     &config,
-		Location:   location,
-		Root:       root,
-		Options:    options,
+		Location: location,
+		Root:     root,
+		Options:  options,
 	}
 
-	// Load the schema
+	pkg.Schema = &Schema{Bundle: pkg.newBundle()}
+	pkg.API = &API{Bundle: pkg.newBundle()}
+	pkg.Tests = &Tests{Bundle: pkg.newBundle()}
 
-	pkg.Schema, err = pkg.loadSchema(SchemaBundleDir)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load schema bundle %s: %w", SchemaBundleDir, err)
-	}
-
-	// Load the API definitions
-
-	pkg.API, err = pkg.loadAPI(APIBundleDir)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load API bundle %s: %w", APIBundleDir, err)
-	}
-
-	// Load the tests
-
-	pkg.Tests, err = pkg.loadTests(TestBundleDir)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load test bundle %s: %w", TestBundleDir, err)
+	if err := fs.WalkDir(root, ".", pkg.addUnit); err != nil {
+		return nil, fmt.Errorf("unable to load package %s: %w", location, err)
 	}
 
 	return pkg, nil
@@ -417,5 +478,4 @@ func loadPackage(location string, root fs.FS, options *Options) (*Package, error
 
 func (b *Bundle) Location() string {
 	return filepath.Join(b.Package.Location, b.Path)
-	//return b.Path
 }

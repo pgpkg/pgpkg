@@ -14,14 +14,15 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"regexp"
+	"path/filepath"
 	"strings"
 )
 
 type Schema struct {
 	*Bundle
-	migrationState map[string]bool
-	migratedState  map[string]bool
+	migrationIndex []string        // list of paths that need to be migrated, in order
+	migrationState map[string]bool // set of paths that have already been migrated (loaded from DB)
+	migratedState  map[string]bool // set of paths that have been newly migrated
 }
 
 func (p *Package) loadSchema(path string) (*Schema, error) {
@@ -57,33 +58,6 @@ func (s *Schema) ApplyUnit(tx *sql.Tx, u *Unit) error {
 	}
 
 	return nil
-}
-
-// readCatalog reads the contents of a catalog and returns the list of Units
-// identified in it. Returns an error if a unit can't be found.
-func (s *Schema) readCatalog(reader fs.File) ([]*Unit, error) {
-	validNames, _ := regexp.Compile("[^#]*")
-
-	var units []*Unit
-
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		line := scanner.Text()
-		location := strings.TrimSpace(validNames.FindString(line))
-		if location != "" {
-			unit, ok := s.getUnit(location)
-			if !ok {
-				return nil, fmt.Errorf("unit not found: %s", location)
-			}
-			units = append(units, unit)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("unable to read catalog: %w", err)
-	}
-
-	return units, nil
 }
 
 func (s *Schema) loadMigrationState(tx *sql.Tx) error {
@@ -126,15 +100,15 @@ func (s *Schema) Apply(tx *sql.Tx) error {
 		panic("please call loadMigrationState before calling Apply")
 	}
 
-	// The catalog lists schema migration files in strict order.
-	catalog, err := s.Bundle.Open("@index.pgpkg")
-	if err != nil {
-		return err
-	}
+	var units []*Unit
+	var err error
 
-	units, err := s.readCatalog(catalog)
-	if err != nil {
-		return err
+	for _, path := range s.migrationIndex {
+		unit, ok := s.getUnit(path)
+		if !ok {
+			return fmt.Errorf("error: unit not found: %s", path)
+		}
+		units = append(units, unit)
 	}
 
 	// Keep track of the migrations that have been applied.
@@ -155,4 +129,61 @@ func (s *Schema) Apply(tx *sql.Tx) error {
 	s.migratedState = migratedState
 
 	return nil
+}
+
+func (s *Schema) loadMigrations(migrationDir string) error {
+
+	if s.migrationIndex != nil {
+		return fmt.Errorf("multiple migrations detected: %s", migrationDir)
+	}
+
+	paths, err := s.loadCatalog(migrationDir)
+	if err != nil {
+		return fmt.Errorf("unable to load migration catalog: %w", err)
+	}
+
+	s.migrationIndex = paths
+
+	var migrationSet = make(map[string]bool)
+	for _, path := range paths {
+		migrationSet[path] = true
+	}
+
+	return fs.WalkDir(s.Package.Root, migrationDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Ignore non-SQL files
+		if !strings.HasSuffix(path, ".sql") {
+			return nil
+		}
+
+		if !migrationSet[path] {
+			_, _ = fmt.Fprintf(os.Stderr, "warning: %s: not found in %s/@index.pgpkg", path, migrationDir)
+			return nil
+		}
+
+		return s.addUnit(path)
+	})
+}
+
+func (s *Schema) loadCatalog(migrationDir string) ([]string, error) {
+	catalog, err := s.Package.Root.Open(filepath.Join(migrationDir, "@index.pgpkg"))
+	if err != nil {
+		return nil, err
+	}
+
+	var units []string
+
+	scanner := bufio.NewScanner(catalog)
+	for scanner.Scan() {
+		line := scanner.Text()
+		location := strings.TrimSpace(validNames.FindString(line))
+		if location != "" && !strings.HasPrefix(location, "#") {
+			units = append(units, filepath.Join(migrationDir, location))
+		}
+	}
+
+	return units, nil
 }

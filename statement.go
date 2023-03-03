@@ -175,6 +175,28 @@ func getErrorContext(tx *sql.Tx, source string, err error) *PKGErrorContext {
 	return nil
 }
 
+// Exec is a convenience function for debugging errors in Postgresql.
+// It may begin (and roll back) a transaction in order to print debugging information
+// to the console, if the Exec fails.
+func Exec(db *sql.DB, tx *sql.Tx, statement string, args ...any) (sql.Result, error) {
+	result, execErr := tx.Exec(statement, args...)
+	if execErr == nil {
+		return result, nil
+	}
+
+	// If an error occurs, try to find the context. This requires a new transaction, since the
+	// original transaction will now be in an error state.
+	contextTx, txErr := db.Begin()
+	if txErr != nil {
+		return nil, fmt.Errorf("exec error %w (then an error occurred trying to print the stack: %w)", execErr, txErr)
+	}
+
+	pe := getErrorContext(contextTx, statement, execErr)
+	pe.Print(2)
+	_ = contextTx.Rollback()
+	return nil, execErr
+}
+
 func (s *Statement) getErrorContext(tx *sql.Tx, err error) *PKGErrorContext {
 	ec := getErrorContext(tx, s.Source, err)
 	if ec != nil {
