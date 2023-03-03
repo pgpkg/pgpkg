@@ -1,4 +1,4 @@
-# pgpkg - a simple package manager for pl/pgsql
+# pgpkg - a package manager for pl/pgsql
 
 ![pgpkg logo](logo-small.png)
 
@@ -8,16 +8,18 @@
 
 pgpkg is a small and fast command-line package manager for pl/pgsql, the built-in Postgres programming language.
 It's a single binary, written in Go, and tries to make minimal assumptions about your database beyond what
-pgpkg touches.
+pgpkg touches. It should also work with any Postgresql language.
 
 pgpkg is designed to make writing Postgresql stored functions as easy as writing functions in a language like
 Go, Java or Python. It eliminates the need to write migration scripts for functions, views and triggers. You can
-simply edit these objects, and pgpkg will deal with upgrading them.
+simply edit these objects, and pgpkg will deal with upgrading them. If you like, you can mix SQL files with your
+regular code, placing like-named files together in your directory tree.
 
-pgpkg also supports traditional migration scripts for tables, UDTs and other objects.
+In addition to managing functions, views and triggers, pgpkg also supports traditional
+migration scripts for tables, UDTs and other long-lived database objects.
 
 You can use pgpkg to manage the schema for a single application, or you can use
-it to import and manage multiple schemas, just like you would include dependencies in
+it to import and manage multiple schemas, just like you might include dependencies in
 a Go, Java or Python program.
 
 pgpkg installs itself into a database, and does not require any extensions - pgpkg is itself
@@ -66,7 +68,7 @@ in style to Go tests.
 
 * [Features](pages/features.md)
 * [Installing Packages](pages/installing.md)
-* [Package Structure](pages/packages.md)
+* [pgpkg Package Specification](pages/spec.md)
 * [Installation Phases](pages/phases.md)
 * [Writing attractive plpgsql](pages/plpgsql.md)
 * [Safety and Security](pages/safety.md)

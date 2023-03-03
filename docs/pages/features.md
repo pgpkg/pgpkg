@@ -1,16 +1,18 @@
 # pgpkg features
 
 pgpkg eliminates the need to write migration scripts for functions, views  and triggers.
-It does this by treating these objects and updating them if they change, in the same way that a
+It does this by treating these objects  - and updating them if they change - in the same way that a
 function or method in a Go, Java or Python can be changed.
 
 Rather than having to write a migration script for functions, you just change the source code, and
-pgpkg does the rest.
+pgpkg does the rest. It automatically resolves function dependencies and keeps your schema clean.
 
 This is a different approach to most migration tools which treat functions, views and
 triggers in the same way they treat tables and user-defined types. But that's unwieldy.
 It can be really hard to find the current function definition in a migration system,
-and I believe that this leads to functions being seen as difficult to use.
+and I believe that this leads to functions being seen as difficult to use, when in fact
+they require a lot less code and are much more performant than similar functions developed
+outside the database.
 
 ## Parser Based
 
@@ -19,7 +21,7 @@ that pgpkg is able to understand function, view and trigger declarations, and it
 understanding to manage these objects.
 
 In the future, the hope is to continue to extend the use of the parser to enable greater safety,
-as well as the ability to implement features such as schema rewriting.
+as well as the ability to implement important features such as schema rewriting.
 
 ## Schemas and Roles
 
@@ -28,7 +30,7 @@ which is intended to increase the isolation of packages from one another. Packag
 granted access to other schemas unless specifically requested in the package definition.
 
 > Package isolation is a work in progress. Although we create package roles that are unprivileged,
-> privilege escalation is almost certainly possible during migrations.
+> at this time you should assume that privilege escalation is possible during migrations.
 
 ## Notice logging
 

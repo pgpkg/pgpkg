@@ -7,10 +7,10 @@
 **Create schema and roles**. The schema is created with the package's role as owner. If the owner or schema
 already exist, they are assumed to belong to this package.
 
-**Parse the API**. Bail early if there are issues with the code.
+**Parse the managed SQL**. Bail early if there are issues with the code.
 
-**Remove old API objects**. Functions, views and triggers that were managed by `pgpkg` are removed;
-note that they can't be used during a migration.
+**Remove managed objects**. Functions, views and triggers that were previously managed by
+`pgpkg` are removed; note that they can't be used during a migration.
 
 **Grant access**. The new schema is granted access to schemas named the `Uses` clause. This means
 that migrations *can* use functions, tables and other objects that they depend on.
@@ -18,10 +18,10 @@ that migrations *can* use functions, tables and other objects that they depend o
 Once this work is performed, the effective role is changed to the schema owner. As this user,
 `pgpkg` will:
 
-**Perform migration**. Run the migration scripts in order, and record for posterity.
+**Perform migrations**. Run the migration scripts in order, and record for posterity.
 
-**Install API**. Functions, views and triggers are created. Dependencies are automagically resolved.
+**Install managed objects**. Functions, views and triggers are created. Dependencies are automagically resolved.
 
-**Run Tests**. Tests are called `test_xxx` and are run in random order.
+**Run Tests**. Tests functions are called `test_xxx` and are run in random order.
 
 **Commit**. If all went well, the transaction is committed.

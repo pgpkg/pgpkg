@@ -25,16 +25,16 @@ sanitize it much yet.
 
 Some known issues include:
 
-`schema` scripts can run any SQL - in particular:
+Migration scripts can run *any* SQL - in particular:
 * `commit work` / `rollback work`
 * `reset role` and possibly `set role`
 * `execute`
 
-`api` and `tests` scripts can run:
-  * `reset role`
+Managed objects and tests can run:
+  * `reset role` and the equivalent `authorization` commands
   * `execute`
 
-Some DDL commands may not sanitise their inputs.
+Some DDL commands may not yet sanitise their inputs (TODO).
 
 ## Roles
 
@@ -60,6 +60,14 @@ path is also set during migrations and tests.
 Note that it's easy to change the `search_path`, and even without changing it, you can simply write code
 that refers to any other schema. However, this approach is thwarted during upgrades because the schema role
 doesn't have access to other schemas.
+
+## Security Definer
+
+To ensure that functions can't access objects outside the package (schema) in which they are
+defined, functions are owned by the schema and are declared with the  `security definer`
+option.
+
+This behaviour will be extended to views in the future.
 
 ## Automatic `grants`
 

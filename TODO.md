@@ -1,6 +1,10 @@
 # pgpkg todo
 
+- [ ] rename "API" to "Managed" or "Declarations" or something (also in the example package structure)
+- [ ] package loading should start at the pgpkg.toml file.
 - [ ] update docs to explain the new package layout / structure
+- [ ] pgpkg upgrades can happen in a different tx to others. Open/Init/Install are confusing.
+- [ ] packages are treated individually which will cause dependency problems.
 - [ ] Allow more complete integration with source trees:
     - [ ] change "@index.pgpkg" to "@migration.pgpkg"
     - [ ] try it out using mixed sql + go code
