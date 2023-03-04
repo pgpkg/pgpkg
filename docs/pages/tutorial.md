@@ -10,7 +10,8 @@ schemas and roles.
 > NOTE: `pgpkg` uses the same `PGDATABASE` and other environment variables as `psql`.
 > It does not yet support command-line options to override the environment.
 
-You currently need Go 1.20 installed. (This requirement will be relaxed soon).
+You currently need [Go 1.20](https://go.dev/dl/) installed.
+(We will release binary packages soon).
 
 ## Installing pgpkg
 
@@ -39,13 +40,13 @@ Create your first stored function in `func.sql`:
     $$;
 
 Note that all functions, tables and other objects need to be qualified with
-the schema name, which in this case is 'hello'.
+the schema name, which was set to 'hello' in the `pgpkg.toml` file we just created.
 
 Apply the function to your database:
 
     $ pgpkg .
 
-(if you want to see what it does, use `pgpkg -verbose .`)
+(if you want to see what `pgpkg` actually does, use `pgpkg -verbose .`)
 
 If all goes well, you now have a function:
 
@@ -65,7 +66,7 @@ Hmm, that didn't quite work how we wanted. Let's change the function. Edit func.
       end;
     $$;
 
-Install it:
+Update the database:
 
     $ pgpkg .
 
@@ -82,9 +83,10 @@ That's it! You've written your first pgpkg application.
 
 ## Creating a database table
 
-Database tables are created using a migration script, so let's create one.
+Database tables are created using migration scripts, so let's create one.
 
-First, create a directory to hold your migration scripts:
+First, create a directory to hold your migration scripts. By convention, we
+call this `schema`:
 
     $ mkdir schema
 
@@ -95,7 +97,7 @@ Let's create a table called 'contact'. Edit `schema/contact.sql`:
     );
 
 We need to tell pgpkg the order in which migration scripts need to be run.
-To do this, edit the file `schema/@index.pgpkg` and add the single line:
+To do this, edit the file `schema/@index.pgpkg`, and add the single line:
 
     contact.sql
 
@@ -111,18 +113,20 @@ Let's see if the table exists:
     ------
     (0 rows)
     
-We forgot to populate the table, so let's add another migration script.
-Call it contact@001.sql, the first update to the contact table. Edit the
+We forgot to populate the table! So, let's add another migration script.
+Call it contact@001.sql, the first change to the contact table. Edit the
 file `schema/contact@001.sql`:
 
     insert into hello.contact (name) values ('Postgresql Community');
 
-Add this new migration script to the schema/@index.pgpkg, so it looks like this:
+Remember that pgpkg needs to know the order in which migrations will run, so you
+need to add this new migration script to `schema/@index.pgpkg`. It should now
+look like this:
 
     contact.sql
     contact@001.sql
 
-Apply the update:
+Apply the updated package to the database:
 
     $ pgpkg .
 
@@ -136,15 +140,14 @@ Let's see if the data has been added:
     (1 row)
 
 Great! Note that the filename `contact@001.sql` is just a convention. It's not
-required by pgpkg, which only cares about what's in the `@index.pgpkg` file.
+required by pgpkg, which only cares about the list of filenames in `@index.pgpkg`.
 However, this naming convention means that most IDEs will list migrations in
 order, with `contact.sql` followed by `contact@001.sql`. This makes reading migrations
 much easier.
 
 Now, let's use that data in a new function!
 
-Edit `world.sql` (this file should be in the top-level folder of your package, not
-in the migration directory):
+Edit `world.sql`:
 
     create or replace function hello.world() returns text language plpgsql as $$
         declare
@@ -156,7 +159,7 @@ in the migration directory):
         end;
     $$;
     
-Apply the new function:
+Apply the updated package again:
 
     $ pgpkg .
 
@@ -169,10 +172,12 @@ And now let's see if it worked:
     Postgresql Community
     (1 row)
 
+It worked! Now, let's write a test to make sure it keeps working.
+
 ## Unit Tests
 
-`pgpkg` regards any filename ending in `_test.sql` as a test. Try adding this script
-to `world_test.sql` in your top-level directory:
+`pgpkg` regards any SQL file ending in `_test.sql` as a test. Try adding this script
+to `world_test.sql` to your project:
 
     create or replace function hello.test_world() returns void language plpgsql as $$
         begin
@@ -182,11 +187,11 @@ to `world_test.sql` in your top-level directory:
         end;
     $$;
 
-Now, apply the schema:
+As usual, apply the changes to the database:
 
     $ pgpkg .
 
-The test will have been applied, but you didn't see anything because it passed.
+The test will have been applied, but you won't see anything if it passes.
 
 To demonstrate this, use `-summary`:
 
@@ -194,9 +199,29 @@ To demonstrate this, use `-summary`:
     github.com/bookwork/pgpkg: installed 0 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 0 test(s) run
     github.com/example/hello-pgpkg: installed 2 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 1 test(s) run
 
-You can see in the second example that one test ran.
+You can see that one test ran in your package (the other package is `pgpkg` itself).
 
-Let's break the test.
+You can add `raise notice` commands to your tests to log information to the console
+during the testing process. Edit `world_test.sql` to add a notice:
+
+    create or replace function hello.test_world() returns void language plpgsql as $$
+        begin
+            raise notice 'Testing the world';
+            if hello.world() <> 'Postgresql Community' then
+                raise exception 'the world is not right';
+            end if;
+        end;
+    $$;
+
+Let's install it, which will run the test:
+
+    $ pgpkg .           
+    [notice]: Testing the world
+
+Any `raise notice` commands from tests that run will be printed to the console.
+Messages raised by migrations will also be displayed. 
+
+A successful test is one that finds a problem - so let's create a problem!
 
     $ psql
     psql> update hello.contact set name = 'World';
@@ -205,15 +230,16 @@ Let's break the test.
 Now, reinstall the package, which will re-run the tests:
 
     $ pgpkg .         
+    [notice]: Testing the world
     ./world_test.sql:1: test failed: hello.test_world(): pq: the world is not right
-           2:   begin
-           3:     if hello.world() <> 'Postgresql Community' then
-    -->    4:       raise exception 'the world is not right';
-           5:     end if;
-           6:   end;
-    PL/pgSQL function test_world() line 4 at RAISE
+           3:         raise notice 'Testing the world';
+           4:         if hello.world() <> 'Postgresql Community' then
+    -->    5:             raise exception 'the world is not right';
+           6:         end if;
+           7:     end;
+    PL/pgSQL function test_world() line 5 at RAISE
 
-`pgpkg` reports that the test failed, and shows where it happened.
+`pgpkg` reports that the test failed - and shows where it happened.
 
 ## Package Overview
 
@@ -268,7 +294,7 @@ You can put tests, functions, views and triggers in any file, as long as there i
 
 ## Purging schemas
 
-When working with a new database schema, you will often want to throw your code
+When working with a new database schema, you will often want to throw your database
 away and start again - you don't want to create a bunch of migration scripts for
 changes that nobody will ever see.
 
@@ -276,4 +302,5 @@ pgpkg doesn't currently have a mechanism to enable this, but you can safely drop
 the `pgpkg` schema (as well as your other schemas) in order to reset the database.
 Take care that any test data you create can be recreated.
 
-`pgpkg` will provide tools to help develop a new schema in the future.
+Future versions of `pgpkg` will provide tools to help develop new schemas. For now,
+the process is a bit manual.
