@@ -23,23 +23,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := pgpkg.Open("", options)
+	fsList, err := pgpkg.FSList(pkgPaths...)
 	if err != nil {
 		pgpkg.Exit(err)
 	}
 
-	tx, err := db.Begin()
+	db, err := pgpkg.Open("", options, fsList...)
 	if err != nil {
 		pgpkg.Exit(err)
 	}
 
-	if err = pgpkg.Install(tx, options, flag.Args()...); err != nil {
-		pgpkg.Exit(err)
-	}
-
-	err = tx.Commit()
+	err = db.Close()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "pgpkg: unable to commit database changes: %v", err)
-		os.Exit(1)
+		pgpkg.Exit(err)
 	}
 }

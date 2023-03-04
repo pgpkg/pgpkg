@@ -1,6 +1,6 @@
 # pgpkg todo
 
-- [ ] pgpkg upgrades can happen in a different tx to others. Open/Init/Install are confusing.
+- [X] pgpkg upgrades can happen in a different tx to others. Open/Init/Install are confusing
 - [ ] packages are treated individually which will cause dependency problems.
 - [ ] rename "API" to "Managed" or "Declarations" or something (also in the example package structure)
 - [ ] pgpkg cli should search parents like Git does
