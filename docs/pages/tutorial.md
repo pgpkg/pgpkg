@@ -177,7 +177,7 @@ It worked! Now, let's write a test to make sure it keeps working.
 ## Unit Tests
 
 `pgpkg` regards any SQL file ending in `_test.sql` as a test. Try adding this script
-to `world_test.sql` to your project:
+to `world_test.sql` in your project:
 
     create or replace function hello.test_world() returns void language plpgsql as $$
         begin
