@@ -1,0 +1,2 @@
+Package = "github.com/example/hello-pgpkg"
+Schema = "hello"

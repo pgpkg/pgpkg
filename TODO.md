@@ -1,6 +1,7 @@
 # pgpkg todo
 
 - [ ] rename "API" to "Managed" or "Declarations" or something (also in the example package structure)
+- [ ] pgpkg cli should search parents like Git does 
 - [ ] package loading should start at the pgpkg.toml file.
 - [ ] update docs to explain the new package layout / structure
 - [ ] pgpkg upgrades can happen in a different tx to others. Open/Init/Install are confusing.

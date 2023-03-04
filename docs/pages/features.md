@@ -7,7 +7,7 @@ function or method in a Go, Java or Python can be changed.
 Rather than having to write a migration script for functions, you just change the source code, and
 pgpkg does the rest. It automatically resolves function dependencies and keeps your schema clean.
 
-This is a different approach to most migration tools which treat functions, views and
+This is a different approach from most migration tools which treat functions, views and
 triggers in the same way they treat tables and user-defined types. But that's unwieldy.
 It can be really hard to find the current function definition in a migration system,
 and I believe that this leads to functions being seen as difficult to use, when in fact

@@ -1,0 +1,279 @@
+# Getting Started with pgpkg
+
+> This tutorial is a work in progress. Please forgive the brevity.
+
+## Prerequisites
+
+You need access to a Postgresql database, and you need permission to be able to create
+schemas and roles.
+
+> NOTE: `pgpkg` uses the same `PGDATABASE` and other environment variables as `psql`.
+> It does not yet support command-line options to override the environment.
+
+You currently need Go 1.20 installed. (This requirement will be relaxed soon).
+
+## Installing pgpkg
+
+Install pgpkg:
+
+    $ go install github.com/pgpkg/cmd/pgpkg
+
+## Writing your first function
+
+Create a folder for your project:
+
+    $ mkdir hello-pgpkg
+    $ cd hello-pgpkg
+
+Create a `pgpkg.toml` file in the folder with the contents:
+
+    Package = "github.com/example/hello-pgpkg"
+    Schema = "hello"
+
+Create your first stored function in `func.sql`:
+
+    create or replace function hello.func() returns void language plpgsql as $$
+      begin
+        raise notice 'Hello, world!';
+      end;
+    $$;
+
+Note that all functions, tables and other objects need to be qualified with
+the schema name, which in this case is 'hello'.
+
+Apply the function to your database:
+
+    $ pgpkg .
+
+(if you want to see what it does, use `pgpkg -verbose .`)
+
+If all goes well, you now have a function:
+
+    $ psql
+    psql> select hello.func();
+    NOTICE:  Hello, world!
+    func
+    ------
+    
+    (1 row)
+
+Hmm, that didn't quite work how we wanted. Let's change the function. Edit func.sql:
+
+    create or replace function hello.func() returns text language plpgsql as $$
+      begin
+        return 'Hello, world!';
+      end;
+    $$;
+
+Install it:
+
+    $ pgpkg .
+
+And run it again:
+
+    $ psql
+    psql> select hello.func();
+    func
+    ---------------
+    Hello, world!
+    (1 row)
+
+That's it! You've written your first pgpkg application.
+
+## Creating a database table
+
+Database tables are created using a migration script, so let's create one.
+
+First, create a directory to hold your migration scripts:
+
+    $ mkdir schema
+
+Let's create a table called 'contact'. Edit `schema/contact.sql`:
+
+    create table hello.contact (
+        name text
+    );
+
+We need to tell pgpkg the order in which migration scripts need to be run.
+To do this, edit the file `schema/@index.pgpkg` and add the single line:
+
+    contact.sql
+
+Now, apply the updated package:
+
+    $ pgpkg .
+
+Let's see if the table exists:
+
+    $ psql
+    psql> select * from hello.contact;
+    name
+    ------
+    (0 rows)
+    
+We forgot to populate the table, so let's add another migration script.
+Call it contact@001.sql, the first update to the contact table. Edit the
+file `schema/contact@001.sql`:
+
+    insert into hello.contact (name) values ('Postgresql Community');
+
+Add this new migration script to the schema/@index.pgpkg, so it looks like this:
+
+    contact.sql
+    contact@001.sql
+
+Apply the update:
+
+    $ pgpkg .
+
+Let's see if the data has been added:
+
+    $ psql
+    psql> select * from hello.contact;
+    name
+    ----------------------
+    Postgresql Community
+    (1 row)
+
+Great! Note that the filename `contact@001.sql` is just a convention. It's not
+required by pgpkg, which only cares about what's in the `@index.pgpkg` file.
+However, this naming convention means that most IDEs will list migrations in
+order, with `contact.sql` followed by `contact@001.sql`. This makes reading migrations
+much easier.
+
+Now, let's use that data in a new function!
+
+Edit `world.sql` (this file should be in the top-level folder of your package, not
+in the migration directory):
+
+    create or replace function hello.world() returns text language plpgsql as $$
+        declare
+            _who text;
+    
+        begin
+            select name into _who strict from hello.contact;
+            return _who;
+        end;
+    $$;
+    
+Apply the new function:
+
+    $ pgpkg .
+
+And now let's see if it worked:
+
+    $ psql
+    psql> select hello.world();
+            world         
+    ----------------------
+    Postgresql Community
+    (1 row)
+
+## Unit Tests
+
+`pgpkg` regards any filename ending in `_test.sql` as a test. Try adding this script
+to `world_test.sql` in your top-level directory:
+
+    create or replace function hello.test_world() returns void language plpgsql as $$
+        begin
+            if hello.world() <> 'Postgresql Community' then
+                raise exception 'the world is not right';
+            end if;
+        end;
+    $$;
+
+Now, apply the schema:
+
+    $ pgpkg .
+
+The test will have been applied, but you didn't see anything because it passed.
+
+To demonstrate this, use `-summary`:
+
+    $ pgpkg -summary .
+    github.com/bookwork/pgpkg: installed 0 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 0 test(s) run
+    github.com/example/hello-pgpkg: installed 2 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 1 test(s) run
+
+You can see in the second example that one test ran.
+
+Let's break the test.
+
+    $ psql
+    psql> update hello.contact set name = 'World';
+    UPDATE 1
+
+Now, reinstall the package, which will re-run the tests:
+
+    $ pgpkg .         
+    ./world_test.sql:1: test failed: hello.test_world(): pq: the world is not right
+           2:   begin
+           3:     if hello.world() <> 'Postgresql Community' then
+    -->    4:       raise exception 'the world is not right';
+           5:     end if;
+           6:   end;
+    PL/pgSQL function test_world() line 4 at RAISE
+
+`pgpkg` reports that the test failed, and shows where it happened.
+
+## Package Overview
+
+Here's the directory tree that we created:
+
+    ├── func.sql
+    ├── pgpkg.toml
+    ├── schema
+    │   ├── @index.pgpkg
+    │   ├── contact.sql
+    │   └── contact@001.sql
+    ├── world.sql
+    └── world_test.sql
+
+`world.sql` and `func.sql` contain your stored functions; the `schema` directory
+contains your migration scripts.
+
+In just a few files we've been able to create a complete environment for
+editing stored procedures in an IDE, the same way we edit regular programming code.
+We've also added unit tests - which are just functions that are run after a migration.
+
+## Working with other languages
+
+`pgpkg` will work with any directory that contains `pgpkg.toml`, and will ignore
+files that don't end in `.sql`. This means you can mix SQL and (say) Go files in the
+same directory:
+
+    ├── func.sql
+    ├── go.mod
+    ├── go.sum
+    ├── main.go
+    ├── pgpkg.toml
+    ├── schema
+    │   ├── @index.pgpkg
+    │   ├── contact.sql
+    │   └── contact@001.sql
+    ├── world.go
+    ├── world.sql
+    └── world_test.go
+
+In this example, you can imagine the code in `world.go` is used to access the
+function in `world.sql`. You can easily jump between the SQL and Go code in your IDE.
+This is the real benefit of pgpkg.
+
+Note that, apart from the schema folder, this directory structure is mostly arbitrary.
+You can put tests, functions, views and triggers in any file, as long as there is a
+`pgpkg.toml` file in the parent somewhere.
+
+## Integrating with Go
+
+(to be done)
+
+## Purging schemas
+
+When working with a new database schema, you will often want to throw your code
+away and start again - you don't want to create a bunch of migration scripts for
+changes that nobody will ever see.
+
+pgpkg doesn't currently have a mechanism to enable this, but you can safely drop
+the `pgpkg` schema (as well as your other schemas) in order to reset the database.
+Take care that any test data you create can be recreated.
+
+`pgpkg` will provide tools to help develop a new schema in the future.
