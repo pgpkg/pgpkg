@@ -1,4 +1,3 @@
-    create table hello.contact (
-        name text
-    );
-
+create table hello.contact (
+    name text
+);

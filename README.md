@@ -2,31 +2,18 @@
 
 ![pgpkg logo](docs/logo-small.png)
 
-pgpkg is a small and fast package manager for pl/pgsql, the built-in Postgres programming language.
-It's a single binary (written in Go), and tries to make minimal assumptions about your database beyond what
-pgpkg itself touches.
+pgpkg is a small and fast command-line tool (and Go library) which is designed to make writing Postgresql
+stored functions as easy as writing functions in any other language, such as Go, Java or Python.
 
-## Why pgpkg
+pgpkg enables your SQL code to live side-by-side with your regular code, and lets you use the exact same
+workflows. You can edit your SQL functions in the same IDE, commit them to the same Git repository,
+review them with PRs alongside other changes, and deploy them seamlessly to production.
 
-Unlike regular migration tools, pgpkg is designed to make writing Postgresql stored functions as easy as writing
-functions in a language like Go, Java or Python.
+## Tutorial
 
-**pgpkg eliminates the need to write migration scripts for functions,
-views and triggers**. You can simply edit these objects in your regular text editor, and pgpkg will deal
-with upgrading them. If you like, you can even mix SQL files with your
-regular code, placing like-named files together in your directory tree.
-
-pgpkg supports traditional, incremental migration scripts for tables, user-defined
-types, and other objects.
-
-You can use pgpkg to manage the schema for a single application, or you can use
-it to import and manage multiple schemas (coming soon), just like you would include dependencies in
-a Go, Java or Python program.
-
-pgpkg installs itself into a database, and does not require any extensions - pgpkg is itself
-a pgpkg package! pgpkg and dependencies can be incorporated directly into Go programs as a
-library, making Go applications self-migrating. The binary and packages can be included
-as part of deployments for other languages such as Java or Python.
+The [tutorial for using pgpkg](docs/pages/tutorial.md) contains a worked example for
+writing functions, unit tests and migration scripts. You can see the example
+code created in the tutorial [here](https://github.com/pgpkg/pgpkg/tree/main/example).
 
 ## Status
 
