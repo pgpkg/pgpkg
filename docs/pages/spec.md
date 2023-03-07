@@ -79,15 +79,17 @@ into the same schema.
 install these extensions for you.
 
 `Uses` provides a list of packages that this package depends on. pgpkg will automatically
-add grants to the package's role to enable it to access these packages.
+add grants to the package's role to enable it to access the contents of these packages.
 
 > pgpkg doesn't yet manage dependencies; you have to install them manually.
 > However, pgpkg does keep track of which packages have been installed, and will automatically
 > manage upgrades of those packages.
 
-When a package is installed, `pgpkg` creates both the named schema and a matching role. Objects
-created in the package are owned by the role. Except when a `Uses` clause is present,
-the role created for a package does not have permission to access any other package.
+When a package is installed, `pgpkg` creates both the named schema and a matching role.
+The role name is the schema name prefixed with `$`; for example, schema `finance` will
+be owned by role `$finance`. Objects created in the package are owned by the role. Unless
+a `Uses` clause is present, the role created for a package does not have permission
+to access any other package.
 
 See [safety](safety.md) for more information.
 
@@ -109,8 +111,8 @@ The migration folder can contain SQL scripts that are typical for a database mig
 When pgpkg begins a migration, it runs any scripts it hasn't seen before, the order specified
 in `@index.pgpkg`.
 
-Scripts are run with the schema name as the effective database role, so objects created
-by a migration are owned by the package's schema.
+Scripts are run with the role name  of the package (`$schema`), so objects created by a
+migration are owned by the package's schema.
 
 The path name of migration scripts, relative to the migration directory, is used to determine
 if a migration script needs to be run. This path name includes the name of any subdirectories

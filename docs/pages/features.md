@@ -23,11 +23,14 @@ understanding to manage these objects.
 In the future, the hope is to continue to extend the use of the parser to enable greater safety,
 as well as the ability to implement important features such as schema rewriting.
 
-## Schemas and Roles
+## Schemas, Roles and Package Isolation
 
 pgpkg installs packages into individual schemas. Each schema is also assigned a unique database role,
 which is intended to increase the isolation of packages from one another. Package roles are not
 granted access to other schemas unless specifically requested in the package definition.
+
+To avoid conflicts with user roles, pgpkg prefixes the schema name with a `$` to form the role name.
+For example, the role associated with schema "finance" is `$finance`.
 
 > Package isolation is a work in progress. Although we create package roles that are unprivileged,
 > at this time you should assume that privilege escalation is possible during migrations.

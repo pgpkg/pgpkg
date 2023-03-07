@@ -13,6 +13,26 @@ schemas and roles.
 You currently need [Go 1.20](https://go.dev/dl/) installed.
 (We will release binary packages soon).
 
+## Permissions and Environment
+
+pgpkg is designed to work with reduced permissions, which may be necessary for hosted
+Postgres databases such as Supabase or Vultr. If you have a superuser account, you can
+skip this section.
+
+To create a database user `pgadm` with sufficient privileges to install a package:
+
+    create role pgadm with createrole login password {{password-in-single-quotes}};
+    grant create on database {{PGDATABASE}} to pgadm;
+
+Then before running pgpkg, you need to set the PG environment:
+
+    export PGUSER=pgadm
+    export PGPASSWORD={{password-in-single-quotes}}
+
+`pgpkg` will automatically create roles for each package that it installs. These roles
+will be prefixed with `$` so that they can be easily differentiated from regular roles.
+Note however that if you use `$` in your own role names, collisions may be possible.
+
 ## Installing pgpkg
 
 Install pgpkg:

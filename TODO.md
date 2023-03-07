@@ -85,3 +85,4 @@
 - [X] pgpkg recording OUT params when constructing function signature
 - [X] schema path stored in pgpkg.migration is not relative to @index.pgpkg so different invocations do different things.
 - [X] pgpkg upgrades can happen in a different tx to others. Open/Init/Install are confusing
+- [X] prefix roles with "$" to reduce conflicts with real roles

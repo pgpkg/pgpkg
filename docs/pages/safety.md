@@ -39,9 +39,11 @@ Some DDL commands may not yet sanitise their inputs (TODO).
 ## Roles
 
 When a request is made to install a package into a particular schema, `pgpkg` creates both a schema
-and a role for the package. The schema and role have the same name.
+and an associated role for the package. The role name is the schema name, prefixed with `$`.
+For example, schema `finance` is associated with the role `$finance`. This is intended to
+reduce the likelihood of collisions with existing or future role names.
 
-The package's schema is owned by the role, which means that the role can be used to create and access
+The package's schema is owned by its role, which means that the role can be used to create and access
 objects within the schema, but not to access other schemas.
 
 ## Privilege Dropping
@@ -50,6 +52,8 @@ During installation of a package, `pgpkg` drops privileges when it runs code fro
 Unfortunately, at the moment a package can trivially restore privileges using `reset role`.
 This means that packages can easily escalate their privileges to the level of the user
 who invoked `pgpkg`.
+
+It is likely that this problem can be resolved, but we're not there yet.
 
 ## Schema search path
 

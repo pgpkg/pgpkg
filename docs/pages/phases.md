@@ -4,7 +4,7 @@
 
 **Lock pgpkg**. Only one instance of pgpkg can run at a time.
 
-**Create schema and roles**. The schema is created with the package's role as owner. If the owner or schema
+**Create schema and roles**. A schema called `schema` is owned by a role called `$schema`. If the owner or schema
 already exist, they are assumed to belong to this package.
 
 **Parse the managed SQL**. Bail early if there are issues with the code.
@@ -15,7 +15,7 @@ already exist, they are assumed to belong to this package.
 **Grant access**. The new schema is granted access to schemas named the `Uses` clause. This means
 that migrations *can* use functions, tables and other objects that they depend on.
 
-Once this work is performed, the effective role is changed to the schema owner. As this user,
+Once this work is performed, the effective role is changed to the schema owner (`$schema`). As this user,
 `pgpkg` will:
 
 **Perform migrations**. Run the migration scripts in order, and record for posterity.

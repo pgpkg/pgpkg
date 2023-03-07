@@ -47,6 +47,7 @@ type Package struct {
 	Location   string   // Location of this package
 	Root       fs.FS    // The filesystem that holds the package
 	SchemaName string   // packages own a single schema
+	RoleName   string   // Associated role name
 	Options    *Options // installation options
 
 	StatFuncCount      int // Stat showing the number of functions in the package
@@ -194,9 +195,9 @@ func (p *Package) QueryRow(tx *sql.Tx, query string, args ...any) *sql.Row {
 }
 
 func (p *Package) setRole(tx *sql.Tx) {
-	_, err := p.Exec(tx, fmt.Sprintf("set role \"%s\"", p.SchemaName))
+	_, err := p.Exec(tx, fmt.Sprintf("set role \"%s\"", p.RoleName))
 	if err != nil {
-		panic(fmt.Errorf("unable to change to role %s: %w", p.SchemaName, err))
+		panic(fmt.Errorf("unable to change to role %s: %w", p.RoleName, err))
 	}
 }
 
@@ -209,7 +210,7 @@ func (p *Package) resetRole(tx *sql.Tx) {
 
 func (p *Package) hasRole(tx *sql.Tx) bool {
 	var roleCount int
-	row := p.QueryRow(tx, "select count(*) from pg_roles where rolname=$1", p.SchemaName)
+	row := p.QueryRow(tx, "select count(*) from pg_roles where rolname=$1", p.RoleName)
 	err := row.Scan(&roleCount)
 	if err != nil {
 		panic(err)
@@ -222,20 +223,20 @@ func (p *Package) createSchema(tx *sql.Tx) error {
 	defer LogLouder()
 
 	if !p.hasRole(tx) {
-		_, err := p.Exec(tx, fmt.Sprintf("create role \"%s\"", p.SchemaName))
+		_, err := p.Exec(tx, fmt.Sprintf("create role \"%s\"", p.RoleName))
 		if err != nil {
 			return fmt.Errorf("unable to create role %s: %w", p.SchemaName, err)
 		}
 
 		// The user running these scripts may not be a superuser (but must have create role),
 		// so we need to extend access to the new role.
-		_, err = p.Exec(tx, fmt.Sprintf("grant \"%s\" to current_user", p.SchemaName))
+		_, err = p.Exec(tx, fmt.Sprintf("grant \"%s\" to current_user", p.RoleName))
 		if err != nil {
-			return fmt.Errorf("unable to grant role %s to current_user: %w", p.SchemaName, err)
+			return fmt.Errorf("unable to grant role %s to current_user: %w", p.RoleName, err)
 		}
 	}
 
-	_, err := p.Exec(tx, fmt.Sprintf("create schema if not exists \"%s\" authorization \"%s\"", p.SchemaName, p.SchemaName))
+	_, err := p.Exec(tx, fmt.Sprintf("create schema if not exists \"%s\" authorization \"%s\"", p.SchemaName, p.RoleName))
 	if err != nil {
 		return fmt.Errorf("unable to create schema %s: %w", p.SchemaName, err)
 	}
@@ -268,19 +269,19 @@ func (p *Package) grantPackage(tx *sql.Tx, pkgName string) error {
 		return err
 	}
 
-	if _, err := p.Exec(tx, fmt.Sprintf(`grant usage on schema "%s" to "%s"`, schemaName, p.SchemaName)); err != nil {
+	if _, err := p.Exec(tx, fmt.Sprintf(`grant usage on schema "%s" to "%s"`, schemaName, p.RoleName)); err != nil {
 		return err
 	}
 
-	if _, err := p.Exec(tx, fmt.Sprintf(`grant execute on all functions in schema "%s" to "%s"`, schemaName, p.SchemaName)); err != nil {
+	if _, err := p.Exec(tx, fmt.Sprintf(`grant execute on all functions in schema "%s" to "%s"`, schemaName, p.RoleName)); err != nil {
 		return err
 	}
 
-	if _, err := p.Exec(tx, fmt.Sprintf(`grant select, update, insert, references on all tables in schema "%s" to "%s"`, schemaName, p.SchemaName)); err != nil {
+	if _, err := p.Exec(tx, fmt.Sprintf(`grant select, update, insert, references on all tables in schema "%s" to "%s"`, schemaName, p.RoleName)); err != nil {
 		return err
 	}
 
-	if _, err := p.Exec(tx, fmt.Sprintf(`grant usage on all sequences in schema "%s" to "%s"`, schemaName, p.SchemaName)); err != nil {
+	if _, err := p.Exec(tx, fmt.Sprintf(`grant usage on all sequences in schema "%s" to "%s"`, schemaName, p.RoleName)); err != nil {
 		return err
 	}
 
@@ -421,6 +422,7 @@ func (p *Package) loadConfig(tomlPath string) error {
 
 	p.Name = config.Package
 	p.SchemaName = config.Schema
+	p.RoleName = "$" + p.SchemaName
 	p.config = &config
 
 	return nil
