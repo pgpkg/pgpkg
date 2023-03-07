@@ -20,6 +20,7 @@ import (
 
 type Schema struct {
 	*Bundle
+	migrationDir   string          // root of migration directory (ie, the location of @index.pgpkg)
 	migrationIndex []string        // list of paths that need to be migrated, in order
 	migrationState map[string]bool // set of paths that have already been migrated (loaded from DB)
 	migratedState  map[string]bool // set of paths that have been newly migrated
@@ -65,7 +66,7 @@ func (s *Schema) loadMigrationState(tx *sql.Tx) error {
 
 	// Grab the list of updates that have already been performed
 	// This check is disabled when pgpkg decides it needs to self-install.
-	if !s.Package.DisableMigrationCheck {
+	if !s.Package.bootstrapSchema {
 		migrations, err := tx.Query("select path from pgpkg.migration where pkg=$1", s.Package.Name)
 		if err != nil {
 			return fmt.Errorf("unable to get migration status: %w", err)
@@ -100,29 +101,25 @@ func (s *Schema) Apply(tx *sql.Tx) error {
 		panic("please call loadMigrationState before calling Apply")
 	}
 
-	var units []*Unit
 	var err error
 
-	for _, path := range s.migrationIndex {
-		unit, ok := s.getUnit(path)
-		if !ok {
-			return fmt.Errorf("error: unit not found: %s", path)
-		}
-		units = append(units, unit)
-	}
-
-	// Keep track of the migrations that have been applied.
 	migratedState := make(map[string]bool)
 
-	for _, u := range units {
-		if !s.migrationState[u.Path] {
-			err = s.ApplyUnit(tx, u)
+	for _, path := range s.migrationIndex {
+		unitPath := filepath.Join(s.migrationDir, path)
+		if !s.migrationState[path] {
+			unit, ok := s.getUnit(unitPath)
+			if !ok {
+				return fmt.Errorf("error: unit not found: %s", unitPath)
+			}
+
+			err = s.ApplyUnit(tx, unit)
 			if err != nil {
 				return err
 			}
 
 			s.Package.StatMigrationCount++
-			migratedState[u.Path] = true
+			migratedState[path] = true
 		}
 	}
 
@@ -142,6 +139,7 @@ func (s *Schema) loadMigrations(migrationDir string) error {
 		return fmt.Errorf("unable to load migration catalog: %w", err)
 	}
 
+	s.migrationDir = migrationDir
 	s.migrationIndex = paths
 
 	var migrationSet = make(map[string]bool)
@@ -154,13 +152,18 @@ func (s *Schema) loadMigrations(migrationDir string) error {
 			return err
 		}
 
+		relPath, err := filepath.Rel(migrationDir, path)
+		if err != nil {
+			return err
+		}
+
 		// Ignore non-SQL files
-		if !strings.HasSuffix(path, ".sql") {
+		if !strings.HasSuffix(relPath, ".sql") {
 			return nil
 		}
 
-		if !migrationSet[path] {
-			_, _ = fmt.Fprintf(os.Stderr, "warning: %s: not found in %s/@index.pgpkg", path, migrationDir)
+		if !migrationSet[relPath] {
+			_, _ = fmt.Fprintf(os.Stderr, "warning: %s: not found in %s/@index.pgpkg\n", relPath, migrationDir)
 			return nil
 		}
 
@@ -174,16 +177,16 @@ func (s *Schema) loadCatalog(migrationDir string) ([]string, error) {
 		return nil, err
 	}
 
-	var units []string
+	var migrationPaths []string
 
 	scanner := bufio.NewScanner(catalog)
 	for scanner.Scan() {
 		line := scanner.Text()
 		location := strings.TrimSpace(validNames.FindString(line))
 		if location != "" && !strings.HasPrefix(location, "#") {
-			units = append(units, filepath.Join(migrationDir, location))
+			migrationPaths = append(migrationPaths, location)
 		}
 	}
 
-	return units, nil
+	return migrationPaths, nil
 }

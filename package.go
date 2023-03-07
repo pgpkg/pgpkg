@@ -43,12 +43,11 @@ var pgIdentifierRegexp = regexp.MustCompile("^[\\pL_][\\pL0-9_$]*$")
 //
 
 type Package struct {
-	Name                  string   // canonical, unique name of the pgpkg package
-	Location              string   // Location of this package
-	Root                  fs.FS    // The filesystem that holds the package
-	SchemaName            string   // packages own a single schema
-	DisableMigrationCheck bool     // migrate without checking migration table. Allows pgpkg to bootstrap itself.
-	Options               *Options // installation options
+	Name       string   // canonical, unique name of the pgpkg package
+	Location   string   // Location of this package
+	Root       fs.FS    // The filesystem that holds the package
+	SchemaName string   // packages own a single schema
+	Options    *Options // installation options
 
 	StatFuncCount      int // Stat showing the number of functions in the package
 	StatViewCount      int // Stat showing the number of views in the package
@@ -60,7 +59,8 @@ type Package struct {
 	API    *API
 	Tests  *Tests
 
-	config *configType
+	bootstrapSchema bool // migrate without checking migration table. Allows pgpkg to bootstrap itself.
+	config          *configType
 }
 
 // Load the settings
@@ -225,6 +225,13 @@ func (p *Package) createSchema(tx *sql.Tx) error {
 		_, err := p.Exec(tx, fmt.Sprintf("create role \"%s\"", p.SchemaName))
 		if err != nil {
 			return fmt.Errorf("unable to create role %s: %w", p.SchemaName, err)
+		}
+
+		// The user running these scripts may not be a superuser (but must have create role),
+		// so we need to extend access to the new role.
+		_, err = p.Exec(tx, fmt.Sprintf("grant \"%s\" to current_user", p.SchemaName))
+		if err != nil {
+			return fmt.Errorf("unable to grant role %s to current_user: %w", p.SchemaName, err)
 		}
 	}
 

@@ -1,7 +1,12 @@
 # pgpkg todo
 
-- [X] pgpkg upgrades can happen in a different tx to others. Open/Init/Install are confusing
 - [ ] packages are treated individually which will cause dependency problems.
+  - [ ] a collection of packages is called a project, which:
+  - [ ] purges from head to tail
+  - [ ] applies from tail to head
+  - [ ] needs basic dependency scaffolding, see TODO-DEPS.md
+- [ ] add a supabase example in the tutorial, maybe vultr, AWS, some other hosted PG as well
+  maybe a general "installing psql"
 - [ ] rename "API" to "Managed" or "Declarations" or something (also in the example package structure)
 - [ ] pgpkg cli should search parents like Git does
 - [ ] package up the tool as a binary
@@ -77,3 +82,6 @@
 - [X] anything *.sql, not in a folder with @migration.sql and not ending in _test is an API.
 - [X] Schema.readCatalog() is redundant if loadPackage2 works. (it's called from Schema.Apply())
 - [X] reduce logVolume when installing extensions to avoid 'extension "uuid-ossp" already exists"
+- [X] pgpkg recording OUT params when constructing function signature
+- [X] schema path stored in pgpkg.migration is not relative to @index.pgpkg so different invocations do different things.
+- [X] pgpkg upgrades can happen in a different tx to others. Open/Init/Install are confusing

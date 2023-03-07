@@ -34,7 +34,11 @@ func (s *Statement) getFunctionObject() (*Object, error) {
 	var args []string
 	for _, arg := range createFunctionStmt.Parameters {
 		fp := arg.GetFunctionParameter()
-		args = append(args, fmt.Sprintf("%s %s", fp.Name, getParamType(fp)))
+		if fp.Mode == pg_query.FunctionParameterMode_FUNC_PARAM_IN ||
+			fp.Mode == pg_query.FunctionParameterMode_FUNC_PARAM_INOUT ||
+			fp.Mode == pg_query.FunctionParameterMode_FUNC_PARAM_DEFAULT {
+			args = append(args, fmt.Sprintf("%s %s", fp.Name, getParamType(fp)))
+		}
 	}
 	schema := AsString(createFunctionStmt.Funcname[0])
 	if schema == "" {
