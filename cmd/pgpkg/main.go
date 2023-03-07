@@ -23,12 +23,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	fsList, err := pgpkg.FSList(pkgPaths...)
-	if err != nil {
-		pgpkg.Exit(err)
-	}
+	var p pgpkg.Project
+	p.AddPath(pkgPaths...)
 
-	db, err := pgpkg.Open("", options, fsList...)
+	db, err := p.Open("", options)
 	if err != nil {
 		pgpkg.Exit(err)
 	}

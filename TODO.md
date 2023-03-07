@@ -1,14 +1,14 @@
 # pgpkg todo
 
+- [X] packages should be rooted at the toml file.
 - [ ] packages are treated individually which will cause dependency problems.
-  - [ ] a collection of packages is called a project, which:
+  - [X] a collection of packages is called a project, which:
   - [ ] purges from head to tail
   - [ ] applies from tail to head
   - [ ] needs basic dependency scaffolding, see TODO-DEPS.md
 - [ ] add a supabase example in the tutorial, maybe vultr, AWS, some other hosted PG as well
   maybe a general "installing psql"
-- [X] rename "API" to "Managed" or "Declarations" or something (also in the example package structure)
-- [ ] pgpkg cli should search parents like Git does
+- [ ] pgpkg cli should search parents like Git does, implement Uses
 - [ ] package up the tool as a binary
 - [ ] package loading should start at the pgpkg.toml file.
 - [ ] update docs to explain the new package layout / structure
@@ -16,8 +16,6 @@
     - [ ] change "@index.pgpkg" to "@migration.pgpkg"
     - [ ] try it out using mixed sql + go code
 - [ ] move Bundle methods out of package and into their own file
-- [ ] **important** pretty sure we don't delete from the object list in the database after a purge
-      results in old object signatures being repeatedly "drop ... if exists"
 - [ ] toml Uses[] fails with 'sql: no rows in result set' if a package is not registered. error is ambiguous
 - [ ] unsanitized input in Package.sql, maybe other places: `p.Exec(tx, fmt.Sprintf('grant usage on schema "%s" to "%s"')...`
 - [ ] schema name is missing from function call errors, preventing nice stack traces
@@ -86,3 +84,5 @@
 - [X] schema path stored in pgpkg.migration is not relative to @index.pgpkg so different invocations do different things.
 - [X] pgpkg upgrades can happen in a different tx to others. Open/Init/Install are confusing
 - [X] prefix roles with "$" to reduce conflicts with real roles
+- [X] rename "API" to "MOB"
+- [X] clean up install.go (not needed any more)

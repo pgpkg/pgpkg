@@ -54,7 +54,7 @@ func (t *Tests) parse() error {
 		}
 
 		for _, stmt := range u.Statements {
-			obj, err := stmt.GetObject()
+			obj, err := stmt.GetManagedObject()
 			if err != nil {
 				return err
 			}

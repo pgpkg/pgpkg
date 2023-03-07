@@ -59,7 +59,7 @@ Create your first stored function in `func.sql`:
       end;
     $$;
 
-Note that all functions, tables and other objects need to be qualified with
+Note that all functions, tables and other database objects need to be qualified with
 the schema name, which was set to 'hello' in the `pgpkg.toml` file we just created.
 
 Apply the function to your database:
@@ -78,7 +78,10 @@ If all goes well, you now have a function:
     
     (1 row)
 
-Hmm, that didn't quite work how we wanted. Let's change the function. Edit func.sql:
+Hmm, that didn't quite work how we wanted. Let's change the function.
+
+With traditional migration tools, you would need to add a new version of the function.
+With `pgpkg` you just need to edit the existing definition. So, edit func.sql:
 
     create or replace function hello.func() returns text language plpgsql as $$
       begin
@@ -86,7 +89,7 @@ Hmm, that didn't quite work how we wanted. Let's change the function. Edit func.
       end;
     $$;
 
-Update the database:
+Apply the changes to the database:
 
     $ pgpkg .
 
@@ -101,9 +104,17 @@ And run it again:
 
 That's it! You've written your first pgpkg application.
 
+In `pgpkg`, the function `hello.func` is called a _managed object_ (sometimes abbreviated
+to _MOB_). Managed objects don't need migration scripts; you can treat them just like
+you would any other code.
+
+This is the main benefit of `pgpkg`: it makes working with functions, views and triggers
+much easier.
+
 ## Creating a database table
 
-Database tables are created using migration scripts, so let's create one.
+Database tables are _unmanaged objects_, which means they must be created and updated
+using traditional migration scripts. Let's create one. 
 
 First, create a directory to hold your migration scripts. By convention, we
 call this `schema`:

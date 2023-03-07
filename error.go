@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+// PKGObject is any object (statement, unit, package) that can tell us
+// where a problem happened.
 type PKGObject interface {
 	Location() string
 	DefaultContext() *PKGErrorContext
@@ -118,4 +120,21 @@ func (c *PKGErrorContext) Print(contextLines int) {
 		fmt.Fprintln(os.Stderr, trace.Location)
 		trace = trace.Next
 	}
+}
+
+// Exit prints the error message (with context, if available), and then exits immediately.
+func Exit(err error) {
+	PrintError(err)
+	os.Exit(1)
+}
+
+func PrintError(err error) {
+	var pkgErr *PKGError
+	ok := errors.As(err, &pkgErr)
+	if !ok {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	pkgErr.PrintRootContext(2)
 }

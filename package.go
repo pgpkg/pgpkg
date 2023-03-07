@@ -39,6 +39,7 @@ var pgIdentifierRegexp = regexp.MustCompile("^[\\pL_][\\pL0-9_$]*$")
 //
 
 type Package struct {
+	Project    *Project
 	Name       string   // canonical, unique name of the pgpkg package
 	Location   string   // Location of this package
 	Root       fs.FS    // The filesystem that holds the package
@@ -326,7 +327,7 @@ func (p *Package) Apply(tx *sql.Tx) error {
 
 	} else {
 		if p.Options.Verbose {
-			fmt.Fprintf(os.Stderr, "note: %s: no MOB defined\n", p.Name)
+			fmt.Fprintf(os.Stderr, "note: %s: no MOBs defined\n", p.Name)
 		}
 	}
 
@@ -462,11 +463,56 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 	return nil
 }
 
-func loadPackage(location string, root fs.FS, options *Options) (*Package, error) {
+// Locate the pgpkg.toml file in the supplied filesystem. This is necessary because embedded filesystems
+// include the entire path to the embedding, which means we have to traverse the tree to find the root
+// of the package.
+func findPackageDir(root fs.FS) (fs.FS, error) {
+	var tomlFile string
+
+	// Search for the toml file.
+	err := fs.WalkDir(root, ".", func(path string, d fs.DirEntry, err error) error {
+		if d == nil {
+			return nil
+		}
+
+		if d.Name() == "pgpkg.toml" {
+			tomlFile = path
+			return fs.SkipAll
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to find pgpkg.toml: %w", err)
+	}
+
+	if tomlFile == "" {
+		return nil, fmt.Errorf("unable to find pgpkg.toml")
+	}
+
+	tomlDir := filepath.Dir(tomlFile)
+	sub, err := fs.Sub(root, tomlDir)
+	if err != nil {
+		return nil, fmt.Errorf("unable to find root directory of %s: %w", tomlDir, err)
+	}
+
+	return sub, nil
+}
+
+func loadPackage(project *Project, location string, pkgFS fs.FS, options *Options) (*Package, error) {
+
+	// The FS might not be rooted at the exact location of the toml file due
+	// to go:embed not being able to trim the path. So we search for the toml
+	// file in the provided FS.
+	pkgDir, err := findPackageDir(pkgFS)
+	if err != nil {
+		return nil, err
+	}
 
 	pkg := &Package{
+		Project:  project,
 		Location: location,
-		Root:     root,
+		Root:     pkgDir,
 		Options:  options,
 	}
 
@@ -474,7 +520,9 @@ func loadPackage(location string, root fs.FS, options *Options) (*Package, error
 	pkg.MOB = &MOB{Bundle: pkg.newBundle()}
 	pkg.Tests = &Tests{Bundle: pkg.newBundle()}
 
-	if err := fs.WalkDir(root, ".", pkg.addUnit); err != nil {
+	// Only walk the directory in which the toml file was found, rather than
+	// the entire filesystem provided in pkgFS.
+	if err = fs.WalkDir(pkgDir, ".", pkg.addUnit); err != nil {
 		return nil, fmt.Errorf("unable to load package %s: %w", location, err)
 	}
 

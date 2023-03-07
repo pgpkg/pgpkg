@@ -18,7 +18,7 @@ type Statement struct {
 	Tree       *pg_query.RawStmt // Parsed SQL statement.
 	Error      error             // The most recent result from processing the statement.
 
-	object *Object // Cached result of GetObject()
+	object *ManagedObject // Cached result of GetManagedObject()
 }
 
 // AsString is a utility function to get the string value of a node.

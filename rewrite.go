@@ -5,11 +5,10 @@ import (
 )
 
 // Rewrite and the statement source to:
-// * Add a SECURITY DEFINER - not sure if we want this any more
-// * Set the search_path
+// * Add a SECURITY DEFINER
+// * Set the search_path to [schema, temp, public]
 //
-// This allows functions to be written without referring to their schema name, which (at least in theory)
-// makes them more portable.
+// This makes functions a bit more secure.
 func rewrite(stmt *Statement) error {
 	parseResult, err := pg_query.Parse(stmt.Source)
 	if err != nil {

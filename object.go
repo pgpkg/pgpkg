@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-// Object refers to a managed database object, with a schema name,
-// object name and obejct type.
-type Object struct {
+// ManagedObject refers to a managed database object, with a schema name,
+// object name and object type.
+type ManagedObject struct {
 	ObjectSchema string
 	ObjectType   string
 	ObjectName   string
@@ -27,7 +27,7 @@ func getParamType(fp *pg_query.FunctionParameter) string {
 	return typeName
 }
 
-func (s *Statement) getFunctionObject() (*Object, error) {
+func (s *Statement) getFunctionObject() (*ManagedObject, error) {
 	createFunctionStmt := s.Tree.Stmt.GetCreateFunctionStmt()
 	pkgSchema := s.Unit.Bundle.Package.SchemaName
 
@@ -49,7 +49,7 @@ func (s *Statement) getFunctionObject() (*Object, error) {
 		return nil, PKGErrorf(s, nil, "declared schema %s does not match package schema %s", schema, pkgSchema)
 	}
 
-	return &Object{
+	return &ManagedObject{
 		ObjectSchema: schema,
 		ObjectType:   "function",
 		ObjectName:   fmt.Sprintf("%s.%s(%s)", schema, AsString(createFunctionStmt.Funcname[1]), strings.Join(args, ",")),
@@ -57,7 +57,7 @@ func (s *Statement) getFunctionObject() (*Object, error) {
 	}, nil
 }
 
-func (s *Statement) getTriggerObject() (*Object, error) {
+func (s *Statement) getTriggerObject() (*ManagedObject, error) {
 	createTrigStmt := s.Tree.Stmt.GetCreateTrigStmt()
 	pkgSchema := s.Unit.Bundle.Package.SchemaName
 
@@ -73,15 +73,14 @@ func (s *Statement) getTriggerObject() (*Object, error) {
 		return nil, PKGErrorf(s, nil, "trigger table schema %s does not match package schema %s", schema, pkgSchema)
 	}
 
-	//name := GetTriggerDeclaration(createTrigStmt)
-	return &Object{
+	return &ManagedObject{
 		ObjectSchema: schema,
 		ObjectType:   "trigger",
 		ObjectName:   fmt.Sprintf("%s on %s.%s", name, schema, table),
 	}, nil
 }
 
-func (s *Statement) getViewObject() (*Object, error) {
+func (s *Statement) getViewObject() (*ManagedObject, error) {
 	viewStmt := s.Tree.Stmt.GetViewStmt()
 	pkgSchema := s.Unit.Bundle.Package.SchemaName
 
@@ -96,18 +95,18 @@ func (s *Statement) getViewObject() (*Object, error) {
 		return nil, PKGErrorf(s, nil, "view schema %s does not match package schema %s", schema, pkgSchema)
 	}
 
-	return &Object{
+	return &ManagedObject{
 		ObjectSchema: schema,
 		ObjectType:   "view",
 		ObjectName:   fmt.Sprintf("%s.%s", schema, name)}, nil
 }
 
-// GetObject returns identifying information about an object from a CREATE
+// GetManagedObject returns identifying information about an object from a CREATE
 // statement, such as function, view or trigger. NOTE: This functon
 // might not support all object types, but you can add more as needed.
 //
 // The result is cached since it's used repeatedly during MOB processing.
-func (s *Statement) GetObject() (*Object, error) {
+func (s *Statement) GetManagedObject() (*ManagedObject, error) {
 
 	if s.object != nil {
 		return s.object, nil

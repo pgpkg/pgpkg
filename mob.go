@@ -1,24 +1,22 @@
 package pgpkg
 
-// An MOB is a kind of bundle that manages objects that implement domain logic,
-// which can change over time as the schema grows and changes. It is, in effect,
-// the MOB for manipulating the schema.
-//
-// MOBs consist only of stored functions, views, and triggers. We might add additional
-// objects over time. MOBs do not include tables, indexes or other similar objects.
-//
-// MOB bundles don't care about build units; they can be considered instead to be a random collection
-// of CREATE statements. The order in which the CREATE statements is executed is initially set by the
-// order in which they are encountered (ie, lexically within build units), but pgpkg will re-order the
-// statements until a build succeeds or until it fails because progress can't be made.
-
 import (
 	"database/sql"
 	"fmt"
 )
 
-// MOB is a Managed Object - a function, view, trigger or perhaps future object
-// that is declared, rather than migrated.
+// MOB (managed object bundle) is a kind of bundle that manages objects that implement domain logic,
+// which can change over time as the schema grows and changes.
+//
+// MOBs consist only of stored functions, views, and triggers. We might add additional
+// objects over time. MOBs will never include tables, indexes or other similar objects.
+//
+// MOBs only care about the contents of build units, but not the units themselves; MOBs can be
+// considered instead to be a random collection of CREATE statements. The order in which the CREATE
+// statements is executed is initially set by the order in which they are encountered (ie, lexically
+// within build units), but pgpkg will re-order the statements until a build succeeds or until it
+// fails because progress can't be made.
+
 type MOB struct {
 	*Bundle
 	state *stmtApplyState
@@ -31,12 +29,12 @@ type stmtApplyState struct {
 	success []*Statement
 }
 
-func (a *MOB) Parse() error {
+func (m *MOB) Parse() error {
 	var pending []*Statement
 	definitions := make(map[string]*Statement)
 
-	for _, u := range a.Units {
-		if a.Package.Options.Verbose {
+	for _, u := range m.Units {
+		if m.Package.Options.Verbose {
 			fmt.Println("parsing MOB", u.Location())
 		}
 		if err := u.Parse(); err != nil {
@@ -44,7 +42,7 @@ func (a *MOB) Parse() error {
 		}
 
 		for _, stmt := range u.Statements {
-			obj, err := stmt.GetObject()
+			obj, err := stmt.GetManagedObject()
 			if err != nil {
 				return err
 			}
@@ -68,7 +66,7 @@ func (a *MOB) Parse() error {
 			}
 			definitions[objName] = stmt
 
-			pkg := a.Package
+			pkg := m.Package
 			switch obj.ObjectType {
 			case "function":
 				pkg.StatFuncCount++
@@ -82,13 +80,12 @@ func (a *MOB) Parse() error {
 		}
 	}
 
-	a.state = &stmtApplyState{pending: pending}
+	m.state = &stmtApplyState{pending: pending}
 	return nil
 }
 
 // ExecAll attempts to run each of the statements in the pending list.
-// Each statement is run in a savepoint. Any statements that did not execute
-// successfully are returned.
+// Each statement is run in a savepoint.
 func execAll(tx *sql.Tx, state *stmtApplyState) error {
 	for _, stmt := range state.pending {
 		ok, err := stmt.Try(tx)
@@ -105,7 +102,6 @@ func execAll(tx *sql.Tx, state *stmtApplyState) error {
 
 		// It worked; keep track of the order
 		state.success = append(state.success, stmt)
-		//fmt.Println("OK:", stmt.Headline())
 	}
 
 	return nil
@@ -118,11 +114,11 @@ type stmtStoredState struct {
 
 // loadState returns the state objects in reverse order from how they were created.
 // this should make dumping objects faster.
-func (a *MOB) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
+func (m *MOB) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
 	rows, err := tx.Query("select obj_type, obj_name from pgpkg.managed_object where pkg=$1 order by seq desc",
-		a.Package.Name)
+		m.Package.Name)
 	if err != nil {
-		return nil, PKGErrorf(a, err, "unable to load MOB state")
+		return nil, PKGErrorf(m, err, "unable to load MOB state")
 	}
 
 	var stateList []stmtStoredState
@@ -130,7 +126,7 @@ func (a *MOB) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
 	for rows.Next() {
 		state := stmtStoredState{}
 		if err := rows.Scan(&state.objType, &state.objName); err != nil {
-			return nil, PKGErrorf(a, err, "error during load of MOB state")
+			return nil, PKGErrorf(m, err, "error during load of MOB state")
 		}
 		stateList = append(stateList, state)
 
@@ -168,10 +164,10 @@ func applyState(tx *sql.Tx, state *stmtApplyState) error {
 // recursively to ensure that dependent objects are also deleted, if possible.
 // We don't use CASCADE with drops to ensure that any other scheme that inadvertently relies
 // on MOB functions is not damaged by the purge.
-func (a *MOB) purge(tx *sql.Tx) error {
+func (m *MOB) purge(tx *sql.Tx) error {
 	var pending []*Statement
 
-	state, err := a.loadState(tx)
+	state, err := m.loadState(tx)
 	if err != nil {
 		return err
 	}
@@ -191,14 +187,14 @@ func (a *MOB) purge(tx *sql.Tx) error {
 }
 
 // Update the database with the new state of the MOB.
-func (a *MOB) updateState(tx *sql.Tx) error {
-	_, err := tx.Exec("delete from pgpkg.managed_object where pkg=$1", a.Bundle.Package.Name)
+func (m *MOB) updateState(tx *sql.Tx) error {
+	_, err := tx.Exec("delete from pgpkg.managed_object where pkg=$1", m.Bundle.Package.Name)
 	if err != nil {
 		return fmt.Errorf("unable to remove existing state: %w", err)
 	}
 
-	for seq, stmt := range a.state.success {
-		obj, err := stmt.GetObject()
+	for seq, stmt := range m.state.success {
+		obj, err := stmt.GetManagedObject()
 		if err != nil {
 			return err
 		}
@@ -206,7 +202,7 @@ func (a *MOB) updateState(tx *sql.Tx) error {
 		if obj != nil {
 			_, err = tx.Exec(
 				"insert into pgpkg.managed_object (pkg, seq, obj_type, obj_name) "+
-					"values ($1, $2, $3, $4)", a.Bundle.Package.Name, seq, obj.ObjectType, obj.ObjectName)
+					"values ($1, $2, $3, $4)", m.Bundle.Package.Name, seq, obj.ObjectType, obj.ObjectName)
 			if err != nil {
 				return fmt.Errorf("unable to update package state: %w", err)
 			}
@@ -216,11 +212,11 @@ func (a *MOB) updateState(tx *sql.Tx) error {
 	return nil
 }
 
-func (a *MOB) Location() string {
-	return a.Package.Name
+func (m *MOB) Location() string {
+	return m.Package.Name
 }
 
-func (a *MOB) DefaultContext() *PKGErrorContext {
+func (m *MOB) DefaultContext() *PKGErrorContext {
 	return nil
 }
 
@@ -235,15 +231,10 @@ func (a *MOB) DefaultContext() *PKGErrorContext {
 //
 // The apply function will keep running until it's unable to create
 // any statement, after which it will terminate.
-//
-// TODO: use the MOB table to get hints about the order of
-// statement execution, which might speed things up.
-//
-// Returns the statements in the order they were successfully executed.
-func (a *MOB) Apply(tx *sql.Tx) error {
-	if a.state == nil {
+func (m *MOB) Apply(tx *sql.Tx) error {
+	if m.state == nil {
 		panic("please call MOB.Parse() before calling MOB.Apply()")
 	}
 
-	return applyState(tx, a.state)
+	return applyState(tx, m.state)
 }
