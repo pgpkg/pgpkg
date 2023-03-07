@@ -37,8 +37,8 @@ don't conflict with unmanaged definitions.
 Although not enforced or required by `pgpkg`, we recommend that stand-alone Postgresql packages implement
 the file structure demonstrated in the [example package](https://github.com/pgpkg/pgpkg-test). For example:
 
-    ├── api             
-    │   └── api_1.sql      -- SQL files containing functions, views and triggers
+    ├── mob             
+    │   └── mob_1.sql      -- SQL files containing managed objects (functions, views and triggers)
     │   └── ...
     ├── pgpkg.toml         -- package configuration
     ├── schema             -- migration files 

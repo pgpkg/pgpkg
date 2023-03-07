@@ -12,10 +12,6 @@ import (
 	"strings"
 )
 
-const SchemaBundleDir = "schema"
-const APIBundleDir = "api"
-const TestBundleDir = "tests"
-
 var pgIdentifierRegexp = regexp.MustCompile("^[\\pL_][\\pL0-9_$]*$")
 
 // Package represents a single schema in a database. pgpkg
@@ -23,13 +19,13 @@ var pgIdentifierRegexp = regexp.MustCompile("^[\\pL_][\\pL0-9_$]*$")
 // package, but doesn't touch anything else.
 //
 // Packages are divided into three bundles, called structure,
-// API and tests. Each bundle operates in a unique way.
+// MOB and tests. Each bundle operates in a unique way.
 //
 // The database structure is represented by a list of upgrade
 // files, which are always executed in order. These files can contain
 // any SQL code, but generally contain tables and data type definitions.
 //
-// The API to the schema is represented by files which contain
+// The MOB to the schema is represented by files which contain
 // functions, views and triggers. These are managed by pgpkg and
 // may be created in any order. pgpkg works out the dependencies between
 // them.
@@ -57,7 +53,7 @@ type Package struct {
 	StatTestCount      int // Stat showing how many tests there are.
 
 	Schema *Schema // probably not a bundle, unless bundles can load on demand
-	API    *API
+	MOB    *MOB
 	Tests  *Tests
 
 	bootstrapSchema bool // migrate without checking migration table. Allows pgpkg to bootstrap itself.
@@ -73,10 +69,10 @@ type configType struct {
 }
 
 // Bundle represents functional unit of a package, consisting of many Units.
-// There are three types of bundles: API, schema and test.
+// There are three types of bundles: MOB, schema and test.
 //
 // Different bundles have distinct behaviours; structure
-// bundles perform upgrades, API bundles replace
+// bundles perform upgrades, MOB bundles replace
 // existing code, and test bundles are executed after
 // everything else is complete.
 type Bundle struct {
@@ -315,22 +311,22 @@ func (p *Package) Apply(tx *sql.Tx) error {
 		return err
 	}
 
-	if p.API != nil && p.API.HasUnits() {
-		err = p.API.Parse()
+	if p.MOB != nil && p.MOB.HasUnits() {
+		err = p.MOB.Parse()
 		if err != nil {
 			return err
 		}
 
 		// This runs as pgpkg user since it's accessing pgpkg tables
 		// and deleting stuff from the schema.
-		err = p.API.purge(tx)
+		err = p.MOB.purge(tx)
 		if err != nil {
 			return err
 		}
 
 	} else {
 		if p.Options.Verbose {
-			fmt.Fprintf(os.Stderr, "note: %s: no API defined\n", p.Name)
+			fmt.Fprintf(os.Stderr, "note: %s: no MOB defined\n", p.Name)
 		}
 	}
 
@@ -363,14 +359,14 @@ func (p *Package) Apply(tx *sql.Tx) error {
 		}
 	}
 
-	if p.API != nil && p.API.HasUnits() {
+	if p.MOB != nil && p.MOB.HasUnits() {
 		p.setRole(tx)
-		if err = p.API.Apply(tx); err != nil {
+		if err = p.MOB.Apply(tx); err != nil {
 			return err
 		}
 		p.resetRole(tx)
 
-		if err = p.API.updateState(tx); err != nil {
+		if err = p.MOB.updateState(tx); err != nil {
 			return err
 		}
 	}
@@ -458,7 +454,7 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 	}
 
 	if strings.HasSuffix(name, ".sql") {
-		return p.API.addUnit(path)
+		return p.MOB.addUnit(path)
 	}
 
 	// Files that aren't recognised are just ignored. This lets us mix pgpkg sql with
@@ -475,7 +471,7 @@ func loadPackage(location string, root fs.FS, options *Options) (*Package, error
 	}
 
 	pkg.Schema = &Schema{Bundle: pkg.newBundle()}
-	pkg.API = &API{Bundle: pkg.newBundle()}
+	pkg.MOB = &MOB{Bundle: pkg.newBundle()}
 	pkg.Tests = &Tests{Bundle: pkg.newBundle()}
 
 	if err := fs.WalkDir(root, ".", pkg.addUnit); err != nil {

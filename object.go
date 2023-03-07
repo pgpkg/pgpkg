@@ -106,7 +106,7 @@ func (s *Statement) getViewObject() (*Object, error) {
 // statement, such as function, view or trigger. NOTE: This functon
 // might not support all object types, but you can add more as needed.
 //
-// The result is cached since it's used repeatedly during API processing.
+// The result is cached since it's used repeatedly during MOB processing.
 func (s *Statement) GetObject() (*Object, error) {
 
 	if s.object != nil {
@@ -135,5 +135,5 @@ func (s *Statement) GetObject() (*Object, error) {
 		return s.object, nil
 	}
 
-	return nil, PKGErrorf(s, nil, "only functions, triggers and views are supported in API")
+	return nil, PKGErrorf(s, nil, "only functions, triggers and views are supported in MOB")
 }

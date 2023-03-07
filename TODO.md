@@ -7,7 +7,7 @@
   - [ ] needs basic dependency scaffolding, see TODO-DEPS.md
 - [ ] add a supabase example in the tutorial, maybe vultr, AWS, some other hosted PG as well
   maybe a general "installing psql"
-- [ ] rename "API" to "Managed" or "Declarations" or something (also in the example package structure)
+- [X] rename "API" to "Managed" or "Declarations" or something (also in the example package structure)
 - [ ] pgpkg cli should search parents like Git does
 - [ ] package up the tool as a binary
 - [ ] package loading should start at the pgpkg.toml file.

@@ -1,44 +1,27 @@
 package pgpkg
 
-// An API is a kind of bundle that manages objects that implement domain logic,
+// An MOB is a kind of bundle that manages objects that implement domain logic,
 // which can change over time as the schema grows and changes. It is, in effect,
-// the API for manipulating the schema.
+// the MOB for manipulating the schema.
 //
-// APIs consist only of stored functions, views, and triggers. We might add additional
-// objects over time. APIs do not include tables, indexes or other similar objects.
+// MOBs consist only of stored functions, views, and triggers. We might add additional
+// objects over time. MOBs do not include tables, indexes or other similar objects.
 //
-// API bundles don't care about build units; they can be considered instead to be a random collection
+// MOB bundles don't care about build units; they can be considered instead to be a random collection
 // of CREATE statements. The order in which the CREATE statements is executed is initially set by the
 // order in which they are encountered (ie, lexically within build units), but pgpkg will re-order the
 // statements until a build succeeds or until it fails because progress can't be made.
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
-	"os"
 )
 
-type API struct {
+// MOB is a Managed Object - a function, view, trigger or perhaps future object
+// that is declared, rather than migrated.
+type MOB struct {
 	*Bundle
 	state *stmtApplyState
-}
-
-func (p *Package) loadAPI(path string) (*API, error) {
-	bundle, err := p.loadBundle(APIBundleDir)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	app := &API{
-		Bundle: bundle,
-	}
-
-	return app, nil
 }
 
 // Track the statements as we attempt to find an ordering that works.
@@ -48,16 +31,16 @@ type stmtApplyState struct {
 	success []*Statement
 }
 
-func (a *API) Parse() error {
+func (a *MOB) Parse() error {
 	var pending []*Statement
 	definitions := make(map[string]*Statement)
 
 	for _, u := range a.Units {
 		if a.Package.Options.Verbose {
-			fmt.Println("parsing api", u.Location())
+			fmt.Println("parsing MOB", u.Location())
 		}
 		if err := u.Parse(); err != nil {
-			return fmt.Errorf("unable to parse API: %w", err)
+			return fmt.Errorf("unable to parse MOB: %w", err)
 		}
 
 		for _, stmt := range u.Statements {
@@ -74,7 +57,7 @@ func (a *API) Parse() error {
 				}
 			}
 
-			// Check for duplicate definitions in the API. This can be a subtle bug because
+			// Check for duplicate definitions in the MOB. This can be a subtle bug because
 			// all the statements are probably "create or replace".
 			objName := obj.ObjectType + ":" + obj.ObjectName
 			dupeStmt, dupe := definitions[objName]
@@ -135,11 +118,11 @@ type stmtStoredState struct {
 
 // loadState returns the state objects in reverse order from how they were created.
 // this should make dumping objects faster.
-func (a *API) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
-	rows, err := tx.Query("select obj_type, obj_name from pgpkg.api where pkg=$1 order by seq desc",
+func (a *MOB) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
+	rows, err := tx.Query("select obj_type, obj_name from pgpkg.managed_object where pkg=$1 order by seq desc",
 		a.Package.Name)
 	if err != nil {
-		return nil, PKGErrorf(a, err, "unable to load API state")
+		return nil, PKGErrorf(a, err, "unable to load MOB state")
 	}
 
 	var stateList []stmtStoredState
@@ -147,7 +130,7 @@ func (a *API) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
 	for rows.Next() {
 		state := stmtStoredState{}
 		if err := rows.Scan(&state.objType, &state.objName); err != nil {
-			return nil, PKGErrorf(a, err, "error during load of API state")
+			return nil, PKGErrorf(a, err, "error during load of MOB state")
 		}
 		stateList = append(stateList, state)
 
@@ -174,18 +157,18 @@ func applyState(tx *sql.Tx, state *stmtApplyState) error {
 
 		if len(state.pending) == lenPending {
 			ps := state.pending[0]
-			return PKGErrorf(ps, ps.Error, "unable to install API")
+			return PKGErrorf(ps, ps.Error, "unable to install MOB")
 		}
 	}
 
 	return nil
 }
 
-// Purge (drop) all the managed API objects. This is performed
+// Purge (drop) all the managed MOB objects. This is performed
 // recursively to ensure that dependent objects are also deleted, if possible.
 // We don't use CASCADE with drops to ensure that any other scheme that inadvertently relies
-// on API functions is not damaged by the purge.
-func (a *API) purge(tx *sql.Tx) error {
+// on MOB functions is not damaged by the purge.
+func (a *MOB) purge(tx *sql.Tx) error {
 	var pending []*Statement
 
 	state, err := a.loadState(tx)
@@ -207,9 +190,9 @@ func (a *API) purge(tx *sql.Tx) error {
 	return applyState(tx, purgeState)
 }
 
-// Update the database with the new state of the API.
-func (a *API) updateState(tx *sql.Tx) error {
-	_, err := tx.Exec("delete from pgpkg.api where pkg=$1", a.Bundle.Package.Name)
+// Update the database with the new state of the MOB.
+func (a *MOB) updateState(tx *sql.Tx) error {
+	_, err := tx.Exec("delete from pgpkg.managed_object where pkg=$1", a.Bundle.Package.Name)
 	if err != nil {
 		return fmt.Errorf("unable to remove existing state: %w", err)
 	}
@@ -222,7 +205,7 @@ func (a *API) updateState(tx *sql.Tx) error {
 
 		if obj != nil {
 			_, err = tx.Exec(
-				"insert into pgpkg.api (pkg, seq, obj_type, obj_name) "+
+				"insert into pgpkg.managed_object (pkg, seq, obj_type, obj_name) "+
 					"values ($1, $2, $3, $4)", a.Bundle.Package.Name, seq, obj.ObjectType, obj.ObjectName)
 			if err != nil {
 				return fmt.Errorf("unable to update package state: %w", err)
@@ -233,17 +216,17 @@ func (a *API) updateState(tx *sql.Tx) error {
 	return nil
 }
 
-func (a *API) Location() string {
+func (a *MOB) Location() string {
 	return a.Package.Name
 }
 
-func (a *API) DefaultContext() *PKGErrorContext {
+func (a *MOB) DefaultContext() *PKGErrorContext {
 	return nil
 }
 
 // Apply performs the SQL required to create the objects listed in the
-// API object, to register them in the pgpkg.object table.
-// Since objects in an API may depend on one another, this
+// MOB object, to register them in the pgpkg.object table.
+// Since objects in an MOB may depend on one another, this
 // function starts with a list of the statements to be executed,
 // and attempts to execute them one at a time.
 //
@@ -253,13 +236,13 @@ func (a *API) DefaultContext() *PKGErrorContext {
 // The apply function will keep running until it's unable to create
 // any statement, after which it will terminate.
 //
-// TODO: use the API table to get hints about the order of
+// TODO: use the MOB table to get hints about the order of
 // statement execution, which might speed things up.
 //
 // Returns the statements in the order they were successfully executed.
-func (a *API) Apply(tx *sql.Tx) error {
+func (a *MOB) Apply(tx *sql.Tx) error {
 	if a.state == nil {
-		panic("please call API.Parse() before calling API.Apply()")
+		panic("please call MOB.Parse() before calling MOB.Apply()")
 	}
 
 	return applyState(tx, a.state)

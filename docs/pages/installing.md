@@ -53,7 +53,7 @@ which will give you detailed information about the SQL it executes:
     select count(*) from pg_roles where rolname=$1 [pgpkg]
     create schema if not exists "pgpkg" authorization "pgpkg"
     [notice]: schema "pgpkg" already exists, skipping
-    note: github.com/bookwork/pgpkg: no API defined
+    note: github.com/bookwork/pgpkg: no MOB defined
     set role "pgpkg"
     reset role
     insert into pgpkg.pkg (pkg, schema_name, uses) values ($1, $2, $3) on conflict (pkg) do update set schema_name=excluded.schema_name, uses=excluded.uses [github.com/bookwork/pgpkg pgpkg 0x1400000e0c0]
@@ -62,7 +62,7 @@ which will give you detailed information about the SQL it executes:
     select count(*) from pg_roles where rolname=$1 [pgpkg_test]
     create role "pgpkg_test"
     create schema if not exists "pgpkg_test" authorization "pgpkg_test"
-    parsing api api_1.sql
+    parsing MOB api_1.sql
     set role "pgpkg_test"
     reset role
     set role "pgpkg_test"
