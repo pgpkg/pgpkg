@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/lib/pq"
 	"io/fs"
+	"os"
 )
 
 // Project represents a group of packages that are to be installed into a single
@@ -48,7 +49,14 @@ func (p *Project) AddPath(paths ...string) {
 // Migrations and tests are applied automatically. Package installation is atomic;
 // it either fully succeeds or fails without changing the database.
 
-func (p *Project) Open(conninfo string, options *Options) (*sql.DB, error) {
+func (p *Project) Open(options *Options) (*sql.DB, error) {
+
+	dsn := os.Getenv("DSN")
+	if dsn == "" {
+		return nil, fmt.Errorf("DSN environment variable is not set")
+	}
+
+	fmt.Println("connecting to", dsn)
 
 	// Load the packages before we do anything, in case there are problems.
 	pkgs, err := p.loadPackages(options)
@@ -56,7 +64,7 @@ func (p *Project) Open(conninfo string, options *Options) (*sql.DB, error) {
 		return nil, err
 	}
 
-	base, err := pq.NewConnector(conninfo)
+	base, err := pq.NewConnector(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connection to database: %w", err)
 	}
