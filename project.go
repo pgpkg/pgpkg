@@ -56,8 +56,6 @@ func (p *Project) Open(options *Options) (*sql.DB, error) {
 		return nil, fmt.Errorf("DSN environment variable is not set")
 	}
 
-	fmt.Println("connecting to", dsn)
-
 	// Load the packages before we do anything, in case there are problems.
 	pkgs, err := p.loadPackages(options)
 	if err != nil {

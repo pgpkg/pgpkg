@@ -128,7 +128,7 @@ Let's create a table called 'contact'. Edit `schema/contact.sql`:
     );
 
 We need to tell pgpkg the order in which migration scripts need to be run.
-To do this, edit the file `schema/@index.pgpkg`, and add the single line:
+To do this, edit the file `schema/@migration.pgpkg`, and add the single line:
 
     contact.sql
 
@@ -151,7 +151,7 @@ file `schema/contact@001.sql`:
     insert into hello.contact (name) values ('Postgresql Community');
 
 Remember that pgpkg needs to know the order in which migrations will run, so you
-need to add this new migration script to `schema/@index.pgpkg`. It should now
+need to add this new migration script to `schema/@migration.pgpkg`. It should now
 look like this:
 
     contact.sql
@@ -171,7 +171,7 @@ Let's see if the data has been added:
     (1 row)
 
 Great! Note that the filename `contact@001.sql` is just a convention. It's not
-required by pgpkg, which only cares about the list of filenames in `@index.pgpkg`.
+required by pgpkg, which only cares about the list of filenames in `@migration.pgpkg`.
 However, this naming convention means that most IDEs will list migrations in
 order, with `contact.sql` followed by `contact@001.sql`. This makes reading migrations
 much easier.
@@ -279,7 +279,7 @@ Here's the directory tree that we created:
     ├── func.sql
     ├── pgpkg.toml
     ├── schema
-    │   ├── @index.pgpkg
+    │   ├── @migration.pgpkg
     │   ├── contact.sql
     │   └── contact@001.sql
     ├── world.sql
@@ -304,7 +304,7 @@ same directory:
     ├── main.go
     ├── pgpkg.toml
     ├── schema
-    │   ├── @index.pgpkg
+    │   ├── @migration.pgpkg
     │   ├── contact.sql
     │   └── contact@001.sql
     ├── world.go

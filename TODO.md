@@ -1,6 +1,7 @@
 # pgpkg todo
 
 - [X] packages should be rooted at the toml file.
+- [ ] use pkgadm role instead of pgadm in the docs etc
 - [ ] packages are treated individually which will cause dependency problems.
   - [X] a collection of packages is called a project, which:
   - [ ] purges from head to tail
@@ -11,9 +12,9 @@
 - [ ] pgpkg cli should search parents like Git does, implement Uses
 - [ ] package up the tool as a binary
 - [ ] package loading should start at the pgpkg.toml file.
-- [ ] update docs to explain the new package layout / structure
+- [ ] need to remove roles if a package is removed from Uses[]
+- [X] update docs to explain the new package layout / structure
 - [ ] Allow more complete integration with source trees:
-    - [ ] change "@index.pgpkg" to "@migration.pgpkg"
     - [ ] try it out using mixed sql + go code
 - [ ] move Bundle methods out of package and into their own file
 - [ ] toml Uses[] fails with 'sql: no rows in result set' if a package is not registered. error is ambiguous
@@ -86,3 +87,4 @@
 - [X] prefix roles with "$" to reduce conflicts with real roles
 - [X] rename "API" to "MOB"
 - [X] clean up install.go (not needed any more)
+- [X] change "@index.pgpkg" to "@migration.pgpkg"

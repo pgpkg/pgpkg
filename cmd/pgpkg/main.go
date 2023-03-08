@@ -26,7 +26,7 @@ func main() {
 	var p pgpkg.Project
 	p.AddPath(pkgPaths...)
 
-	db, err := p.Open("", options)
+	db, err := p.Open(options)
 	if err != nil {
 		pgpkg.Exit(err)
 	}

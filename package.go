@@ -14,6 +14,8 @@ import (
 
 var pgIdentifierRegexp = regexp.MustCompile("^[\\pL_][\\pL0-9_$]*$")
 
+const migrationFilename = "@migration.pgpkg"
+
 // Package represents a single schema in a database. pgpkg
 // keeps track of and maintains the objects declared in the
 // package, but doesn't touch anything else.
@@ -442,7 +444,7 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 	if d.IsDir() {
 		// If this is a directory, and it contains migrations, then
 		// process it with a separate walk().
-		if _, err = fs.Stat(p.Root, filepath.Join(path, "@index.pgpkg")); err == nil {
+		if _, err = fs.Stat(p.Root, filepath.Join(path, migrationFilename)); err == nil {
 			if err = p.Schema.loadMigrations(path); err != nil {
 				return err
 			}

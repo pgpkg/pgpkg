@@ -20,7 +20,7 @@ import (
 
 type Schema struct {
 	*Bundle
-	migrationDir   string          // root of migration directory (ie, the location of @index.pgpkg)
+	migrationDir   string          // root of migration directory (ie, the location of @migration.pgpkg)
 	migrationIndex []string        // list of paths that need to be migrated, in order
 	migrationState map[string]bool // set of paths that have already been migrated (loaded from DB)
 	migratedState  map[string]bool // set of paths that have been newly migrated
@@ -163,7 +163,7 @@ func (s *Schema) loadMigrations(migrationDir string) error {
 		}
 
 		if !migrationSet[relPath] {
-			_, _ = fmt.Fprintf(os.Stderr, "warning: %s: not found in %s/@index.pgpkg\n", relPath, migrationDir)
+			_, _ = fmt.Fprintf(os.Stderr, "warning: %s: not found in %s/%s\n", relPath, migrationDir, migrationFilename)
 			return nil
 		}
 
@@ -172,7 +172,7 @@ func (s *Schema) loadMigrations(migrationDir string) error {
 }
 
 func (s *Schema) loadCatalog(migrationDir string) ([]string, error) {
-	catalog, err := s.Package.Root.Open(filepath.Join(migrationDir, "@index.pgpkg"))
+	catalog, err := s.Package.Root.Open(filepath.Join(migrationDir, migrationFilename))
 	if err != nil {
 		return nil, err
 	}
