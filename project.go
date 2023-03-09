@@ -82,7 +82,7 @@ func (p *Project) Open(options *Options) (*sql.DB, error) {
 
 	tx := &PkgTx{
 		Tx:      dbtx,
-		Verbose: true,
+		Verbose: options.Verbose,
 	}
 
 	// Initialise pgpkg itself.

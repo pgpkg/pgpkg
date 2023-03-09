@@ -4,7 +4,10 @@
 
 ## Priority
 
-- [ ] need some integration tests
+- [ ] can't disable verbose mode after moving logging into Tx :lol:
+- [ ] use Go logging.
+- [ ] integration tests (including failures and successes)
+- [ ] clean up example schema (examples/hello, ...)
 - [ ] package up the tool as a binary
 - [ ] packages are treated individually which will cause dependency problems.
   - [ ] purges from head to tail
