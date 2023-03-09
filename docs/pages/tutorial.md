@@ -82,7 +82,7 @@ it to the database with a single command:
 
     $ pgpkg .
 
-(if you want to see what `pgpkg` actually does, use `pgpkg -verbose .`)
+(if you want to see what `pgpkg` actually does, use `pgpkg -pgpkg-verbose .`)
 
 If all goes well, you will now have a function defined in your database:
 
@@ -243,16 +243,16 @@ As usual, apply the changes to the database:
 
 The test will have been applied, but you won't see anything if it passes.
 
-To demonstrate this, use `-summary`:
+To demonstrate this, use `-pgpkg-summary`:
 
-    $ pgpkg -summary .
+    $ pgpkg -pgpkg-summary .
     github.com/bookwork/pgpkg: installed 0 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 0 test(s) run
     github.com/example/hello-pgpkg: installed 2 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 1 test(s) run
 
 You can see that one test ran in your package (the other package is `pgpkg` itself).
 
-You can add `raise notice` commands to your tests to log information to the console
-during the testing process. Edit `world_test.sql` to add a notice:
+You can add `raise notice` (and `raise warning`) commands to your tests to log information
+to the console during the testing process. Edit `world_test.sql` to add a notice:
 
     create or replace function hello.test_world() returns void language plpgsql as $$
         begin
@@ -269,7 +269,8 @@ Let's install it, which will run the test:
     [notice]: Testing the world
 
 Any `raise notice` commands from tests that run will be printed to the console.
-Messages raised by migrations will also be displayed.
+(`raise warning` commands are printed to stderr). Messages raised in migration
+scripts will also be displayed.
 
 A successful test is one that finds a problem - so let's create a problem!
 
@@ -338,12 +339,13 @@ Next, we need to set up main.go to load the schema and open the database:
     
     //go:embed pgpkg.toml *.sql schema
     var hello embed.FS
-    
+
     func main() {
+        pgpkg.ParseArgs()
         var p pgpkg.Project
         p.AddFS(hello)
     
-        db, err := p.Open(&pgpkg.Options{})
+        db, err := p.Open()
         if err != nil {
             pgpkg.Exit(err)
         }
@@ -357,8 +359,15 @@ Next, we need to set up main.go to load the schema and open the database:
         fmt.Println("And the world is:", world)
     }
 
-To run this script - which will run the migration, install the SQL function, run
-the tests, and return a database handle - just build and run it:
+Running this program will do the following:
+
+* parse command line options like "-pgpkg-verbose"
+* run any necessary migration
+* install the SQL function
+* run the tests, and
+* return a database handle.
+
+So let's build and run it:
 
     $ go build
     $ ./example
@@ -366,7 +375,8 @@ the tests, and return a database handle - just build and run it:
     And the world is: Postgresql Community
 
 Note how the test has printed a message - `raise notice` commands are automatically
-logged from pgpkg. We can fix this by updating the test. Edit world_test.sql:
+logged from pgpkg. We can fix this by updating the test. Edit world_test.sql to remove
+the notice:
 
     create or replace function hello.test_world() returns void language plpgsql as $$
         begin
@@ -382,10 +392,24 @@ Then build and rerun your code:
     $ ./example
     And the world is: Postgresql Community
 
-Note that you don't need to run `pgpkg` when you've embedded your package into your Go
-program.
+> Note that you don't need to run `pgpkg` when you've embedded your package into your Go
+> program. The Go program migrates the database for you, when you call p.Open().
 
-Also note that your SQL and Go code is now in the same directory:
+`pgpkg.ParseArgs` adds support for a standard set of migration options to your Go program.
+These include:
+
+    -pgpkg-summary
+    -pgpkg-verbose
+    -pgpkg-dry-run
+
+For example, we can run this:
+
+    $ ./example -pgpkg-summary
+    github.com/bookwork/pgpkg: installed 0 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 0 test(s) run
+    github.com/example/hello-pgpkg: installed 2 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 1 test(s) run
+    And the world is: Postgresql Community
+
+Finally, note how your SQL and Go code can live in the same directory:
 
     .
     ├── example
@@ -400,6 +424,8 @@ Also note that your SQL and Go code is now in the same directory:
     │   └── contact@001.sql
     ├── world.sql
     └── world_test.sql
+
+This makes switching between Go and plpgsql code in your IDE completely seamless.
 
 ## Using pgpkg in other languages
 

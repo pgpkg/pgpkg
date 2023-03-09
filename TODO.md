@@ -4,11 +4,10 @@
 
 ## Priority
 
-- [ ] can't disable verbose mode after moving logging into Tx :lol:
-- [ ] use Go logging.
 - [ ] integration tests (including failures and successes)
 - [ ] clean up example schema (examples/hello, ...)
-- [ ] package up the tool as a binary
+- [ ] include example in the good tests
+- [ ] package up the tool as a binary (github actions?)
 - [ ] packages are treated individually which will cause dependency problems.
   - [ ] purges from head to tail
   - [ ] applies from tail to head
@@ -108,3 +107,6 @@
 - [X] unsanitized input in Package.sql, maybe other places: `p.Exec(tx, fmt.Sprintf('grant usage on schema "%s" to "%s"')...`
 - [X] what happens with quoted identifiers? what happens if the declared schema name is invalid?
 - [X] loadBundle doesn't support nested subdirectories.
+- [X] refactor options, add --pgpkg-dry-run and friends
+- [X] can't disable verbose mode after moving logging into Tx :lol:
+- [X] use Go logging.

@@ -108,9 +108,9 @@ func (c *PKGErrorContext) Print(contextLines int) {
 	for cl := sourceLine - contextLines; cl <= sourceLine+contextLines; cl++ {
 		if cl >= 0 && cl < lineCount {
 			if cl != sourceLine {
-				fmt.Printf("    %4d: %s\n", cl+1, lines[cl])
+				Stderr.Printf("    %4d: %s\n", cl+1, lines[cl])
 			} else {
-				fmt.Printf("--> %4d: %s\n", cl+1, lines[cl])
+				Stderr.Printf("--> %4d: %s\n", cl+1, lines[cl])
 			}
 		}
 	}

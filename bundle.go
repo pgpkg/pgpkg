@@ -1,7 +1,6 @@
 package pgpkg
 
 import (
-	"fmt"
 	"io/fs"
 	"path/filepath"
 )
@@ -41,8 +40,8 @@ func (b *Bundle) getUnit(path string) (*Unit, bool) {
 // addUnit adds a new unit to the package. Note that it doesn't read or parse the unit
 // until requested.
 func (b *Bundle) addUnit(path string) error {
-	if b.Package.Options.Verbose {
-		fmt.Println("add unit:", path)
+	if Options.Verbose {
+		Verbose.Println("add unit:", path)
 	}
 
 	unit := &Unit{

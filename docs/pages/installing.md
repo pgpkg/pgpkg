@@ -44,9 +44,9 @@ If the tests print anything with `raise notice`, you will see them on the termin
 
 Unless you see an error message, the installation worked.
 
-You can also use -verbose if you want to look under the covers a bit (not quite everything is logged yet):
+You can also use -pgpkg-verbose if you want to look under the covers a bit (not quite everything is logged yet):
 
-    pgpkg -verbose .
+    pgpkg -pgpkg-verbose .
 
 which will give you detailed information about the SQL it executes:
 

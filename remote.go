@@ -16,7 +16,7 @@ func Remote() {
 	// Send an HTTP GET request to download the archive
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Printf("Error downloading archive: %v\n", err)
+		Stderr.Printf("Error downloading archive: %v\n", err)
 		return
 	}
 	defer resp.Body.Close()

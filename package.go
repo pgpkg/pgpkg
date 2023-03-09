@@ -39,12 +39,11 @@ const migrationFilename = "@migration.pgpkg"
 
 type Package struct {
 	Project    *Project
-	Name       string   // canonical, unique name of the pgpkg package
-	Location   string   // Location of this package
-	Root       fs.FS    // The filesystem that holds the package
-	SchemaName string   // packages own a single schema
-	RoleName   string   // Associated role name
-	Options    *Options // installation options
+	Name       string // canonical, unique name of the pgpkg package
+	Location   string // Location of this package
+	Root       fs.FS  // The filesystem that holds the package
+	SchemaName string // packages own a single schema
+	RoleName   string // Associated role name
 
 	StatFuncCount      int // Stat showing the number of functions in the package
 	StatViewCount      int // Stat showing the number of views in the package
@@ -217,7 +216,7 @@ func (p *Package) Apply(tx *PkgTx) error {
 		}
 
 	} else {
-		if p.Options.Verbose {
+		if Options.Verbose {
 			fmt.Fprintf(os.Stderr, "note: %s: no MOBs defined\n", p.Name)
 		}
 	}
@@ -246,7 +245,7 @@ func (p *Package) Apply(tx *PkgTx) error {
 			return err
 		}
 	} else {
-		if p.Options.Verbose {
+		if Options.Verbose {
 			fmt.Fprintf(os.Stderr, "note: %s: no schema defined\n", p.Name)
 		}
 	}
@@ -275,8 +274,8 @@ func (p *Package) Apply(tx *PkgTx) error {
 		p.resetRole(tx)
 	}
 
-	if p.Options.Verbose || p.Options.Summary {
-		fmt.Printf("%s: installed %d function(s), %d view(s) and %d trigger(s). %d migration(s) needed. %d test(s) run\n",
+	if Options.Verbose || Options.Summary {
+		Verbose.Printf("%s: installed %d function(s), %d view(s) and %d trigger(s). %d migration(s) needed. %d test(s) run\n",
 			p.Name, p.StatFuncCount, p.StatViewCount, p.StatTriggerCount, p.StatMigrationCount, p.StatTestCount)
 	}
 
@@ -390,7 +389,7 @@ func findPackageDir(root fs.FS) (fs.FS, error) {
 	return sub, nil
 }
 
-func loadPackage(project *Project, location string, pkgFS fs.FS, options *Options) (*Package, error) {
+func loadPackage(project *Project, location string, pkgFS fs.FS) (*Package, error) {
 
 	// The FS might not be rooted at the exact location of the toml file due
 	// to go:embed not being able to trim the path. So we search for the toml
@@ -404,7 +403,6 @@ func loadPackage(project *Project, location string, pkgFS fs.FS, options *Option
 		Project:  project,
 		Location: location,
 		Root:     pkgDir,
-		Options:  options,
 	}
 
 	pkg.Schema = &Schema{Bundle: pkg.newBundle()}

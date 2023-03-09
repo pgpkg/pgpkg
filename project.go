@@ -49,7 +49,7 @@ func (p *Project) AddPath(paths ...string) {
 // Migrations and tests are applied automatically. Package installation is atomic;
 // it either fully succeeds or fails without changing the database.
 
-func (p *Project) Open(options *Options) (*sql.DB, error) {
+func (p *Project) Open() (*sql.DB, error) {
 
 	dsn := os.Getenv("DSN")
 	if dsn == "" {
@@ -57,7 +57,7 @@ func (p *Project) Open(options *Options) (*sql.DB, error) {
 	}
 
 	// Load the packages before we do anything, in case there are problems.
-	pkgs, err := p.loadPackages(options)
+	pkgs, err := p.loadPackages()
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (p *Project) Open(options *Options) (*sql.DB, error) {
 	// Wrap the connector to print out notices. Capture the options in the handler.
 	connector := pq.ConnectorWithNoticeHandler(base,
 		func(err *pq.Error) {
-			noticeHandler(options, err)
+			noticeHandler(err)
 		})
 
 	db := sql.OpenDB(connector)
@@ -81,12 +81,11 @@ func (p *Project) Open(options *Options) (*sql.DB, error) {
 	}
 
 	tx := &PkgTx{
-		Tx:      dbtx,
-		Verbose: options.Verbose,
+		Tx: dbtx,
 	}
 
 	// Initialise pgpkg itself.
-	if err := p.Init(tx, options); err != nil {
+	if err := p.Init(tx); err != nil {
 		_ = tx.Rollback()
 		return nil, fmt.Errorf("unable to initialize pgpkg: %w", err)
 	}
@@ -99,17 +98,22 @@ func (p *Project) Open(options *Options) (*sql.DB, error) {
 		}
 	}
 
-	err = tx.Commit()
+	if Options.DryRun {
+		err = tx.Rollback()
+	} else {
+		err = tx.Commit()
+	}
+
 	if err != nil {
 		db.Close()
-		return nil, fmt.Errorf("unable to commit package installation: %w", err)
+		return nil, fmt.Errorf("unable to complete package installation: %w", err)
 	}
 
 	return db, nil
 }
 
 // Load all the packages from the project, and return them.
-func (p *Project) loadPackages(options *Options) ([]*Package, error) {
+func (p *Project) loadPackages() ([]*Package, error) {
 
 	var pkgs []*Package
 
@@ -119,7 +123,7 @@ func (p *Project) loadPackages(options *Options) ([]*Package, error) {
 			return nil, fmt.Errorf("unable to load package %s: %w", source.Location(), err)
 		}
 
-		pkg, err := loadPackage(p, source.Location(), pkgfs, options)
+		pkg, err := loadPackage(p, source.Location(), pkgfs)
 		if err != nil {
 			return nil, err
 		}
@@ -138,14 +142,14 @@ const PGKSchemaName = "pgpkg"
 
 // Init initialises the pgpkg schema itself. It effectively uses pgpkg's
 // migration tools to bookstrap itself.
-func (p *Project) Init(tx *PkgTx, options *Options) error {
+func (p *Project) Init(tx *PkgTx) error {
 	var isInitialised int
 	err := tx.QueryRow("select count(*) from information_schema.schemata where schema_name = 'pgpkg'").Scan(&isInitialised)
 	if err != nil {
 		return fmt.Errorf("unable to read schema: %w", err)
 	}
 
-	pkg, err := loadPackage(p, "embedded pgpkg", pgpkgFS, options)
+	pkg, err := loadPackage(p, "embedded pgpkg", pgpkgFS)
 	if err != nil {
 		return fmt.Errorf("unable to load pgpkg package: %w", err)
 	}
@@ -167,4 +171,9 @@ func (p *Project) Init(tx *PkgTx, options *Options) error {
 	}
 
 	return nil
+}
+
+// NewProject creates a new project.
+func NewProject() *Project {
+	return &Project{}
 }

@@ -24,8 +24,8 @@ func (t *Tests) parse() error {
 	definitions := make(map[string]*Statement)
 
 	for _, u := range t.Units {
-		if t.Package.Options.Verbose {
-			fmt.Println("parsing tests", u.Location())
+		if Options.Verbose {
+			Verbose.Println("parsing tests", u.Location())
 		}
 
 		if err := u.Parse(); err != nil {
@@ -91,10 +91,14 @@ func (t *Tests) runTest(tx *PkgTx, testName string, testStmt *Statement) error {
 	}
 
 	if testErr == nil {
-		if t.Package.Options.Verbose {
-			fmt.Println("[PASS]", testName)
+		if Options.Verbose {
+			Verbose.Println("  [pass]", testName)
 		}
 		return nil
+	}
+
+	if Options.Verbose {
+		Verbose.Println("* [FAIL]", testName)
 	}
 
 	pe := PKGErrorf(testStmt, testErr, "test failed: %s", testName)

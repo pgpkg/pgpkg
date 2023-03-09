@@ -33,8 +33,8 @@ func (m *MOB) Parse() error {
 	definitions := make(map[string]*Statement)
 
 	for _, u := range m.Units {
-		if m.Package.Options.Verbose {
-			fmt.Println("parsing MOB", u.Location())
+		if Options.Verbose {
+			Verbose.Println("parsing MOB", u.Location())
 		}
 		if err := u.Parse(); err != nil {
 			return fmt.Errorf("unable to parse MOB: %w", err)

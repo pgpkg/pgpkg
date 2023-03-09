@@ -2,13 +2,11 @@ package pgpkg
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 )
 
 type PkgTx struct {
 	*sql.Tx
-	Verbose bool
 }
 
 func (t *PkgTx) Exec(query string, args ...any) (sql.Result, error) {
@@ -27,20 +25,19 @@ func (t *PkgTx) QueryRow(query string, args ...any) *sql.Row {
 }
 
 func (t *PkgTx) logQuery(query string, args []any) {
-	if !t.Verbose {
+	if !Options.Verbose {
 		return
 	}
 
 	logText := query
 	newLine := strings.IndexRune(logText, '\n')
 	if newLine >= 0 {
-		logText = logText[:newLine]
+		logText = logText[:newLine] + "…"
 	}
 
 	if args == nil || len(args) == 0 {
-		fmt.Println(logText)
+		Verbose.Println(logText)
 	} else {
-		fmt.Println(query, args)
+		Verbose.Println(query, args)
 	}
 }
-

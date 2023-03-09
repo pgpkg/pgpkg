@@ -1,5 +1,7 @@
-# Error tests
+# "Bad" tests
 
-This folder contains a list of various kinds of errors that can be encountered
-during an upgrade. The intent of these errors is to ensure that we print a helpful
-error message for each scenario, and that we catch bad things.
+Each subdirectory in this directory contains a package that is expected to fail on installation.
+The failure might be caused by any issue, including bad packaging, a migration problem, or
+a pgpkg test failure.
+
+If a test doesn't fail, then the test script fails.

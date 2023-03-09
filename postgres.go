@@ -2,26 +2,25 @@ package pgpkg
 
 import (
 	"fmt"
-	"github.com/gookit/color"
 	"github.com/lib/pq"
 	"regexp"
 	"strings"
 )
 
-// The "quiet level" is incremented or decremented to supress messages from the database.
-// This help to stop database generated messages that will make users think something is wrong
+// The "volume level" is incremented or decremented to supress messages from the database.
+// This helps to stop database generated messages that will make users think something is wrong
 // when it isn't. These messages are great during debugging but should be silenced during
 // operations that will generate them spuriously; sometimes PG itself emits them when we
 // don't want them.
 var logVolume = 0
 
-func noticeHandler(options *Options, err *pq.Error) {
+func noticeHandler(err *pq.Error) {
 	// Don't allow warnings to be quiet.
 	if err.Severity == "WARNING" {
-		color.Red.Printf("[%s]: %s\n", err.Severity, err.Message)
+		Stderr.Printf("[%s]: %s\n", strings.ToUpper(err.Severity), err.Message)
 	} else {
-		if logVolume == 0 || options.Verbose {
-			color.Bold.Printf("[%s]: %s\n", strings.ToLower(err.Severity), err.Message)
+		if logVolume == 0 || Options.Verbose {
+			Stdout.Printf("[%s]: %s\n", strings.ToLower(err.Severity), err.Message)
 		}
 	}
 }
