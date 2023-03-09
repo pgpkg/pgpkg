@@ -1,0 +1,12 @@
+uuid.sql
+types.sql
+team.sql
+adjustment.sql
+account.sql
+tx.sql
+entry.sql
+message.sql
+item.sql
+unallocated.sql
+allocation.sql
+settings.sql

@@ -21,19 +21,19 @@ trap cleanup EXIT
 
 exitStatus=0
 
-for err in `find . -type d -depth 1`
+for good in `find . -type d -depth 1`
 do
 
   TEMPDB=`LC_ALL=C tr -dc A-Za-z </dev/urandom | head -c 16`
   createdb "$TEMPDB"
   export DSN="postgres://localhost:5432/$TEMPDB?sslmode=disable"
 
-  if ! pgpkg $err > /dev/null 2>&1
+  if ! pgpkg $good > /dev/null 2>&1
   then
-    echo "* FAIL: $err"
+    echo "* FAIL: $good"
     exitStatus=1  # keep running tests but exit with status when done
   else
-    echo "  pass: $err"
+    echo "  pass: $good"
   fi
 
   dropdb "$TEMPDB"

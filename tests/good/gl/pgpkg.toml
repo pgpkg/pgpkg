@@ -1,0 +1,34 @@
+#
+# This pgpkg file manages pgpkg's own schema.
+# The pgpkg schema tracks the current state of the database
+# and allows us to know which updates need to be applied.
+#
+
+#
+# The unique name for this package.
+# This should ideally be a Go module name.
+#
+Package = "github.com/bookworkhq/gl"
+
+#
+# The schema or schemas managed by this package.
+# Schema ownership is managed by Pgpkg. If a schema
+# already exists and is not owned by a Pgpkg package,
+# or is owned by some other Pgpkg package, then
+# the upgrade will be aborted.
+#
+Schema = "gl"
+
+#
+# List of extensions required by this module. These will be installed by the
+# manager user.
+#
+Extensions = [ "uuid-ossp" ]
+
+#
+# List of packages that we want access to. pgpkg will arrange to provide
+# access to the schema.
+#
+# Uses = {
+#    schema = "github.com/..."
+# }
