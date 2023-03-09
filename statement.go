@@ -1,7 +1,6 @@
 package pgpkg
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/lib/pq"
 	pg_query "github.com/pganalyze/pg_query_go/v4"
@@ -42,8 +41,7 @@ func QualifiedName(nodes []*pg_query.Node) string {
 // false if an error occurred that was not related to statement execution.
 //
 // If an error occurs while executing the statement, the statement's Error field is also set.
-func (s *Statement) Try(tx *sql.Tx) (bool, error) {
-
+func (s *Statement) Try(tx *PkgTx) (bool, error) {
 	_, err := tx.Exec("savepoint statement")
 	if err != nil {
 		return false, fmt.Errorf("unable to begin savepoint: %w", err)
@@ -89,7 +87,7 @@ var linePattern = regexp.MustCompile("line ([0-9]+)")
 // Work out the source and line number of a runtime error, either by looking at the statement
 // source or looking in the database for a function definition. Returns nil if the context
 // can't be worked out.
-func getRuntimeContext(tx *sql.Tx, source string, location string) *PKGErrorContext {
+func getRuntimeContext(tx *PkgTx, source string, location string) *PKGErrorContext {
 	lines := linePattern.FindStringSubmatch(location)
 	if lines == nil || len(lines) != 2 {
 		return nil
@@ -133,7 +131,7 @@ func getRuntimeContext(tx *sql.Tx, source string, location string) *PKGErrorCont
 	return nil
 }
 
-func getErrorContext(tx *sql.Tx, source string, err error) *PKGErrorContext {
+func getErrorContext(tx *PkgTx, source string, err error) *PKGErrorContext {
 	var where string
 
 	// If it's not a pq.Error, then the context comes from the statement itself.
@@ -175,29 +173,7 @@ func getErrorContext(tx *sql.Tx, source string, err error) *PKGErrorContext {
 	return nil
 }
 
-// Exec is a convenience function for debugging errors in Postgresql.
-// It may begin (and roll back) a transaction in order to print debugging information
-// to the console, if the Exec fails.
-func Exec(db *sql.DB, tx *sql.Tx, statement string, args ...any) (sql.Result, error) {
-	result, execErr := tx.Exec(statement, args...)
-	if execErr == nil {
-		return result, nil
-	}
-
-	// If an error occurs, try to find the context. This requires a new transaction, since the
-	// original transaction will now be in an error state.
-	contextTx, txErr := db.Begin()
-	if txErr != nil {
-		return nil, fmt.Errorf("exec error %w (then an error occurred trying to print the stack: %w)", execErr, txErr)
-	}
-
-	pe := getErrorContext(contextTx, statement, execErr)
-	pe.Print(2)
-	_ = contextTx.Rollback()
-	return nil, execErr
-}
-
-func (s *Statement) getErrorContext(tx *sql.Tx, err error) *PKGErrorContext {
+func (s *Statement) getErrorContext(tx *PkgTx, err error) *PKGErrorContext {
 	ec := getErrorContext(tx, s.Source, err)
 	if ec != nil {
 		return ec

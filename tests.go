@@ -7,10 +7,7 @@ package pgpkg
 // Nothing is overly complex; but it's not as simple as just running the units.
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -18,24 +15,6 @@ type Tests struct {
 	*Bundle
 	state      *stmtApplyState
 	NamedTests map[string]*Statement
-}
-
-func (p *Package) loadTests(path string) (*Tests, error) {
-	bundle, err := p.loadBundle(path)
-
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return &Tests{Bundle: &Bundle{}}, nil
-		}
-
-		return nil, err
-	}
-
-	tests := &Tests{
-		Bundle: bundle,
-	}
-
-	return tests, nil
 }
 
 func (t *Tests) parse() error {
@@ -98,7 +77,7 @@ func (t *Tests) parse() error {
 // testStmt is the statement containing the test function.
 // testStmt was executed when the tests were parsed, so it is only used to work out where
 // problems might have happened.
-func (t *Tests) runTest(tx *sql.Tx, testName string, testStmt *Statement) error {
+func (t *Tests) runTest(tx *PkgTx, testName string, testStmt *Statement) error {
 	if _, spErr := tx.Exec("savepoint unittest"); spErr != nil {
 		return fmt.Errorf("unable to begin savepoint for test %s: %w", testName, spErr)
 	}
@@ -126,7 +105,7 @@ func (t *Tests) runTest(tx *sql.Tx, testName string, testStmt *Statement) error 
 	return testErr
 }
 
-func (t *Tests) Run(tx *sql.Tx) error {
+func (t *Tests) Run(tx *PkgTx) error {
 
 	// Rollback, and return either the error or an error from the rollback.
 	defer func() {

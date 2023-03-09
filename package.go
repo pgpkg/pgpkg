@@ -1,7 +1,6 @@
 package pgpkg
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/lib/pq"
@@ -11,8 +10,6 @@ import (
 	"regexp"
 	"strings"
 )
-
-var pgIdentifierRegexp = regexp.MustCompile("^[\\pL_][\\pL0-9_$]*$")
 
 const migrationFilename = "@migration.pgpkg"
 
@@ -71,52 +68,6 @@ type configType struct {
 	Uses       []string
 }
 
-// Bundle represents functional unit of a package, consisting of many Units.
-// There are three types of bundles: MOB, schema and test.
-//
-// Different bundles have distinct behaviours; structure
-// bundles perform upgrades, MOB bundles replace
-// existing code, and test bundles are executed after
-// everything else is complete.
-type Bundle struct {
-	Package *Package         // canonical name of the package.
-	Path    string           // Path of this bundle, relative to the Package
-	Index   map[string]*Unit // Index of location of each unit.
-	Units   []*Unit          // Ordered list of build units within the bundle
-}
-
-// HasUnits indicates if any build units were found for this bundle.
-func (b *Bundle) HasUnits() bool {
-	return b.Units != nil && len(b.Units) > 0
-}
-
-// Open an arbitrary file from the bundle.
-func (b *Bundle) Open(path string) (fs.File, error) {
-	return b.Package.Root.Open(filepath.Join(b.Path, path))
-}
-
-func (b *Bundle) getUnit(path string) (*Unit, bool) {
-	u, ok := b.Index[path]
-	return u, ok
-}
-
-// addUnit adds a new unit to the package. Note that it doesn't read or parse the unit
-// until requested.
-func (b *Bundle) addUnit(path string) error {
-	if b.Package.Options.Verbose {
-		fmt.Println("add unit:", path)
-	}
-
-	unit := &Unit{
-		Bundle: b,
-		Path:   path,
-	}
-
-	b.Units = append(b.Units, unit)
-	b.Index[path] = unit
-	return nil
-}
-
 func (p *Package) newBundle() *Bundle {
 	return &Bundle{
 		Path:    "",
@@ -125,91 +76,23 @@ func (p *Package) newBundle() *Bundle {
 	}
 }
 
-// Add a bundle. The files within the provided root are the bundle contents.
-// Bundles (and the build units they are made up of) are lazily loaded.
-func (p *Package) loadBundle(path string) (*Bundle, error) {
-	if p.Options.Verbose {
-		fmt.Println("load bundle:", path)
-	}
-
-	contents, err := p.Root.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open %s: %w", path, err)
-	}
-
-	dir, ok := contents.(fs.ReadDirFile)
-	if !ok {
-		return nil, fmt.Errorf("%s is not a directory", path)
-	}
-
-	entries, err := dir.ReadDir(-1)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read directory %s: %w", path, err)
-	}
-
-	bundle := &Bundle{
-		Path:    path,
-		Package: p,
-		Index:   make(map[string]*Unit),
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			return nil, fmt.Errorf("bundle subdirectories are not yet supported: %s/%s", path, entry.Name())
-		}
-
-		name := entry.Name()
-		if strings.HasSuffix(name, ".sql") {
-			err = bundle.addUnit(entry.Name())
-			if err != nil {
-				return nil, err
-			}
-		}
-
-	}
-
-	return bundle, nil
-}
-
-func (p *Package) logQuery(query string, args []any) {
-	if !p.Options.Verbose {
-		return
-	}
-
-	if args == nil || len(args) == 0 {
-		fmt.Println(query)
-	} else {
-		fmt.Println(query, args)
-	}
-}
-
-func (p *Package) Exec(tx *sql.Tx, query string, args ...any) (sql.Result, error) {
-	p.logQuery(query, args)
-	return tx.Exec(query, args...)
-}
-
-func (p *Package) QueryRow(tx *sql.Tx, query string, args ...any) *sql.Row {
-	p.logQuery(query, args)
-	return tx.QueryRow(query, args...)
-}
-
-func (p *Package) setRole(tx *sql.Tx) {
-	_, err := p.Exec(tx, fmt.Sprintf("set role \"%s\"", p.RoleName))
+func (p *Package) setRole(tx *PkgTx) {
+	_, err := tx.Exec(fmt.Sprintf("set role \"%s\"", Sanitize(rolePattern, p.RoleName)))
 	if err != nil {
 		panic(fmt.Errorf("unable to change to role %s: %w", p.RoleName, err))
 	}
 }
 
-func (p *Package) resetRole(tx *sql.Tx) {
-	_, err := p.Exec(tx, fmt.Sprintf("reset role"))
+func (p *Package) resetRole(tx *PkgTx) {
+	_, err := tx.Exec(fmt.Sprintf("reset role"))
 	if err != nil {
 		panic(fmt.Errorf("unable to change to role %s: %w", p.SchemaName, err))
 	}
 }
 
-func (p *Package) hasRole(tx *sql.Tx) bool {
+func (p *Package) hasRole(tx *PkgTx) bool {
 	var roleCount int
-	row := p.QueryRow(tx, "select count(*) from pg_roles where rolname=$1", p.RoleName)
+	row := tx.QueryRow("select count(*) from pg_roles where rolname=$1", p.RoleName)
 	err := row.Scan(&roleCount)
 	if err != nil {
 		panic(err)
@@ -217,25 +100,27 @@ func (p *Package) hasRole(tx *sql.Tx) bool {
 	return roleCount == 1
 }
 
-func (p *Package) createSchema(tx *sql.Tx) error {
+func (p *Package) createSchema(tx *PkgTx) error {
 	LogQuieter()
 	defer LogLouder()
 
 	if !p.hasRole(tx) {
-		_, err := p.Exec(tx, fmt.Sprintf("create role \"%s\"", p.RoleName))
+		_, err := tx.Exec(fmt.Sprintf("create role \"%s\"", Sanitize(rolePattern, p.RoleName)))
 		if err != nil {
 			return fmt.Errorf("unable to create role %s: %w", p.SchemaName, err)
 		}
 
 		// The user running these scripts may not be a superuser (but must have create role),
 		// so we need to extend access to the new role.
-		_, err = p.Exec(tx, fmt.Sprintf("grant \"%s\" to current_user", p.RoleName))
+		_, err = tx.Exec(fmt.Sprintf("grant \"%s\" to current_user", Sanitize(rolePattern, p.RoleName)))
 		if err != nil {
 			return fmt.Errorf("unable to grant role %s to current_user: %w", p.RoleName, err)
 		}
 	}
 
-	_, err := p.Exec(tx, fmt.Sprintf("create schema if not exists \"%s\" authorization \"%s\"", p.SchemaName, p.RoleName))
+	_, err := tx.Exec(fmt.Sprintf("create schema if not exists \"%s\" authorization \"%s\"",
+		Sanitize(schemaPattern, p.SchemaName), Sanitize(rolePattern, p.RoleName)))
+
 	if err != nil {
 		return fmt.Errorf("unable to create schema %s: %w", p.SchemaName, err)
 	}
@@ -243,7 +128,7 @@ func (p *Package) createSchema(tx *sql.Tx) error {
 	exts := p.config.Extensions
 	if exts != nil {
 		for _, ext := range p.config.Extensions {
-			if _, err = p.Exec(tx, fmt.Sprintf("create extension if not exists \"%s\" with schema public", ext)); err != nil {
+			if _, err = tx.Exec(fmt.Sprintf("create extension if not exists \"%s\" with schema public", Sanitize(extensionPattern, ext))); err != nil {
 				return fmt.Errorf("unable to create package extension %s: %w", ext, err)
 			}
 		}
@@ -253,34 +138,38 @@ func (p *Package) createSchema(tx *sql.Tx) error {
 }
 
 // Register this package in the pgpkg.pkg table.
-func (p *Package) register(tx *sql.Tx) error {
-	_, err := p.Exec(tx, "insert into pgpkg.pkg (pkg, schema_name, uses) values ($1, $2, $3) "+
+func (p *Package) register(tx *PkgTx) error {
+	_, err := tx.Exec("insert into pgpkg.pkg (pkg, schema_name, uses) values ($1, $2, $3) "+
 		"on conflict (pkg) do update set schema_name=excluded.schema_name, uses=excluded.uses",
 		p.Name, p.SchemaName, pq.Array(p.config.Uses))
 
 	return err
 }
 
-func (p *Package) grantPackage(tx *sql.Tx, pkgName string) error {
+func (p *Package) grantPackage(tx *PkgTx, pkgName string) error {
 	var schemaName string
-	r := p.QueryRow(tx, "select schema_name from pgpkg.pkg where pkg=$1", pkgName)
+	r := tx.QueryRow("select schema_name from pgpkg.pkg where pkg=$1", pkgName)
 	if err := r.Scan(&schemaName); err != nil {
 		return err
 	}
 
-	if _, err := p.Exec(tx, fmt.Sprintf(`grant usage on schema "%s" to "%s"`, schemaName, p.RoleName)); err != nil {
+	if _, err := tx.Exec(fmt.Sprintf(`grant usage on schema "%s" to "%s"`,
+		Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
 		return err
 	}
 
-	if _, err := p.Exec(tx, fmt.Sprintf(`grant execute on all functions in schema "%s" to "%s"`, schemaName, p.RoleName)); err != nil {
+	if _, err := tx.Exec(fmt.Sprintf(`grant execute on all functions in schema "%s" to "%s"`,
+		Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
 		return err
 	}
 
-	if _, err := p.Exec(tx, fmt.Sprintf(`grant select, update, insert, references on all tables in schema "%s" to "%s"`, schemaName, p.RoleName)); err != nil {
+	if _, err := tx.Exec(fmt.Sprintf(`grant select, update, insert, references on all tables in schema "%s" to "%s"`,
+		Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
 		return err
 	}
 
-	if _, err := p.Exec(tx, fmt.Sprintf(`grant usage on all sequences in schema "%s" to "%s"`, schemaName, p.RoleName)); err != nil {
+	if _, err := tx.Exec(fmt.Sprintf(`grant usage on all sequences in schema "%s" to "%s"`,
+		Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
 		return err
 	}
 
@@ -288,7 +177,7 @@ func (p *Package) grantPackage(tx *sql.Tx, pkgName string) error {
 }
 
 // Allow this package to access the packages in the Uses clause of the definition.
-func (p *Package) grant(tx *sql.Tx) error {
+func (p *Package) grant(tx *PkgTx) error {
 	if p.config.Uses == nil {
 		return nil
 	}
@@ -302,7 +191,7 @@ func (p *Package) grant(tx *sql.Tx) error {
 	return nil
 }
 
-func (p *Package) Apply(tx *sql.Tx) error {
+func (p *Package) Apply(tx *PkgTx) error {
 
 	// Stop any other pgpkg process from running simultaneously.
 	if _, err := tx.Exec("select pg_advisory_xact_lock(hashtext('pgpkg'))"); err != nil {
@@ -415,13 +304,13 @@ func (p *Package) loadConfig(tomlPath string) error {
 		return fmt.Errorf("unable to read package config: %w", err)
 	}
 
-	if !pgIdentifierRegexp.MatchString(config.Schema) {
+	if !schemaPattern.MatchString(config.Schema) {
 		return fmt.Errorf("illegal schema name in pgpkg.toml: %s", config.Schema)
 	}
 
 	p.Name = config.Package
-	p.SchemaName = config.Schema
-	p.RoleName = "$" + p.SchemaName
+	p.SchemaName = Sanitize(schemaPattern, config.Schema)
+	p.RoleName = Sanitize(rolePattern, "$"+p.SchemaName)
 	p.config = &config
 
 	return nil
@@ -529,8 +418,4 @@ func loadPackage(project *Project, location string, pkgFS fs.FS, options *Option
 	}
 
 	return pkg, nil
-}
-
-func (b *Bundle) Location() string {
-	return filepath.Join(b.Package.Location, b.Path)
 }

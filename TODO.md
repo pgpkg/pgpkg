@@ -1,46 +1,48 @@
 # pgpkg todo
 
-- [X] packages should be rooted at the toml file.
-- [ ] use pkgadm role instead of pgadm in the docs etc
+## New
+
+## Priority
+
+- [ ] need some integration tests
+- [ ] package up the tool as a binary
 - [ ] packages are treated individually which will cause dependency problems.
-  - [X] a collection of packages is called a project, which:
   - [ ] purges from head to tail
   - [ ] applies from tail to head
   - [ ] needs basic dependency scaffolding, see TODO-DEPS.md
-- [ ] add a supabase example in the tutorial, maybe vultr, AWS, some other hosted PG as well
-  maybe a general "installing psql"
-- [ ] pgpkg cli should search parents like Git does, implement Uses
-- [ ] package up the tool as a binary
-- [ ] package loading should start at the pgpkg.toml file.
+- [ ] tests need SECURITY DEFINER etc as well
+
+## Bugs
+
 - [ ] need to remove roles if a package is removed from Uses[]
-- [X] update docs to explain the new package layout / structure
-- [ ] Allow more complete integration with source trees:
-    - [ ] try it out using mixed sql + go code
-- [ ] move Bundle methods out of package and into their own file
 - [ ] toml Uses[] fails with 'sql: no rows in result set' if a package is not registered. error is ambiguous
-- [ ] unsanitized input in Package.sql, maybe other places: `p.Exec(tx, fmt.Sprintf('grant usage on schema "%s" to "%s"')...`
 - [ ] schema name is missing from function call errors, preventing nice stack traces
-- [ ] loadBundle doesn't support nested subdirectories.
-- [ ] ensure search_path and `security definer` are not specified in function definitions
-- [ ] ensure that statements being executed aren't equivalent to "commit", "rollback", "savepoint", "release", etc
-- [ ] ensure that statements being executed aren't SET ROLE or RESET ROLE.
 - [ ] views need security definers too
-- [ ] there are still a few tx.Exec / tx.Query that should be logged via the package instead
-- [ ] introspect SQL and plpgsql functions for unwanted statements / set role etc.
 - [ ] packages are able to improperly create circular dependencies, which is a security issue, because a dependency
-      could trick pgpkg into providing access to a higher level package.
-- [ ] dependency management, download, registration, etc
-- [ ] when tests/table-ref/schema/ref.sql fails, the context is technically correct but visually stupid. 
+  could trick pgpkg into providing access to a higher level package.
+- [ ] when tests/table-ref/schema/ref.sql fails, the context is technically correct but visually stupid.
 - [ ] when printing a stack trace (error context), only show the context source for the current package
-      e.g. if a test fails when it calls some other package, show the source code location in the test package
-      this would make assertions in the pgpkg package (like, =!) work well too.
+  e.g. if a test fails when it calls some other package, show the source code location in the test package
+  this would make assertions in the pgpkg package (like, =!) work well too.
 - [ ] line number in error location headers is wrong (line number doesn't come from context)
-- [ ] add api support for stored *procedures*
 - [ ] make sure only one package can use a schema name at a time (package registration table)
 - [ ] not all function parameter types are implemented yet in name generation, e.g. setof. need tests for that. check pgsql syntax too.
+
+## Features
+
 - [ ] generate Go stubs, maybe even Java stubs :-)
-- [ ] create a role for schemas so (in theory?) they can't escape the sandbox
-- [ ] what happens with quoted identifiers? what happens if the declared schema name is invalid?
+- [ ] add api support for stored *procedures*
+- [ ] dependency management, download, registration, etc
+  - [ ] pgpkg cli should search parents like Git does, implement Uses
+- [ ] introspect SQL and plpgsql functions for unwanted statements / set role etc.
+  - [ ] ensure search_path and `security definer` are not specified in function definitions
+  - [ ] ensure that statements being executed aren't equivalent to "commit", "rollback", "savepoint", "release", etc
+  - [ ] ensure that statements being executed aren't SET ROLE or RESET ROLE.
+
+## Docs
+
+- [ ] add a supabase example in the tutorial, maybe vultr, AWS, some other hosted PG as well
+  maybe a general "installing psql"
 
 # Done
 
@@ -88,3 +90,18 @@
 - [X] rename "API" to "MOB"
 - [X] clean up install.go (not needed any more)
 - [X] change "@index.pgpkg" to "@migration.pgpkg"
+- [X] packages should be rooted at the toml file.
+- [X] use pkgadm role instead of pgadm in the docs etc
+- [X] package loading should start at the pgpkg.toml file.
+- [X] update docs to explain the new package layout / structure
+- [X] move Bundle methods out of package and into their own file
+- [X] a collection of packages is called a project, which:
+- [X] create a role for schemas so (in theory?) they can't escape the sandbox
+- [X] Allow more complete integration with source trees:
+- [X] try it out using mixed sql + go code
+- [X] replace sql.Tx with pgpkg.Tx
+- [X] remove package.Exec, logQuery and friends
+- [X] there are still a few tx.Exec / tx.Query that should be logged via the package instead
+- [X] unsanitized input in Package.sql, maybe other places: `p.Exec(tx, fmt.Sprintf('grant usage on schema "%s" to "%s"')...`
+- [X] what happens with quoted identifiers? what happens if the declared schema name is invalid?
+- [X] loadBundle doesn't support nested subdirectories.

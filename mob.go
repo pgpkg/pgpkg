@@ -1,7 +1,6 @@
 package pgpkg
 
 import (
-	"database/sql"
 	"fmt"
 )
 
@@ -86,7 +85,7 @@ func (m *MOB) Parse() error {
 
 // ExecAll attempts to run each of the statements in the pending list.
 // Each statement is run in a savepoint.
-func execAll(tx *sql.Tx, state *stmtApplyState) error {
+func execAll(tx *PkgTx, state *stmtApplyState) error {
 	for _, stmt := range state.pending {
 		ok, err := stmt.Try(tx)
 		if !ok {
@@ -114,7 +113,7 @@ type stmtStoredState struct {
 
 // loadState returns the state objects in reverse order from how they were created.
 // this should make dumping objects faster.
-func (m *MOB) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
+func (m *MOB) loadState(tx *PkgTx) ([]stmtStoredState, error) {
 	rows, err := tx.Query("select obj_type, obj_name from pgpkg.managed_object where pkg=$1 order by seq desc",
 		m.Package.Name)
 	if err != nil {
@@ -135,7 +134,7 @@ func (m *MOB) loadState(tx *sql.Tx) ([]stmtStoredState, error) {
 	return stateList, nil
 }
 
-func applyState(tx *sql.Tx, state *stmtApplyState) error {
+func applyState(tx *PkgTx, state *stmtApplyState) error {
 	for {
 		lenPending := len(state.pending)
 		if lenPending == 0 {
@@ -164,7 +163,7 @@ func applyState(tx *sql.Tx, state *stmtApplyState) error {
 // recursively to ensure that dependent objects are also deleted, if possible.
 // We don't use CASCADE with drops to ensure that any other scheme that inadvertently relies
 // on MOB functions is not damaged by the purge.
-func (m *MOB) purge(tx *sql.Tx) error {
+func (m *MOB) purge(tx *PkgTx) error {
 	var pending []*Statement
 
 	state, err := m.loadState(tx)
@@ -187,7 +186,7 @@ func (m *MOB) purge(tx *sql.Tx) error {
 }
 
 // Update the database with the new state of the MOB.
-func (m *MOB) updateState(tx *sql.Tx) error {
+func (m *MOB) updateState(tx *PkgTx) error {
 	_, err := tx.Exec("delete from pgpkg.managed_object where pkg=$1", m.Bundle.Package.Name)
 	if err != nil {
 		return fmt.Errorf("unable to remove existing state: %w", err)
@@ -231,7 +230,7 @@ func (m *MOB) DefaultContext() *PKGErrorContext {
 //
 // The apply function will keep running until it's unable to create
 // any statement, after which it will terminate.
-func (m *MOB) Apply(tx *sql.Tx) error {
+func (m *MOB) Apply(tx *PkgTx) error {
 	if m.state == nil {
 		panic("please call MOB.Parse() before calling MOB.Apply()")
 	}

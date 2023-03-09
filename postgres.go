@@ -1,7 +1,6 @@
 package pgpkg
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/gookit/color"
 	"github.com/lib/pq"
@@ -39,7 +38,7 @@ var fnamePattern = regexp.MustCompile("function ([a-z_][a-z0-9_.]*[(].*[)])")
 
 // Get the source of a function from the database itself, based on the "where" field
 // of a pgsql error.
-func getFunctionSource(tx *sql.Tx, where string) (string, error) {
+func getFunctionSource(tx *PkgTx, where string) (string, error) {
 
 	// The where string should contain a function name.
 	fnames := fnamePattern.FindStringSubmatch(where)

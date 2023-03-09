@@ -75,9 +75,14 @@ func (p *Project) Open(options *Options) (*sql.DB, error) {
 
 	db := sql.OpenDB(connector)
 
-	tx, err := db.Begin()
+	dbtx, err := db.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("unable to begin transaction: %w", err)
+	}
+
+	tx := &PkgTx{
+		Tx:      dbtx,
+		Verbose: true,
 	}
 
 	// Initialise pgpkg itself.
@@ -133,7 +138,7 @@ const PGKSchemaName = "pgpkg"
 
 // Init initialises the pgpkg schema itself. It effectively uses pgpkg's
 // migration tools to bookstrap itself.
-func (p *Project) Init(tx *sql.Tx, options *Options) error {
+func (p *Project) Init(tx *PkgTx, options *Options) error {
 	var isInitialised int
 	err := tx.QueryRow("select count(*) from information_schema.schemata where schema_name = 'pgpkg'").Scan(&isInitialised)
 	if err != nil {

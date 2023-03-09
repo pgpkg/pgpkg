@@ -4,14 +4,14 @@
 
 ## Introduction
 
-pgpkg is a small and fast command-line tool (and Go library) which is designed to make writing Postgresql
-stored functions as easy as writing functions in any other language, such as Go, Java or Python.
+pgpkg reduces the hassle of writing and shipping stored functions for Postgresql.
 
-pgpkg lets you specify function, view and trigger definitions just once. There is no need to
-create a migration script every time you change a function, view or trigger.
+With pgpkg, there is no need to create a migration script every time you change a stored
+function, view or trigger. You just change the original file, and pgpkg looks after the rest.
 
-pgpkg also includes a simple, safe and fast database migration system, and a system for
-writing SQL unit tests.
+In addition to managing stored functions, views and triggers separately from other database
+objects, pgpkg also includes a safe and fast database migration system, and an SQL
+based unit testing tool.
 
 Each of these features will be demonstrated in this tutorial.
 
@@ -27,9 +27,10 @@ You currently need [Go 1.20](https://go.dev/dl/) installed (we will release bina
 
 ## Permissions and Environment
 
+> If you have a superuser account on your Postgresql instance, you can skip this section.
+
 pgpkg is designed to work with reduced permissions, which may be necessary for hosted
-Postgres databases such as Supabase or Vultr. If you have a superuser account, you can
-skip this section.
+Postgres databases such as Supabase or Vultr. 
 
 To create a database user `pkgadm` with sufficient privileges to install a package:
 
@@ -310,12 +311,84 @@ In just a few files we've been able to create a complete environment for
 editing stored procedures in an IDE, the same way we edit regular programming code.
 We've also added unit tests - which are just functions that are run after a migration.
 
-## Working with other languages
+## Integrating with Go
 
-`pgpkg` will work with any directory that contains `pgpkg.toml`, and will ignore
-files that don't end in `.sql`. This means you can mix SQL and (say) Go files in the
-same directory:
+One of pgpkg's features is that it plays nicely with other languages. It plays especially
+nicely with Go, but you can use the features of pgpkg with any language.
 
+In this example we're going to integrate our application with a Go program.
+
+First, you need to create a module and add pgpkg as a dependency:
+
+    $ go mod init github.com/pgpkg/example
+    go: creating new go.mod: module github.com/pgpkg/example
+    go: to add module requirements and sums:
+    go mod tidy
+    $ go get github.com/pgpkg/pgpkg
+
+Next, we need to set up main.go to load the schema and open the database:
+
+    package main
+
+    import (
+        "embed"
+        "fmt"
+        "github.com/pgpkg/pgpkg"
+    )
+    
+    //go:embed pgpkg.toml *.sql schema
+    var hello embed.FS
+    
+    func main() {
+        var p pgpkg.Project
+        p.AddFS(hello)
+    
+        db, err := p.Open(&pgpkg.Options{})
+        if err != nil {
+            pgpkg.Exit(err)
+        }
+        defer db.Close()
+    
+        var world string
+        if err = db.QueryRow("select hello.world()").Scan(&world); err != nil {
+            pgpkg.Exit(err)
+        }
+    
+        fmt.Println("And the world is:", world)
+    }
+
+To run this script - which will run the migration, install the SQL function, run
+the tests, and return a database handle - just build and run it:
+
+    $ go build
+    $ ./example
+    [notice]: Testing the world
+    And the world is: Postgresql Community
+
+Note how the test has printed a message - `raise notice` commands are automatically
+logged from pgpkg. We can fix this by updating the test. Edit world_test.sql:
+
+    create or replace function hello.test_world() returns void language plpgsql as $$
+        begin
+            if hello.world() <> 'Postgresql Community' then
+                raise exception 'the world is not right';
+            end if;
+        end;
+    $$;
+
+Then build and rerun your code:
+
+    $ go build
+    $ ./example
+    And the world is: Postgresql Community
+
+Note that you don't need to run `pgpkg` when you've embedded your package into your Go
+program.
+
+Also note that your SQL and Go code is now in the same directory:
+
+    .
+    ├── example
     ├── func.sql
     ├── go.mod
     ├── go.sum
@@ -325,21 +398,14 @@ same directory:
     │   ├── @migration.pgpkg
     │   ├── contact.sql
     │   └── contact@001.sql
-    ├── world.go
     ├── world.sql
-    └── world_test.go
+    └── world_test.sql
 
-In this example, you can imagine the code in `world.go` is used to access the
-function in `world.sql`. You can easily jump between the SQL and Go code in your IDE.
-This is the real benefit of pgpkg.
+## Using pgpkg in other languages
 
-Note that, apart from the schema folder, this directory structure is mostly arbitrary.
-You can put tests, functions, views and triggers in any file, as long as there is a
-`pgpkg.toml` file in the parent somewhere.
-
-## Integrating with Go
-
-(to be done)
+To use pgpkg in languages other than Go, you can simply package up the pgpkg CLI command as
+part of the startup script for your application. pgpkg can read ZIP files, and the
+bundling can occur as part of the deployment build process.
 
 ## Purging schemas
 

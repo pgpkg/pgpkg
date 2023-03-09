@@ -9,8 +9,6 @@ package pgpkg
 
 import (
 	"bufio"
-	"database/sql"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -26,24 +24,7 @@ type Schema struct {
 	migratedState  map[string]bool // set of paths that have been newly migrated
 }
 
-func (p *Package) loadSchema(path string) (*Schema, error) {
-	bundle, err := p.loadBundle(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	schema := &Schema{
-		Bundle: bundle,
-	}
-
-	return schema, nil
-}
-
-func (s *Schema) ApplyUnit(tx *sql.Tx, u *Unit) error {
+func (s *Schema) ApplyUnit(tx *PkgTx, u *Unit) error {
 	// unfortunately parser errors return almost no information, so the best
 	// we can do is identify the build unit. This seems to be a problem with
 	// pg_query_go rather than the underlying PG parser itself.
@@ -61,7 +42,7 @@ func (s *Schema) ApplyUnit(tx *sql.Tx, u *Unit) error {
 	return nil
 }
 
-func (s *Schema) loadMigrationState(tx *sql.Tx) error {
+func (s *Schema) loadMigrationState(tx *PkgTx) error {
 	migrationState := make(map[string]bool)
 
 	// Grab the list of updates that have already been performed
@@ -85,7 +66,7 @@ func (s *Schema) loadMigrationState(tx *sql.Tx) error {
 	return nil
 }
 
-func (s *Schema) saveMigrationState(tx *sql.Tx) error {
+func (s *Schema) saveMigrationState(tx *PkgTx) error {
 	// Update the pgpkg.migration table to reflect the migration state.
 	for path, _ := range s.migratedState {
 		if _, err := tx.Exec("insert into pgpkg.migration (pkg, path) values ($1, $2)", s.Package.Name, path); err != nil {
@@ -96,7 +77,7 @@ func (s *Schema) saveMigrationState(tx *sql.Tx) error {
 }
 
 // Apply executes the schema statements in order.
-func (s *Schema) Apply(tx *sql.Tx) error {
+func (s *Schema) Apply(tx *PkgTx) error {
 	if s.migrationState == nil {
 		panic("please call loadMigrationState before calling Apply")
 	}
