@@ -28,10 +28,6 @@ Install pgpkg:
 
     $ go install github.com/pgpkg/cmd/pgpkg
 
-## Configure DSN
-
-
-
 ## Writing your first function
 
 Create a folder for your project:
