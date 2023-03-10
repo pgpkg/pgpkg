@@ -2,7 +2,7 @@
 
 ## Priority
 
-- [ ] integration tests (including failures and successes)
+- [ ] create some structured tests e.g. dependencies, uses, unit tests
 - [ ] package up the tool as a binary (github actions?)
 - [ ] packages are treated individually which will cause dependency problems.
   - [ ] purges from head to tail
@@ -113,3 +113,4 @@
 - [X] use --pgpkg-dry-run when running the tests
 - [X] clean up example schema (examples/hello, ...)
 - [X] include example in the good tests
+- [X] integration tests (including failure tests and success tests)
