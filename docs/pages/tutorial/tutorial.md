@@ -73,7 +73,7 @@ If all goes well, you will now have a function defined in your database:
 Hmm, that didn't quite work how we wanted. Let's fix that bug!
 
 With traditional migration tools, you would need to add a new version of the function.
-With `pgpkg` you just need to edit the existing definition. So, edit func.sql:
+With `pgpkg` you can simply edit the existing definition. So, edit func.sql:
 
     create or replace function hello.func() returns text language plpgsql as $$
       begin
@@ -94,7 +94,7 @@ And run it again:
     Hello, world!
     (1 row)
 
-That's it! You've written your first pgpkg application without writing a single migration
+That's it! You've written your first pgpkg application - without writing a single migration
 script.
 
 In `pgpkg`, the function `hello.func` is called a _managed object_ (sometimes abbreviated
@@ -107,7 +107,7 @@ much easier.
 ## Creating a database table
 
 Database tables are _unmanaged objects_, which means they still need to be created and updated
-using traditional migration scripts. Let's create one. 
+using traditional migration scripts. Let's create one!
 
 First, create a directory to hold your migration scripts. By convention, we
 call this `schema`:
@@ -167,8 +167,9 @@ Let's see if the data has been added:
 Great! Note that the filename `contact@001.sql` is just a convention. It's not
 required by pgpkg, which only cares about the list of filenames in `@migration.pgpkg`.
 However, this naming convention means that most IDEs will list migrations in
-order, with `contact.sql` followed by `contact@001.sql`. This makes understanding migrations
-much easier, especially when there are many of them.
+order, with `contact.sql` followed by `contact@001.sql`. This makes it much easier to
+understand how objects have changed over many migrations - especially when migrations
+occur over several years.
 
 Now, let's use that data in a new function!
 
