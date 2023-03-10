@@ -12,6 +12,9 @@ pgpkg lets your SQL functions live side-by-side with your regular code, and lets
 workflows. You can edit your SQL functions in the same IDE, commit them to the same Git repository,
 review them with PRs alongside other changes, and deploy them seamlessly to production.
 
+pgpkg also lets you package up your plpgsql code, distribute it, and incorporate it as a dependency
+into other projects.
+
 ## Tutorial
 
 The [tutorial for using pgpkg](docs/pages/tutorial/tutorial.md) contains a worked example for

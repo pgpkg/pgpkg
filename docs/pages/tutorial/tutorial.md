@@ -17,6 +17,11 @@ based **unit testing tool**.
 
 Each of these features will be demonstrated in this tutorial.
 
+## Prerequisites
+
+You need access to a Postgresql database and sufficient privileges to create schemas and
+roles. For more information see [prerequisites](prerequisites.md).
+
 ## Installing pgpkg
 
 Install pgpkg:
