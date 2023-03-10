@@ -1,7 +1,7 @@
 # pgpkg Package Specification
 
 > Note: this page describes the structure and functioning of pgpkg packages. For an introduction
-> to pgpkg, see [the tutorial](tutorial.md). See [pgpkg phases](phases.md)
+> to pgpkg, see [the tutorial](tutorial/tutorial.md). See [pgpkg phases](phases.md)
 > for information about how the installation process actually installs packages into
 > your database.
 

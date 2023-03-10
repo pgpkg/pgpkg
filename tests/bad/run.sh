@@ -9,20 +9,17 @@
 
 TEMPDB=`LC_ALL=C tr -dc A-Za-z </dev/urandom | head -c 16`
 createdb "$TEMPDB"
-
 function cleanup {
   dropdb "$TEMPDB"
 }
-
 trap cleanup EXIT
-
 export DSN="postgres://localhost:5432/$TEMPDB?sslmode=disable"
 
 exitStatus=0
 
 for err in `find . -type d -depth 1`
 do
-  if pgpkg $err > /dev/null 2>&1
+  if pgpkg --pgpkg-dry-run $err > /dev/null 2>&1
   then
     echo "* FAIL: $err"
     exitStatus=1  # keep running tests but exit with status when done

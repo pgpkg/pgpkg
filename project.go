@@ -51,10 +51,8 @@ func (p *Project) AddPath(paths ...string) {
 
 func (p *Project) Open() (*sql.DB, error) {
 
+	// If DSN isn't set, libpq will use PGHOST etc.
 	dsn := os.Getenv("DSN")
-	if dsn == "" {
-		return nil, fmt.Errorf("DSN environment variable is not set")
-	}
 
 	// Load the packages before we do anything, in case there are problems.
 	pkgs, err := p.loadPackages()

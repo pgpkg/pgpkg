@@ -13,7 +13,7 @@ review them with PRs alongside other changes, and deploy them seamlessly to prod
 
 ## Documentation
 
-* [Quick Tutorial](pages/tutorial.md)
+* [Pgpkg Tutorial](pages/tutorial/tutorial.md)
 * [Why stored procedures?](#why-stored-procedures)
 * [What is pl/pgsql?](#what-is-plpgsql)
 * [Downloading pgpkg](#downloading-pgpkg)

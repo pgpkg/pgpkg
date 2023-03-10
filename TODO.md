@@ -1,18 +1,18 @@
 # pgpkg todo
 
-## New
-
 ## Priority
 
 - [ ] integration tests (including failures and successes)
-- [ ] clean up example schema (examples/hello, ...)
-- [ ] include example in the good tests
 - [ ] package up the tool as a binary (github actions?)
 - [ ] packages are treated individually which will cause dependency problems.
   - [ ] purges from head to tail
   - [ ] applies from tail to head
   - [ ] needs basic dependency scaffolding, see TODO-DEPS.md
 - [ ] tests need SECURITY DEFINER etc as well
+
+## New / Triage
+
+- [ ] make "go test" work with pgpkg
 
 ## Bugs
 
@@ -110,3 +110,6 @@
 - [X] refactor options, add --pgpkg-dry-run and friends
 - [X] can't disable verbose mode after moving logging into Tx :lol:
 - [X] use Go logging.
+- [X] use --pgpkg-dry-run when running the tests
+- [X] clean up example schema (examples/hello, ...)
+- [X] include example in the good tests

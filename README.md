@@ -11,9 +11,9 @@ review them with PRs alongside other changes, and deploy them seamlessly to prod
 
 ## Tutorial
 
-The [tutorial for using pgpkg](docs/pages/tutorial.md) contains a worked example for
+The [tutorial for using pgpkg](docs/pages/tutorial/tutorial.md) contains a worked example for
 writing functions, unit tests and migration scripts. You can see the example
-code created in the tutorial [here](https://github.com/pgpkg/pgpkg/tree/main/example).
+code created in the tutorial [here](https://github.com/pgpkg/pgpkg/tree/main/tests/good/example).
 
 ## Status
 
