@@ -2,6 +2,8 @@
 
 ## Priority
 
+- [ ] URGENT: $pgpkg not granted to current_user?
+
 - [ ] add a readme for the example script linking to the tutorial and explaining it a bit.
 - [ ] create some structured tests e.g. dependencies, uses, unit tests
 - [ ] package up the tool as a binary (github actions?)

@@ -73,6 +73,12 @@ func (u *Unit) Parse() error {
 	// Automatically add a semicolon to the source if one
 	// isn't there already.
 	source := strings.TrimSpace(string(b))
+
+	// Empty files are OK.
+	if source == "" {
+		return nil
+	}
+
 	if source[len(source)-1] != ';' {
 		source = source + ";"
 	}

@@ -42,7 +42,11 @@ func (t *Tests) parse() error {
 				return PKGErrorf(stmt, nil, "only functions can be defined in tests; %s %s", obj.ObjectType, obj.ObjectName)
 			}
 
-			if len(obj.ObjectArgs) != 0 {
+			// Get the unqualified name of the function.
+			fname := strings.ToLower(strings.TrimPrefix(obj.ObjectName, obj.ObjectSchema+"."))
+			isTestFunction := strings.HasPrefix(fname, "test_")
+
+			if isTestFunction && len(obj.ObjectArgs) != 0 {
 				return PKGErrorf(stmt, nil, "test functions cannot receive arguments: %s %s", obj.ObjectType, obj.ObjectName)
 			}
 
@@ -57,10 +61,7 @@ func (t *Tests) parse() error {
 			}
 			definitions[objName] = stmt
 
-			// Get the underlying name of the function
-			fname := strings.ToLower(strings.TrimPrefix(obj.ObjectName, obj.ObjectSchema+"."))
-
-			if strings.HasPrefix(fname, "test_") {
+			if isTestFunction {
 				t.Package.StatTestCount++
 				namedTests[obj.ObjectName] = stmt
 			}

@@ -1,3 +1,8 @@
 mob.sql
 migration.sql
 pkg.sql
+
+testops_numeric.sql
+testops_integer.sql
+testops_text.sql
+testops_timestamptz.sql
