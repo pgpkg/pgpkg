@@ -3,6 +3,7 @@
 ## Priority
 
 - [ ] URGENT: $pgpkg not granted to current_user?
+- [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
 
 - [ ] add a readme for the example script linking to the tutorial and explaining it a bit.
 - [ ] create some structured tests e.g. dependencies, uses, unit tests

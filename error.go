@@ -49,18 +49,18 @@ func (e *PKGError) Error() string {
 }
 
 // Root unwraps the errors until we get to the very last PKGError.
-func (e *PKGError) Root() *PKGError {
-	last := e
+func (e *PKGError) UnwrapAll() []*PKGError {
 	var err error
+	var pkgErrors []*PKGError
 
 	for err = e; err != nil; err = errors.Unwrap(err) {
 		pkgErr, ok := err.(*PKGError)
 		if ok {
-			last = pkgErr
+			pkgErrors = append(pkgErrors, pkgErr)
 		}
 	}
 
-	return last
+	return pkgErrors
 }
 
 func (e *PKGError) GetContext() *PKGErrorContext {
@@ -73,17 +73,17 @@ func (e *PKGError) GetContext() *PKGErrorContext {
 
 // Print prints useful information about this error.
 func (e *PKGError) PrintRootContext(contextLines int) {
-	r := e.Root()
-	c := r.Context
+	pkgErrors := e.UnwrapAll()
 
-	if c == nil {
-		fmt.Fprintln(os.Stderr, r.Error())
-		return
+	for _, pkgErr := range pkgErrors {
+		c := pkgErr.Context
+		_, _ = fmt.Fprintln(os.Stderr, pkgErr.Error())
+
+		for c != nil {
+			c.Print(contextLines)
+			c = c.Next
+		}
 	}
-
-	fmt.Fprintln(os.Stderr, r.Error())
-
-	c.Print(contextLines)
 }
 
 func PKGErrorf(object PKGObject, err error, msg string, args ...any) *PKGError {

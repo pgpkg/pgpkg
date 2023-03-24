@@ -240,6 +240,10 @@ to the console during the testing process. Edit `world_test.sql` to add a notice
         end;
     $$;
 
+> Using JSON, you can even use `raise notice` to print the rows of a table or query:
+>
+>     raise notice '%', (SELECT jsonb_pretty(jsonb_agg(t)) FROM mytable t);
+
 Let's install it, which will run the test:
 
     $ pgpkg .           

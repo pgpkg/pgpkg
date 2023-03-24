@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -144,8 +143,7 @@ func (s *Schema) loadMigrations(migrationDir string) error {
 		}
 
 		if !migrationSet[relPath] {
-			_, _ = fmt.Fprintf(os.Stderr, "warning: %s: not found in %s/%s\n", relPath, migrationDir, migrationFilename)
-			return nil
+			return fmt.Errorf("warning: %s: not found in %s/%s", relPath, migrationDir, migrationFilename)
 		}
 
 		return s.addUnit(path)

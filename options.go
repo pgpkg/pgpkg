@@ -8,9 +8,10 @@ import (
 // Options is a list of global options used by pgpkg.
 
 var Options struct {
-	Verbose bool
-	Summary bool
-	DryRun  bool
+	Verbose   bool // print lots of stuff
+	Summary   bool // print a summary of the installation
+	DryRun    bool // rollback after installation (good for testing)
+	ShowTests bool // Show the result of each SQL test that was run.
 }
 
 var argPattern = regexp.MustCompile("^-?-pgpkg-(.+)$")
@@ -36,9 +37,14 @@ func ParseArgs() {
 
 		case "verbose":
 			Options.Verbose = true
+			Options.ShowTests = true
+			Options.Summary = true
 
 		case "summary":
 			Options.Summary = true
+
+		case "show-tests":
+			Options.ShowTests = true
 
 		// We're not the argument police. We're just here to look for
 		// the args we know about.

@@ -17,10 +17,10 @@ var logVolume = 0
 func noticeHandler(err *pq.Error) {
 	// Don't allow warnings to be quiet.
 	if err.Severity == "WARNING" {
-		Stderr.Printf("[%s]: %s\n", strings.ToUpper(err.Severity), err.Message)
+		Stderr.Printf("[%s] %s\n", strings.ToUpper(err.Severity), err.Message)
 	} else {
 		if logVolume == 0 || Options.Verbose {
-			Stdout.Printf("[%s]: %s\n", strings.ToLower(err.Severity), err.Message)
+			Stdout.Printf("[%s] %s\n", strings.ToLower(err.Severity), err.Message)
 		}
 	}
 }

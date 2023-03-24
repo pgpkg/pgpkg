@@ -92,14 +92,14 @@ func (t *Tests) runTest(tx *PkgTx, testName string, testStmt *Statement) error {
 	}
 
 	if testErr == nil {
-		if Options.Verbose {
-			Verbose.Println("  [pass]", testName)
+		if Options.ShowTests {
+			Stdout.Println("  [pass]", testName)
 		}
 		return nil
 	}
 
-	if Options.Verbose {
-		Verbose.Println("* [FAIL]", testName)
+	if Options.ShowTests {
+		Stdout.Println("* [FAIL]", testName)
 	}
 
 	pe := PKGErrorf(testStmt, testErr, "test failed: %s", testName)
