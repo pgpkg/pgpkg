@@ -19,7 +19,8 @@ func rewrite(stmt *Statement) error {
 
 	// FIXME: fire an error if search_path or SECURITY DEFINER is already set.
 
-	createFuncStmt.Options = append(createFuncStmt.Options, getSecurityDefinerOption(), getSetSchemaOption(stmt.Unit.Bundle.Package.SchemaName))
+	schemaNames := append(stmt.Unit.Bundle.Package.SchemaNames, []string{"pg_temp", "public"}...)
+	createFuncStmt.Options = append(createFuncStmt.Options /* getSecurityDefinerOption(), */, getSetSchemaOption(schemaNames))
 
 	stmt.Source, err = pg_query.Deparse(parseResult)
 	if err != nil {
@@ -46,9 +47,11 @@ func getSecurityDefinerOption() *pg_query.Node {
 	}
 }
 
-// Set search path for all functions in the package.
+// Set search path for all functions in the package, to the schemas declared for the package.
+// This means you don't need to schema-qualify code inside the package, but it's still a good
+// idea.
 // See https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY
-func getSetSchemaOption(schema string) *pg_query.Node {
+func getSetSchemaOption(schemaNames []string) *pg_query.Node {
 	return &pg_query.Node{
 		Node: &pg_query.Node_DefElem{
 			DefElem: &pg_query.DefElem{
@@ -56,31 +59,9 @@ func getSetSchemaOption(schema string) *pg_query.Node {
 				Arg: &pg_query.Node{
 					Node: &pg_query.Node_VariableSetStmt{
 						VariableSetStmt: &pg_query.VariableSetStmt{
-							Kind: pg_query.VariableSetKind_VAR_SET_VALUE,
-							Name: "search_path",
-							Args: []*pg_query.Node{
-								&pg_query.Node{
-									Node: &pg_query.Node_AConst{
-										AConst: &pg_query.A_Const{
-											Val: &pg_query.A_Const_Sval{&pg_query.String{Sval: schema}},
-										},
-									},
-								},
-								&pg_query.Node{
-									Node: &pg_query.Node_AConst{
-										AConst: &pg_query.A_Const{
-											Val: &pg_query.A_Const_Sval{&pg_query.String{Sval: "pg_temp"}},
-										},
-									},
-								},
-								&pg_query.Node{
-									Node: &pg_query.Node_AConst{
-										AConst: &pg_query.A_Const{
-											Val: &pg_query.A_Const_Sval{&pg_query.String{Sval: "public"}},
-										},
-									},
-								},
-							},
+							Kind:    pg_query.VariableSetKind_VAR_SET_VALUE,
+							Name:    "search_path",
+							Args:    getSchemaNameArgs(schemaNames),
 							IsLocal: false,
 						},
 					},
@@ -88,4 +69,20 @@ func getSetSchemaOption(schema string) *pg_query.Node {
 			},
 		},
 	}
+}
+
+func getSchemaNameArgs(schemaNames []string) []*pg_query.Node {
+	var nodes []*pg_query.Node
+
+	for _, schema := range schemaNames {
+		nodes = append(nodes, &pg_query.Node{
+			Node: &pg_query.Node_AConst{
+				AConst: &pg_query.A_Const{
+					Val: &pg_query.A_Const_Sval{&pg_query.String{Sval: schema}},
+				},
+			},
+		})
+	}
+
+	return nodes
 }

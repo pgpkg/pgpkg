@@ -42,6 +42,12 @@ func (t *Tests) parse() error {
 				return PKGErrorf(stmt, nil, "only functions can be defined in tests; %s %s", obj.ObjectType, obj.ObjectName)
 			}
 
+			// Rewrite the statement to set the schema and security options.
+			err = rewrite(stmt)
+			if err != nil {
+				return err
+			}
+			
 			// Get the unqualified name of the function.
 			fname := strings.ToLower(strings.TrimPrefix(obj.ObjectName, obj.ObjectSchema+"."))
 			isTestFunction := strings.HasPrefix(fname, "test_")

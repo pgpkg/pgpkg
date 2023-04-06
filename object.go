@@ -29,7 +29,7 @@ func getParamType(fp *pg_query.FunctionParameter) string {
 
 func (s *Statement) getFunctionObject() (*ManagedObject, error) {
 	createFunctionStmt := s.Tree.Stmt.GetCreateFunctionStmt()
-	pkgSchema := s.Unit.Bundle.Package.SchemaName
+	pkg := s.Unit.Bundle.Package
 
 	var args []string
 	for _, arg := range createFunctionStmt.Parameters {
@@ -45,8 +45,8 @@ func (s *Statement) getFunctionObject() (*ManagedObject, error) {
 		return nil, PKGErrorf(s, nil, "no function schema declared")
 	}
 
-	if schema != pkgSchema {
-		return nil, PKGErrorf(s, nil, "declared schema %s does not match package schema %s", schema, pkgSchema)
+	if !pkg.isValidSchema(schema) {
+		return nil, PKGErrorf(s, nil, "function schema %s is not declared in package", schema)
 	}
 
 	return &ManagedObject{
@@ -59,7 +59,7 @@ func (s *Statement) getFunctionObject() (*ManagedObject, error) {
 
 func (s *Statement) getTriggerObject() (*ManagedObject, error) {
 	createTrigStmt := s.Tree.Stmt.GetCreateTrigStmt()
-	pkgSchema := s.Unit.Bundle.Package.SchemaName
+	pkg := s.Unit.Bundle.Package
 
 	name := createTrigStmt.Trigname
 	schema := createTrigStmt.Relation.Schemaname
@@ -69,8 +69,8 @@ func (s *Statement) getTriggerObject() (*ManagedObject, error) {
 		return nil, PKGErrorf(s, nil, "no schema declared on trigger table")
 	}
 
-	if schema != pkgSchema {
-		return nil, PKGErrorf(s, nil, "trigger table schema %s does not match package schema %s", schema, pkgSchema)
+	if !pkg.isValidSchema(schema) {
+		return nil, PKGErrorf(s, nil, "trigger table schema %s is not declared in package", schema)
 	}
 
 	return &ManagedObject{
@@ -82,7 +82,7 @@ func (s *Statement) getTriggerObject() (*ManagedObject, error) {
 
 func (s *Statement) getViewObject() (*ManagedObject, error) {
 	viewStmt := s.Tree.Stmt.GetViewStmt()
-	pkgSchema := s.Unit.Bundle.Package.SchemaName
+	pkg := s.Unit.Bundle.Package
 
 	schema := viewStmt.View.Schemaname
 	name := viewStmt.View.Relname
@@ -91,8 +91,8 @@ func (s *Statement) getViewObject() (*ManagedObject, error) {
 		return nil, PKGErrorf(s, nil, "no schema declared on view")
 	}
 
-	if schema != pkgSchema {
-		return nil, PKGErrorf(s, nil, "view schema %s does not match package schema %s", schema, pkgSchema)
+	if !pkg.isValidSchema(schema) {
+		return nil, PKGErrorf(s, nil, "view schema %s is not declared in package", schema)
 	}
 
 	return &ManagedObject{

@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+// Used when a --pgpkg-option requires the caller to quit, but there wasn't an error.
+// e.g., --pgpkg-dry-run
+var ErrUserRequest = errors.New("terminating due to user request")
+
 // PKGObject is any object (statement, unit, package) that can tell us
 // where a problem happened.
 type PKGObject interface {
@@ -122,8 +126,16 @@ func (c *PKGErrorContext) Print(contextLines int) {
 	}
 }
 
-// Exit prints the error message (with context, if available), and then exits immediately.
+// Exit usually prints the error message (with context, if available), and then exits immediately with status 1.
+// However, err == ErrUserRequest then no message is printed and we exit with status 0.
+// project.Open() will return ErrUserRequest if the command-line options indicate a dry run or other
+// condition that should not result in a program starting.
+//
+// Applications should call pgpkg.Exit(err) after calling project.Open() if err is not nil.
 func Exit(err error) {
+	if err == ErrUserRequest {
+		os.Exit(0)
+	}
 	PrintError(err)
 	os.Exit(1)
 }

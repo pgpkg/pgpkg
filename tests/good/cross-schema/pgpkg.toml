@@ -1,0 +1,4 @@
+# Tests that the search_path is working across schemas.
+
+Package = "github.com/pgpkg/cross_schema"
+Schemas = [ "cs1", "cs2" ]

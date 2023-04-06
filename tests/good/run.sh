@@ -15,12 +15,13 @@ function cleanup {
 }
 trap cleanup EXIT
 export DSN="postgres://localhost:5432/$TEMPDB?sslmode=disable"
+log=/tmp/pgpkg-test-log-$TEMPDB
 
 exitStatus=0
 
 for good in `find . -type d -depth 1`
 do
-  if ! pgpkg --pgpkg-dry-run $good > /dev/null 2>&1
+  if ! pgpkg --pgpkg-dry-run --pgpkg-verbose $good >> $log 2>&1
   then
     echo "* FAIL: $good"
     exitStatus=1  # keep running tests but exit with status when done
@@ -33,7 +34,11 @@ trap "" EXIT
 
 if [ $exitStatus == 1 ]
 then
-  echo "WARNING: at least one test failed." 1>&2
+  echo "WARNING: at least one test failed" 1>&2
+  cat $log 1>&2
+else
+  rm $log
 fi
 
+cleanup
 exit $exitStatus

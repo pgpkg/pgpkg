@@ -17,7 +17,7 @@ Package = "github.com/bookwork/pgpkg"
 # or is owned by some other Pgpkg package, then
 # the upgrade will be aborted.
 #
-Schema = "pgpkg"
+Schemas = [ "pgpkg" ]
 
 #
 # Extensions required by this package

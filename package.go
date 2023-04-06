@@ -38,12 +38,12 @@ const migrationFilename = "@migration.pgpkg"
 //
 
 type Package struct {
-	Project    *Project
-	Name       string // canonical, unique name of the pgpkg package
-	Location   string // Location of this package
-	Root       fs.FS  // The filesystem that holds the package
-	SchemaName string // packages own a single schema
-	RoleName   string // Associated role name
+	Project     *Project
+	Name        string   // canonical, unique name of the pgpkg package
+	Location    string   // Location of this package
+	Root        fs.FS    // The filesystem that holds the package
+	SchemaNames []string // packages participate in one or more schemas
+	RoleName    string   // Associated role name
 
 	StatFuncCount      int // Stat showing the number of functions in the package
 	StatViewCount      int // Stat showing the number of views in the package
@@ -62,7 +62,8 @@ type Package struct {
 // Load the settings
 type configType struct {
 	Package    string
-	Schema     string
+	Schema     string // for backward compatibility only
+	Schemas    []string
 	Extensions []string
 	Uses       []string
 }
@@ -85,7 +86,7 @@ func (p *Package) setRole(tx *PkgTx) {
 func (p *Package) resetRole(tx *PkgTx) {
 	_, err := tx.Exec(fmt.Sprintf("reset role"))
 	if err != nil {
-		panic(fmt.Errorf("unable to change to role %s: %w", p.SchemaName, err))
+		panic(fmt.Errorf("unable to reset to role %s: %w", p.RoleName, err))
 	}
 }
 
@@ -106,7 +107,7 @@ func (p *Package) createSchema(tx *PkgTx) error {
 	if !p.hasRole(tx) {
 		_, err := tx.Exec(fmt.Sprintf("create role \"%s\"", Sanitize(rolePattern, p.RoleName)))
 		if err != nil {
-			return fmt.Errorf("unable to create role %s: %w", p.SchemaName, err)
+			return fmt.Errorf("unable to create role %s: %w", p.RoleName, err)
 		}
 
 		// The user running these scripts may not be a superuser (but must have create role),
@@ -117,17 +118,19 @@ func (p *Package) createSchema(tx *PkgTx) error {
 		}
 	}
 
-	_, err := tx.Exec(fmt.Sprintf("create schema if not exists \"%s\" authorization \"%s\"",
-		Sanitize(schemaPattern, p.SchemaName), Sanitize(rolePattern, p.RoleName)))
+	for _, schemaName := range p.SchemaNames {
+		_, err := tx.Exec(fmt.Sprintf("create schema if not exists \"%s\" authorization \"%s\"",
+			Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName)))
 
-	if err != nil {
-		return fmt.Errorf("unable to create schema %s: %w", p.SchemaName, err)
+		if err != nil {
+			return fmt.Errorf("unable to create schema %s: %w", schemaName, err)
+		}
 	}
 
 	exts := p.config.Extensions
 	if exts != nil {
 		for _, ext := range p.config.Extensions {
-			if _, err = tx.Exec(fmt.Sprintf("create extension if not exists \"%s\" with schema public", Sanitize(extensionPattern, ext))); err != nil {
+			if _, err := tx.Exec(fmt.Sprintf("create extension if not exists \"%s\" with schema public", Sanitize(extensionPattern, ext))); err != nil {
 				return fmt.Errorf("unable to create package extension %s: %w", ext, err)
 			}
 		}
@@ -138,9 +141,9 @@ func (p *Package) createSchema(tx *PkgTx) error {
 
 // Register this package in the pgpkg.pkg table.
 func (p *Package) register(tx *PkgTx) error {
-	_, err := tx.Exec("insert into pgpkg.pkg (pkg, schema_name, uses) values ($1, $2, $3) "+
-		"on conflict (pkg) do update set schema_name=excluded.schema_name, uses=excluded.uses",
-		p.Name, p.SchemaName, pq.Array(p.config.Uses))
+	_, err := tx.Exec("insert into pgpkg.pkg (pkg, schema_names, uses) values ($1, $2, $3) "+
+		"on conflict (pkg) do update set schema_names=excluded.schema_names, uses=excluded.uses",
+		p.Name, pq.Array(p.SchemaNames), pq.Array(p.config.Uses))
 
 	return err
 }
@@ -303,13 +306,20 @@ func (p *Package) loadConfig(tomlPath string) error {
 		return fmt.Errorf("unable to read package config: %w", err)
 	}
 
-	if !schemaPattern.MatchString(config.Schema) {
-		return fmt.Errorf("illegal schema name in pgpkg.toml: %s", config.Schema)
+	// Convert single-schema name to slice, for backward compatibility
+	if config.Schema != "" && config.Schemas == nil {
+		config.Schemas = []string{config.Schema}
+	}
+
+	for _, schemaName := range config.Schemas {
+		if !schemaPattern.MatchString(schemaName) {
+			return fmt.Errorf("illegal schema name in pgpkg.toml: %s", schemaName)
+		}
 	}
 
 	p.Name = config.Package
-	p.SchemaName = Sanitize(schemaPattern, config.Schema)
-	p.RoleName = Sanitize(rolePattern, "$"+p.SchemaName)
+	p.SchemaNames = SanitizeSlice(schemaPattern, config.Schemas)
+	p.RoleName = Sanitize(rolePattern, "$"+p.Name)
 	p.config = &config
 
 	return nil
@@ -416,4 +426,14 @@ func loadPackage(project *Project, location string, pkgFS fs.FS) (*Package, erro
 	}
 
 	return pkg, nil
+}
+
+func (p *Package) isValidSchema(search string) bool {
+	for _, schema := range p.SchemaNames {
+		if schema == search {
+			return true
+		}
+	}
+
+	return false
 }

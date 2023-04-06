@@ -1,7 +1,3 @@
---
--- Syntax error inside a table definition.
---
-
 create or replace function passing_tests.test_3() returns void language plpgsql as $$
     begin
         raise notice 'test 3';

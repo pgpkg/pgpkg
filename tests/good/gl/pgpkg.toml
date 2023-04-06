@@ -1,10 +1,4 @@
 #
-# This pgpkg file manages pgpkg's own schema.
-# The pgpkg schema tracks the current state of the database
-# and allows us to know which updates need to be applied.
-#
-
-#
 # The unique name for this package.
 # This should ideally be a Go module name.
 #

@@ -48,7 +48,10 @@ func (p *Project) AddPath(paths ...string) {
 // returns the database connection. Packages are installed within a single transaction.
 // Migrations and tests are applied automatically. Package installation is atomic;
 // it either fully succeeds or fails without changing the database.
-
+//
+// If this method returns an error, you should call pgpkg.Exit(err) to exit.
+// This call checks that the error was significant and will adjust the OS exit
+// status accordingly. See pgpkg.Exit() for more details.
 func (p *Project) Open() (*sql.DB, error) {
 
 	// If DSN isn't set, libpq will use PGHOST etc.
@@ -98,6 +101,11 @@ func (p *Project) Open() (*sql.DB, error) {
 
 	if Options.DryRun {
 		err = tx.Rollback()
+		db.Close()
+		if err != nil {
+			return nil, err
+		}
+		return nil, ErrUserRequest
 	} else {
 		err = tx.Commit()
 	}
@@ -152,8 +160,8 @@ func (p *Project) Init(tx *PkgTx) error {
 		return fmt.Errorf("unable to load pgpkg package: %w", err)
 	}
 
-	if pkg.SchemaName != PGKSchemaName {
-		return fmt.Errorf("expected root schema name %s, got %s", PGKSchemaName, pkg.SchemaName)
+	if pkg.SchemaNames[0] != PGKSchemaName {
+		return fmt.Errorf("expected root schema name %s, got %s", PGKSchemaName, pkg.SchemaNames[0])
 	}
 
 	// We can force the package to run all the migration scripts without
