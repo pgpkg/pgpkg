@@ -269,7 +269,7 @@ func (p *Package) Apply(tx *PkgTx) error {
 		return err
 	}
 
-	if p.Tests != nil && p.Tests.HasUnits() {
+	if p.Tests != nil && p.Tests.HasUnits() && !Options.SkipTests {
 		p.setRole(tx)
 		if err := p.Tests.Run(tx); err != nil {
 			return err

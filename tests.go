@@ -8,6 +8,7 @@ package pgpkg
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -47,10 +48,18 @@ func (t *Tests) parse() error {
 			if err != nil {
 				return err
 			}
-			
+
 			// Get the unqualified name of the function.
 			fname := strings.ToLower(strings.TrimPrefix(obj.ObjectName, obj.ObjectSchema+"."))
+			fname = strings.TrimSuffix(fname, "()")
+
+			// test_function_name is deprecated. Use function_name_test, to match filename.
 			isTestFunction := strings.HasPrefix(fname, "test_")
+			if isTestFunction {
+				fmt.Fprintf(os.Stderr, "warning: test name %s is deprecated; use %s_test instead\n", fname, fname[5:])
+			} else {
+				isTestFunction = strings.HasSuffix(fname, "_test")
+			}
 
 			if isTestFunction && len(obj.ObjectArgs) != 0 {
 				return PKGErrorf(stmt, nil, "test functions cannot receive arguments: %s %s", obj.ObjectType, obj.ObjectName)

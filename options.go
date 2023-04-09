@@ -12,6 +12,7 @@ var Options struct {
 	Summary   bool // print a summary of the installation
 	DryRun    bool // rollback after installation (good for testing)
 	ShowTests bool // Show the result of each SQL test that was run.
+	SkipTests bool // Don't run the tests. Useful when fixing them!
 }
 
 var argPattern = regexp.MustCompile("^-?-pgpkg-(.+)$")
@@ -45,6 +46,9 @@ func ParseArgs() {
 
 		case "show-tests":
 			Options.ShowTests = true
+
+		case "skip-tests":
+			Options.SkipTests = true
 
 		// We're not the argument police. We're just here to look for
 		// the args we know about.

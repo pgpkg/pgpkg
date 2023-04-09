@@ -2,6 +2,16 @@
 
 ## Priority
 
+- [ ] update docs to reflect function names are XXX_test (test_XXX still OK but deprecated warning)
+- [X] put pgpkg schema first in schema search and put assertion ops into pgpkg schema
+  - [ ] this may fix stack traces too, but if not - fix them
+
+- [ ] pgpkg.toml option "always dry run" / test mode (or put all options in there, or a separate env.toml?)
+- [ ] --pgpkg-tempdb / --pgpkg-run to create a temp db, run a command, then drop the db. command may be interactive. 
+- [ ] --pgpkg-watch - watch a directory tree while running a tempdb and cmd...
+- [ ] --pgpkg-psql - creates temp database, commits, drops into psql, then drops database when done
+- [ ] log how many times it had to retry something
+  - [ ] if it seems excessive, add TODO to store the orderings for next time
 - [ ] URGENT: $pgpkg not granted to current_user?
 - [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
 

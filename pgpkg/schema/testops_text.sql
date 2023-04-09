@@ -34,13 +34,13 @@ begin
 end;
 $$;
 
-create operator public.=? (
+create operator pgpkg.=? (
     function = pgpkg.text_assert_eq,
     leftarg = text,
     rightarg = text
     );
 
-create operator public.<>? (
+create operator pgpkg.<>? (
     function = pgpkg.text_assert_ne,
     leftarg = text,
     rightarg = text

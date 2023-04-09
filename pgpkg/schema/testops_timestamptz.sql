@@ -75,42 +75,42 @@ end;
 $$;
 
 -- drop operator if exists public.=? (timestamptz, timestamptz);
-create operator public.=? (
+create operator pgpkg.=? (
     function = pgpkg.timestamptz_assert_eq,
     leftarg = timestamptz,
     rightarg = timestamptz
     );
 
 -- drop operator if exists public.<>? (timestamptz, timestamptz);
-create operator public.<>? (
+create operator pgpkg.<>? (
     function = pgpkg.timestamptz_assert_ne,
     leftarg = timestamptz,
     rightarg = timestamptz
     );
 
 -- drop operator if exists public.<? (timestamptz, timestamptz);
-create operator public.<? (
+create operator pgpkg.<? (
     function = pgpkg.timestamptz_assert_lt,
     leftarg = timestamptz,
     rightarg = timestamptz
     );
 
 -- drop operator if exists public.<=? (timestamptz, timestamptz);
-create operator public.<=? (
+create operator pgpkg.<=? (
     function = pgpkg.timestamptz_assert_le,
     leftarg = timestamptz,
     rightarg = timestamptz
     );
 
 -- drop operator if exists public.>? (timestamptz, timestamptz);
-create operator public.>? (
+create operator pgpkg.>? (
     function = pgpkg.timestamptz_assert_gt,
     leftarg = timestamptz,
     rightarg = timestamptz
     );
 
 -- drop operator if exists public.>=? (timestamptz, timestamptz);
-create operator public.>=? (
+create operator pgpkg.>=? (
     function = pgpkg.timestamptz_assert_ge,
     leftarg = timestamptz,
     rightarg = timestamptz

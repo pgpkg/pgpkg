@@ -1,4 +1,4 @@
-create or replace function pgpkg.test_ops() returns void language plpgsql as $$
+create or replace function pgpkg.op_test() returns void language plpgsql as $$
     declare
         _now timestamptz = current_timestamp;
         _before timestamptz = _now - '1 day'::interval;

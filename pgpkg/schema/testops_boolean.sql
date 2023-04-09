@@ -18,12 +18,12 @@ begin
 end;
 $$;
 
-create operator public.?? (
+create operator pgpkg.?? (
     function = pgpkg.boolean_assert_true,
     rightarg = boolean
     );
 
-create operator public.?! (
+create operator pgpkg.?! (
     function = pgpkg.boolean_assert_false,
     rightarg = boolean
     );

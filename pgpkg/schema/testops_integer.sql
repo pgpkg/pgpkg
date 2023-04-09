@@ -75,42 +75,42 @@ end;
 $$;
 
 -- drop operator if exists public.=? (integer, integer);
-create operator public.=? (
+create operator pgpkg.=? (
     function = pgpkg.integer_assert_eq,
     leftarg = integer,
     rightarg = integer
     );
 
 -- drop operator if exists public.<>? (integer, integer);
-create operator public.<>? (
+create operator pgpkg.<>? (
     function = pgpkg.integer_assert_ne,
     leftarg = integer,
     rightarg = integer
     );
 
 -- drop operator if exists public.<? (integer, integer);
-create operator public.<? (
+create operator pgpkg.<? (
     function = pgpkg.integer_assert_lt,
     leftarg = integer,
     rightarg = integer
     );
 
 -- drop operator if exists public.<=? (integer, integer);
-create operator public.<=? (
+create operator pgpkg.<=? (
     function = pgpkg.integer_assert_le,
     leftarg = integer,
     rightarg = integer
     );
 
 -- drop operator if exists public.>? (integer, integer);
-create operator public.>? (
+create operator pgpkg.>? (
     function = pgpkg.integer_assert_gt,
     leftarg = integer,
     rightarg = integer
     );
 
 -- drop operator if exists public.>=? (integer, integer);
-create operator public.>=? (
+create operator pgpkg.>=? (
     function = pgpkg.integer_assert_ge,
     leftarg = integer,
     rightarg = integer

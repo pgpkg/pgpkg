@@ -19,7 +19,9 @@ func rewrite(stmt *Statement) error {
 
 	// FIXME: fire an error if search_path or SECURITY DEFINER is already set.
 
-	schemaNames := append(stmt.Unit.Bundle.Package.SchemaNames, []string{"pg_temp", "public"}...)
+	schemaNames := append([]string{"pgpkg"}, stmt.Unit.Bundle.Package.SchemaNames...)
+	schemaNames = append(schemaNames, []string{"pg_temp", "public"}...)
+
 	createFuncStmt.Options = append(createFuncStmt.Options /* getSecurityDefinerOption(), */, getSetSchemaOption(schemaNames))
 
 	stmt.Source, err = pg_query.Deparse(parseResult)

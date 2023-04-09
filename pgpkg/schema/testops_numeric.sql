@@ -75,42 +75,42 @@ end;
 $$;
 
 -- drop operator if exists public.=? (numeric, numeric);
-create operator public.=? (
+create operator pgpkg.=? (
     function = pgpkg.numeric_assert_eq,
     leftarg = numeric,
     rightarg = numeric
     );
 
 -- drop operator if exists public.<>? (numeric, numeric);
-create operator public.<>? (
+create operator pgpkg.<>? (
     function = pgpkg.numeric_assert_ne,
     leftarg = numeric,
     rightarg = numeric
     );
 
 -- drop operator if exists public.<? (numeric, numeric);
-create operator public.<? (
+create operator pgpkg.<? (
     function = pgpkg.numeric_assert_lt,
     leftarg = numeric,
     rightarg = numeric
     );
 
 -- drop operator if exists public.<=? (numeric, numeric);
-create operator public.<=? (
+create operator pgpkg.<=? (
     function = pgpkg.numeric_assert_le,
     leftarg = numeric,
     rightarg = numeric
     );
 
 -- drop operator if exists public.>? (numeric, numeric);
-create operator public.>? (
+create operator pgpkg.>? (
     function = pgpkg.numeric_assert_gt,
     leftarg = numeric,
     rightarg = numeric
     );
 
 -- drop operator if exists public.>=? (numeric, numeric);
-create operator public.>=? (
+create operator pgpkg.>=? (
     function = pgpkg.numeric_assert_ge,
     leftarg = numeric,
     rightarg = numeric
