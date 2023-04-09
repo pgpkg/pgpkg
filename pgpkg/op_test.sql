@@ -10,5 +10,6 @@ create or replace function pgpkg.op_test() returns void language plpgsql as $$
         perform _now =? _now and _before <? _now and _before <=? _now and _now <=? _now and _now >=? _before and _now >=? _now and _after >? _before and _before <>? _after;
         perform 'text' =? 'text' and 'text' <>? 'texta';
         perform ??(true), ?!(false);
+        perform 1::bigint =? 1 and 2::bigint <? 3 and 2::bigint <=? 3 and 3::bigint <=? 3 and 4::bigint >=? 4 and 5::bigint >=? 4 and 6::bigint >? 5 and 6::bigint <>? 7;
     end;
 $$;

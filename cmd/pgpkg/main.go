@@ -10,7 +10,9 @@ import (
 // This command-line version of pgpkg takes one or more directories or ZIP files, and installs them into the database.
 func main() {
 
-	pgpkg.ParseArgs()
+	if err := pgpkg.ParseArgs(); err != nil {
+		pgpkg.Exit(err)
+	}
 
 	flag.Parse()
 	pkgPaths := flag.Args()

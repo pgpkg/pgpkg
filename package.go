@@ -149,29 +149,46 @@ func (p *Package) register(tx *PkgTx) error {
 }
 
 func (p *Package) grantPackage(tx *PkgTx, pkgName string) error {
-	var schemaName string
-	r := tx.QueryRow("select schema_name from pgpkg.pkg where pkg=$1", pkgName)
-	if err := r.Scan(&schemaName); err != nil {
+	var schemaNames []string
+	r := tx.QueryRow("select schema_names from pgpkg.pkg where pkg=$1", pkgName)
+	if err := r.Scan(pq.Array(&schemaNames)); err != nil {
+		return fmt.Errorf("unable to grant access to package %s: %w", pkgName, err)
+	}
+
+	for _, schemaName := range schemaNames {
+		if _, err := tx.Exec(fmt.Sprintf(`grant usage on schema "%s" to "%s"`,
+			Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
+			return err
+		}
+
+		if _, err := tx.Exec(fmt.Sprintf(`grant execute on all functions in schema "%s" to "%s"`,
+			Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
+			return err
+		}
+
+		if _, err := tx.Exec(fmt.Sprintf(`grant select, update, insert, references on all tables in schema "%s" to "%s"`,
+			Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
+			return err
+		}
+
+		if _, err := tx.Exec(fmt.Sprintf(`grant usage on all sequences in schema "%s" to "%s"`,
+			Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// grant access to certain parts of the pgpkg package.
+func (p *Package) grantPgpkg(tx *PkgTx) error {
+	if _, err := tx.Exec(fmt.Sprintf(`grant usage on schema "pgpkg" to "%s"`,
+		Sanitize(rolePattern, p.RoleName))); err != nil {
 		return err
 	}
 
-	if _, err := tx.Exec(fmt.Sprintf(`grant usage on schema "%s" to "%s"`,
-		Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
-		return err
-	}
-
-	if _, err := tx.Exec(fmt.Sprintf(`grant execute on all functions in schema "%s" to "%s"`,
-		Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
-		return err
-	}
-
-	if _, err := tx.Exec(fmt.Sprintf(`grant select, update, insert, references on all tables in schema "%s" to "%s"`,
-		Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
-		return err
-	}
-
-	if _, err := tx.Exec(fmt.Sprintf(`grant usage on all sequences in schema "%s" to "%s"`,
-		Sanitize(schemaPattern, schemaName), Sanitize(rolePattern, p.RoleName))); err != nil {
+	if _, err := tx.Exec(fmt.Sprintf(`grant execute on all functions in schema "pgpkg" to "%s"`,
+		Sanitize(rolePattern, p.RoleName))); err != nil {
 		return err
 	}
 
@@ -179,7 +196,7 @@ func (p *Package) grantPackage(tx *PkgTx, pkgName string) error {
 }
 
 // Allow this package to access the packages in the Uses clause of the definition.
-func (p *Package) grant(tx *PkgTx) error {
+func (p *Package) grantUses(tx *PkgTx) error {
 	if p.config.Uses == nil {
 		return nil
 	}
@@ -224,8 +241,13 @@ func (p *Package) Apply(tx *PkgTx) error {
 		}
 	}
 
+	// Grant access to functions in pgpkg, e.g. the assertions
+	if err = p.grantPgpkg(tx); err != nil {
+		return err
+	}
+
 	// Grant access to any schema declared in the Uses section of the TOML.
-	if err = p.grant(tx); err != nil {
+	if err = p.grantUses(tx); err != nil {
 		return err
 	}
 

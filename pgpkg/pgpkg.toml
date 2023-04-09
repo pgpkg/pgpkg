@@ -8,7 +8,7 @@
 # The unique name for this package.
 # Currently a Go module name.
 #
-Package = "github.com/bookwork/pgpkg"
+Package = "github.com/pgpkg/pgpkg"
 
 #
 # The schema managed by this package.
