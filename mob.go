@@ -111,19 +111,30 @@ type stmtStoredState struct {
 	objName string
 }
 
+func (s *stmtStoredState) getDropStatement() string {
+	switch s.objType {
+	case "function", "view", "trigger":
+		return fmt.Sprintf("drop %s if exists %s", s.objType, s.objName)
+	case "comment on function", "comment on view":
+		return fmt.Sprintf("%s %s is null", s.objType, s.objName)
+	}
+
+	panic(fmt.Errorf("unknown object type: %s", s.objType))
+}
+
 // loadState returns the state objects in reverse order from how they were created.
 // this should make dumping objects faster.
-func (m *MOB) loadState(tx *PkgTx) ([]stmtStoredState, error) {
+func (m *MOB) loadState(tx *PkgTx) ([]*stmtStoredState, error) {
 	rows, err := tx.Query("select obj_type, obj_name from pgpkg.managed_object where pkg=$1 order by seq desc",
 		m.Package.Name)
 	if err != nil {
 		return nil, PKGErrorf(m, err, "unable to load MOB state")
 	}
 
-	var stateList []stmtStoredState
+	var stateList []*stmtStoredState
 
 	for rows.Next() {
-		state := stmtStoredState{}
+		state := &stmtStoredState{}
 		if err := rows.Scan(&state.objType, &state.objName); err != nil {
 			return nil, PKGErrorf(m, err, "error during load of MOB state")
 		}
@@ -173,7 +184,7 @@ func (m *MOB) purge(tx *PkgTx) error {
 
 	for _, obj := range state {
 		pending = append(pending, &Statement{
-			Source:     fmt.Sprintf("drop %s if exists %s", obj.objType, obj.objName),
+			Source:     obj.getDropStatement(), //fmt.Sprintf("drop %s if exists %s", obj.objType, obj.objName),
 			LineNumber: 1,
 		})
 	}

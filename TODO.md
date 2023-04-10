@@ -3,8 +3,8 @@
 ## Priority
 
 - [ ] update docs to reflect function names are XXX_test (test_XXX still OK but deprecated warning)
-- [ ] --pgpkg-include-tests skips tests in other schemas, should only skip own test
-- [ ] need documentation for --pgpkg-include-tests= and --pgpkg-skip-tests
+- [ ] --pgpkg-[in|ex]clude-tests skips tests in other schemas, should only skip own test
+- [ ] need documentation for --pgpkg-include-tests=, --pgpkg-exclude-tests= and --pgpkg-skip-tests
 - [X] put pgpkg schema first in schema search and put assertion ops into pgpkg schema
   - [ ] this may fix stack traces too, but if not - fix them
 

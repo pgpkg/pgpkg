@@ -11,5 +11,6 @@ create or replace function pgpkg.op_test() returns void language plpgsql as $$
         perform 'text' =? 'text' and 'text' <>? 'texta';
         perform ??(true), ?!(false);
         perform 1::bigint =? 1 and 2::bigint <? 3 and 2::bigint <=? 3 and 3::bigint <=? 3 and 4::bigint >=? 4 and 5::bigint >=? 4 and 6::bigint >? 5 and 6::bigint <>? 7;
+        perform '82257511-5D11-4E1C-B7BC-E3F35578E2CD'::uuid =? '82257511-5D11-4E1C-B7BC-E3F35578E2CD'::uuid and '82257511-5D11-4E1C-B7BC-E3F35578E2CD'::uuid <>? '42056A8E-7991-4EEE-A294-05ADFEC041B2'::uuid;
     end;
 $$;

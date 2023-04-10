@@ -101,6 +101,34 @@ func (s *Statement) getViewObject() (*ManagedObject, error) {
 		ObjectName:   fmt.Sprintf("%s.%s", schema, name)}, nil
 }
 
+func (s *Statement) getCommentObject() (*ManagedObject, error) {
+	commentStmt := s.Tree.Stmt.GetCommentStmt()
+	ot := commentStmt.Objtype
+
+	switch ot {
+	case pg_query.ObjectType_OBJECT_FUNCTION:
+		// WARNING: this does not capture the entire function name, which should include parameters.
+		//  Capturing the whole name with parameters will probably require a minor refactor.
+		funcObject := commentStmt.Object.GetObjectWithArgs()
+		return &ManagedObject{
+			ObjectSchema: AsString(funcObject.Objname[0]),
+			ObjectType:   "comment on function",
+			ObjectName:   fmt.Sprintf("%s.%s", AsString(funcObject.Objname[0]), AsString(funcObject.Objname[1])),
+		}, nil
+
+	case pg_query.ObjectType_OBJECT_VIEW:
+		targetName := commentStmt.GetObject().GetList() // .List.Items
+		return &ManagedObject{
+			ObjectSchema: AsString(targetName.Items[0]),
+			ObjectType:   "comment on view",
+			ObjectName:   fmt.Sprintf("%s.%s", AsString(targetName.Items[0]), AsString(targetName.Items[1])),
+		}, nil
+
+	default:
+		return nil, PKGErrorf(s, nil, "Only comments on views and functions are supported in MOBs")
+	}
+}
+
 // GetManagedObject returns identifying information about an object from a CREATE
 // statement, such as function, view or trigger. NOTE: This functon
 // might not support all object types, but you can add more as needed.
@@ -124,6 +152,9 @@ func (s *Statement) GetManagedObject() (*ManagedObject, error) {
 
 	case stmt.GetViewStmt() != nil:
 		s.object, err = s.getViewObject()
+
+	case stmt.GetCommentStmt() != nil:
+		s.object, err = s.getCommentObject()
 	}
 
 	if err != nil {
@@ -134,5 +165,5 @@ func (s *Statement) GetManagedObject() (*ManagedObject, error) {
 		return s.object, nil
 	}
 
-	return nil, PKGErrorf(s, nil, "only functions, triggers and views are supported in MOB")
+	return nil, PKGErrorf(s, nil, "only functions, triggers, views and comments are supported in MOB")
 }

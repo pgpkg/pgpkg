@@ -164,6 +164,15 @@ func (t *Tests) Run(tx *PkgTx) error {
 			}
 		}
 
+		if Options.ExcludePattern != nil {
+			if Options.ExcludePattern.MatchString(testName) {
+				if Options.ShowTests {
+					Stdout.Println("- [skip]", testName)
+				}
+				continue
+			}
+		}
+
 		err := t.runTest(tx, testName, testStmt)
 
 		if err != nil {

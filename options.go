@@ -15,6 +15,7 @@ var Options struct {
 	ShowTests      bool           // Show the result of each SQL test that was run.
 	SkipTests      bool           // Don't run the tests. Useful when fixing them!
 	IncludePattern *regexp.Regexp // Pattern to use for running tests
+	ExcludePattern *regexp.Regexp // Pattern to use for running tests
 }
 
 var argPattern = regexp.MustCompile("^-?-pgpkg-([^=]+)($|=)")
@@ -57,6 +58,13 @@ func ParseArgs() error {
 		case "include-tests":
 			var err error
 			Options.IncludePattern, err = regexp.Compile(a[22:]) // full argument is --pgpkg-include-tests=
+			if err != nil {
+				return fmt.Errorf("unable to compile pattern %s", a[14:])
+			}
+
+		case "exclude-tests":
+			var err error
+			Options.ExcludePattern, err = regexp.Compile(a[22:]) // full argument is --pgpkg-include-tests=
 			if err != nil {
 				return fmt.Errorf("unable to compile pattern %s", a[14:])
 			}
