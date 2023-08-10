@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// Used when a --pgpkg-option requires the caller to quit, but there wasn't an error.
-// e.g., --pgpkg-dry-run
+// Used when a --option requires the caller to quit, but there wasn't an error.
+// e.g., --dry-run
 var ErrUserRequest = errors.New("terminating due to user request")
 
 // PKGObject is any object (statement, unit, package) that can tell us

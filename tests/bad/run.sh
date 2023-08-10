@@ -19,12 +19,14 @@ exitStatus=0
 
 for err in `find . -type d -depth 1`
 do
-  if pgpkg --pgpkg-dry-run $err > /dev/null 2>&1
+  # for these BAD tests, a test that runs successfully is actually a problem
+  if pgpkg --dry-run $err > /dev/null 2>&1
   then
-    echo "* FAIL: $err"
+    # the test passed, which is a problem.
+    echo "* PASS: $err (this test should have failed)"
     exitStatus=1  # keep running tests but exit with status when done
   else
-    echo "  pass: $err"
+    echo "    OK: $err (expected)"
   fi
 done
 

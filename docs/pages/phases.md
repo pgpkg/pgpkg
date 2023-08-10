@@ -22,6 +22,6 @@ Once this work is performed, the effective role is changed to the schema owner (
 
 **Install managed objects**. Functions, views and triggers are created. Dependencies are automagically resolved.
 
-**Run Tests**. Tests functions are called `test_xxx` and are run in random order.
+**Run Tests**. Tests functions are called `xxx_test` and are run in random order.
 
 **Commit**. If all went well, the transaction is committed.

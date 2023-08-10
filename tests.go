@@ -51,14 +51,17 @@ func (t *Tests) parse() error {
 
 			// Get the unqualified name of the function.
 			fname := strings.ToLower(strings.TrimPrefix(obj.ObjectName, obj.ObjectSchema+"."))
-			fname = strings.TrimSuffix(fname, "()")
+			argIndex := strings.IndexRune(fname, '(')
+			fname = fname[:argIndex]
+			//fname = strings.TrimSuffix(fname, "()") // FIXME: BUG: test funcs with args won't end in ()!!!!
 
 			// test_function_name is deprecated. Use function_name_test, to match filename.
-			isTestFunction := strings.HasPrefix(fname, "test_")
-			if isTestFunction {
-				fmt.Fprintf(os.Stderr, "warning: test name %s is deprecated; use %s_test instead\n", fname, fname[5:])
-			} else {
-				isTestFunction = strings.HasSuffix(fname, "_test")
+			isTestFunction := strings.HasSuffix(fname, "_test")
+			if !isTestFunction {
+				isTestFunction = strings.HasPrefix(fname, "test_")
+				if isTestFunction {
+					fmt.Fprintf(os.Stderr, "warning: test name %s is deprecated; use %s_test instead\n", fname, fname[5:])
+				}
 			}
 
 			if isTestFunction && len(obj.ObjectArgs) != 0 {

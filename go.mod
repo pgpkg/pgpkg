@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/lib/pq v1.10.7
-	github.com/pganalyze/pg_query_go/v4 v4.2.0
+	github.com/pganalyze/pg_query_go/v4 v4.2.3
 )
 
 require (

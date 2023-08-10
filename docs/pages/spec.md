@@ -219,13 +219,13 @@ SQL files that aren't in the migration directory and whose name ends in `_test.s
 are considered to contain *tests*.
 
 Test scripts can contain any number of functions, but only functions whose name
-starts with `test_` will be run automatically. Functions that are not named
-`test_` will be created, but not called. These functions can be called from functions
-named `test_*`.
+ends with `_test` will be run automatically. Functions that are not named
+`_test` will be created, but not called. These functions can be called from functions
+named `*_test`.
 
 For example, a file named `example_test.sql` might contain the following unit test: 
 
-    create or replace function example.test_world() returns void language plpgsql as $$
+    create or replace function example.world_test() returns void language plpgsql as $$
         begin
             raise notice 'hello, test!';
         end;
@@ -234,7 +234,7 @@ For example, a file named `example_test.sql` might contain the following unit te
 Like everything else in pgpkg, tests are just regular SQL scripts. However:
 
 * Tests can only define functions, not view or triggers.
-* Functions whose name starts with `test_` are run directly.
+* Functions whose name ends with `_test` are run directly.
 * Tests can call other functions defined in the tests, and can use managed objects.
 * Tests are run in random order.
 
@@ -249,7 +249,7 @@ notices will be printed to the console during the migration process.
 
 To fail a test, use `raise exception`:
 
-    create or replace function example.test_fail() returns void language plpgsql as $$
+    create or replace function example.fail_test() returns void language plpgsql as $$
         begin
             raise exception 'eject!';
         end;

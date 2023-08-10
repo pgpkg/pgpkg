@@ -3,13 +3,13 @@
 -- it dies on execution.
 --
 
-create or replace function test_exception.test_exception() returns void language plpgsql as $$
+create or replace function test_exception.exception_test() returns void language plpgsql as $$
   begin
       raise exception 'a test exception';
   end;
 $$;
 
-create or replace function test_exception.test_indirection() returns void language plpgsql as $$
+create or replace function test_exception.indirection_test() returns void language plpgsql as $$
 begin
     perform test_exception.exception();
 end;

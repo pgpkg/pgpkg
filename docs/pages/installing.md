@@ -44,9 +44,9 @@ If the tests print anything with `raise notice`, you will see them on the termin
 
 Unless you see an error message, the installation worked.
 
-You can also use -pgpkg-verbose if you want to look under the covers a bit (not quite everything is logged yet):
+You can also use --verbose if you want to look under the covers a bit (not quite everything is logged yet):
 
-    pgpkg -pgpkg-verbose .
+    pgpkg --verbose .
 
 which will give you detailed information about the SQL it executes:
 
@@ -72,16 +72,16 @@ which will give you detailed information about the SQL it executes:
     parsing tests tests/test1.sql
     parsing tests tests/test2.sql
     [notice]: test 3
-    [PASS] pgpkg_test.test_3()
+    [PASS] pgpkg_test.t3_test()
     [notice]: test 4
-    [PASS] pgpkg_test.test_4()
+    [PASS] pgpkg_test.t4_test()
     [notice]: test 5
-    [PASS] pgpkg_test.test_5()
+    [PASS] pgpkg_test.t5_test()
     [notice]: test 1
-    [PASS] pgpkg_test.test_1()
+    [PASS] pgpkg_test.t1_test()
     [notice]: test 2
-    [PASS] pgpkg_test.test_2()
+    [PASS] pgpkg_test.t2_test()
     [notice]: api 1
-    [PASS] pgpkg_test.test_6()
+    [PASS] pgpkg_test.t6_test()
     reset role
     installed 1 function(s), 0 view(s) and 0 trigger(s). 1 migration(s) needed. 6 test(s) run

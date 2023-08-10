@@ -1,25 +1,17 @@
 # pgpkg todo
 
-## Priority
+## Priority / first release
 
-- [ ] update docs to reflect function names are XXX_test (test_XXX still OK but deprecated warning)
-- [ ] --pgpkg-[in|ex]clude-tests skips tests in other schemas, should only skip own test
-- [ ] need documentation for --pgpkg-include-tests=, --pgpkg-exclude-tests= and --pgpkg-skip-tests
-- [X] put pgpkg schema first in schema search and put assertion ops into pgpkg schema
-  - [ ] this may fix stack traces too, but if not - fix them
-
-- [ ] pgpkg.toml option "always dry run" / test mode (or put all options in there, or a separate env.toml?)
-- [ ] --pgpkg-tempdb / --pgpkg-run to create a temp db, run a command, then drop the db. command may be interactive. 
-- [ ] --pgpkg-watch - watch a directory tree while running a tempdb and cmd...
-- [ ] --pgpkg-psql - creates temp database, commits, drops into psql, then drops database when done
-- [ ] log how many times it had to retry something
-  - [ ] if it seems excessive, add TODO to store the orderings for next time
-- [ ] URGENT: $pgpkg not granted to current_user?
-- [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
-
-- [ ] add a readme for the example script linking to the tutorial and explaining it a bit.
-- [ ] create some structured tests e.g. dependencies, uses, unit tests
+- [ ] --[in|ex]clude-tests skips tests in other schemas, should only skip own test
 - [ ] package up the tool as a binary (github actions?)
+- [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
+- [ ] documentation for toml Uses:
+- [ ] needs an option such as "--zip" that produces a zip package from a source tree
+  this can then be used for deployment of packages outside of Go.
+
+- [ ] review & update tutorial to latest standards
+  - [ ] add a readme to the example package linking to the tutorial and explaining it a bit.
+- [ ] create some structured tests e.g. dependencies, uses, unit tests
 - [ ] packages are treated individually which will cause dependency problems.
   - [ ] purges from head to tail
   - [ ] applies from tail to head
@@ -29,9 +21,13 @@
 ## New / Triage
 
 - [ ] make "go test" work with pgpkg
+- [ ] allow some kind of "init" or "post" script in MOBs.
 
 ## Bugs
 
+- [ ] when a function can't be installed due to an error, and another function depends on it,
+  the second function is printed as the error; but the problem is the first function. we should print
+  ALL incomplete MOBs if we can't progress, or, at least, the first one to not install.
 - [ ] need to remove roles if a package is removed from Uses[]
 - [ ] toml Uses[] fails with 'sql: no rows in result set' if a package is not registered. error is ambiguous
 - [ ] schema name is missing from function call errors, preventing nice stack traces
@@ -123,10 +119,19 @@
 - [X] unsanitized input in Package.sql, maybe other places: `p.Exec(tx, fmt.Sprintf('grant usage on schema "%s" to "%s"')...`
 - [X] what happens with quoted identifiers? what happens if the declared schema name is invalid?
 - [X] loadBundle doesn't support nested subdirectories.
-- [X] refactor options, add --pgpkg-dry-run and friends
+- [X] refactor options, add --dry-run and friends
 - [X] can't disable verbose mode after moving logging into Tx :lol:
 - [X] use Go logging.
-- [X] use --pgpkg-dry-run when running the tests
+- [X] use --dry-run when running the tests
 - [X] clean up example schema (examples/hello, ...)
 - [X] include example in the good tests
 - [X] integration tests (including failure tests and success tests)
+- [X] update docs to reflect function names are XXX_test (test_XXX still OK but deprecated warning)
+- [X] make it so that -- prefix is not needed when running CLI.
+- [X] make it possible to disable -- options when running as a library.
+- [X] need documentation for --include-tests=, --exclude-tests= and --skip-tests
+- [X] repl mode
+  - [X] drop database on exit from repl mode
+  - [X] trap ^C properly during repl mode
+- [X] put pgpkg schema first in schema search and put assertion ops into pgpkg schema
+  - [X] this may fix stack traces too, but if not - fix them

@@ -1,19 +1,19 @@
-# pgpkg - a package manager for Postgresql
+# pgpkg - a schema and package manager for Postgresql
 
 ![pgpkg logo](docs/logo-small.png)
 
-pgpkg is a small and fast command-line tool (and Go library) which is designed to make writing Postgresql
-stored functions as easy as writing functions in any other language, such as Go, Java or Python.
+pgpkg is a small and fast command-line tool (and Go library) that lets pl/pgSQL functions live
+side-by-side with regular code, allowing you use the exact same workflows for SQL and non-SQL
+code.
 
-At it's core, pgpkg is a database migration tool that reduces the hassle of writing and shipping stored
-functions and other static objects in Postgresql.
-
-pgpkg lets your SQL functions live side-by-side with your regular code, and lets you use the exact same
-workflows. You can edit your SQL functions in the same IDE, commit them to the same Git repository,
+You can edit your SQL functions in the same IDE, commit them to the same Git repository,
 review them with PRs alongside other changes, and deploy them seamlessly to production.
 
-pgpkg also lets you package up your plpgsql code, distribute it, and incorporate it as a dependency
-into other projects.
+pgpkg also lets you package up your SQL code and incorporate it as a dependency into other projects.
+
+## Documentation
+
+The best place to start is [the pgpkg man page](docs/pages/manual.md).
 
 ## Tutorial
 
@@ -23,7 +23,13 @@ code created in the tutorial [here](https://github.com/pgpkg/pgpkg/tree/main/tes
 
 ## Status
 
-pgpkg is early alpha. I use it all the time, but YMMV.
+pgpkg is early alpha. I apologise in advance if documentation or examples are out of date.
+
+I use pgpkg pretty much on a daily basis. It works really well for me, but it does have rough edges.
+I work on making it easier to use when I have time. The [TODO](TODO.md) list contains issues that I
+expect to fix over time.
+
+PRs and issues are welcome.
 
 ## Documentation
 

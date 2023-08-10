@@ -4,8 +4,13 @@
 
 ## What is pgpkg?
 
-pgpkg is a small and fast command-line tool (and Go library) which is designed to make writing Postgresql
-stored functions as easy as writing functions in any other language, such as Go, Java or Python.
+pgpkg is a small, fast and safe Postgresql database migration command-line tool (and Go library) focussed on:
+
+* keeping logic in one place, by enabling SQL functions and native code to be stored in the same directory;
+* reusing logic, by enabling creation of SQL libraries for reuse in different systems.
+* simplicity and ease of use.
+
+pgpkg makes writing Postgresql stored functions as easy as writing functions in any other language, such as Go, Java or Python.
 
 pgpkg enables your SQL code to live side-by-side with your regular code, and lets you use the exact same
 workflows. You can edit your SQL functions in the same IDE, commit them to the same Git repository,

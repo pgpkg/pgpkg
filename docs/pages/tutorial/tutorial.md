@@ -58,7 +58,7 @@ it to the database with a single command:
 
     $ pgpkg .
 
-(if you want to see what `pgpkg` actually does, use `pgpkg -pgpkg-verbose .`)
+(if you want to see what `pgpkg` actually does, use `pgpkg --verbose .`)
 
 If all goes well, you will now have a function defined in your database:
 
@@ -206,7 +206,7 @@ It worked! Now, let's write a test to make sure it keeps working.
 tests in the migration directory, though). Try adding this script to `world_test.sql`
 in your project:
 
-    create or replace function hello.test_world() returns void language plpgsql as $$
+    create or replace function hello.world_test() returns void language plpgsql as $$
         begin
             if hello.world() <> 'Postgresql Community' then
                 raise exception 'the world is not right';
@@ -220,9 +220,9 @@ As usual, apply the changes to the database:
 
 The test will have been applied, but you won't see anything if it passes.
 
-To demonstrate this, use `-pgpkg-summary`:
+To demonstrate this, use `--summary`:
 
-    $ pgpkg -pgpkg-summary .
+    $ pgpkg --summary .
     github.com/bookwork/pgpkg: installed 0 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 0 test(s) run
     github.com/example/hello-pgpkg: installed 2 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 1 test(s) run
 
@@ -231,7 +231,7 @@ You can see that one test ran in your package (the other package is `pgpkg` itse
 You can add `raise notice` (and `raise warning`) commands to your tests to log information
 to the console during the testing process. Edit `world_test.sql` to add a notice:
 
-    create or replace function hello.test_world() returns void language plpgsql as $$
+    create or replace function hello.world_test() returns void language plpgsql as $$
         begin
             raise notice 'Testing the world';
             if hello.world() <> 'Postgresql Community' then
@@ -263,13 +263,13 @@ Now, reinstall the package, which will re-run the tests:
 
     $ pgpkg .         
     [notice]: Testing the world
-    ./world_test.sql:1: test failed: hello.test_world(): pq: the world is not right
+    ./world_test.sql:1: test failed: hello.world_test(): pq: the world is not right
            3:         raise notice 'Testing the world';
            4:         if hello.world() <> 'Postgresql Community' then
     -->    5:             raise exception 'the world is not right';
            6:         end if;
            7:     end;
-    PL/pgSQL function test_world() line 5 at RAISE
+    PL/pgSQL function world_test() line 5 at RAISE
 
 `pgpkg` reports that the test failed - and shows where it happened.
 
@@ -342,7 +342,7 @@ Next, we need to set up main.go to load the schema and open the database:
 
 Running this program will do the following:
 
-* parse command line options like "-pgpkg-verbose"
+* parse command line options like "--verbose"
 * run any necessary migration
 * install the SQL function
 * run the tests, and
@@ -359,7 +359,7 @@ Note how the test has printed a message - `raise notice` commands are automatica
 logged from pgpkg. We can fix this by updating the test. Edit world_test.sql to remove
 the notice:
 
-    create or replace function hello.test_world() returns void language plpgsql as $$
+    create or replace function hello.world_test() returns void language plpgsql as $$
         begin
             if hello.world() <> 'Postgresql Community' then
                 raise exception 'the world is not right';
@@ -379,13 +379,13 @@ Then build and rerun your code:
 `pgpkg.ParseArgs` adds support for a standard set of migration options to your Go program.
 These include:
 
-    -pgpkg-summary
-    -pgpkg-verbose
-    -pgpkg-dry-run
+    --summary
+    --verbose
+    --dry-run
 
 For example, we can run this:
 
-    $ ./example -pgpkg-summary
+    $ ./example --summary
     github.com/bookwork/pgpkg: installed 0 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 0 test(s) run
     github.com/example/hello-pgpkg: installed 2 function(s), 0 view(s) and 0 trigger(s). 0 migration(s) needed. 1 test(s) run
     And the world is: Postgresql Community

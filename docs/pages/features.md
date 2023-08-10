@@ -44,13 +44,13 @@ console. This makes the command super useful for debugging.
 
 When something goes wrong, pgpkg prints nice contextual error messages, such as this:
 
-    tests/failing-tests/tests/test2.sql:17: test failed: failing_tests.test_5(): pq: test 5
+    tests/failing-tests/tests/test2.sql:17: test failed: failing_tests.5_test(): pq: test 5
            1:
            2: begin
     -->    3:     raise exception 'test 5';
            4: end;
            5:
-    PL/pgSQL function test_5() line 3 at RAISE
+    PL/pgSQL function 5_test() line 3 at RAISE
 
 Contextual errors are a work in progress!
 
@@ -66,7 +66,7 @@ To do this, we do a lot of work inside savepoints. But you don't have to care ab
 ## Non destructive tests
 
 After an upgrade has otherwise succeeded, plpgk will attempt to run any tests defined in the `tests`
-directory. Tests are pl/pgsql functions whose name starts with `test_`. Tests are run in random order.
+directory. Tests are pl/pgsql functions whose name ends with `_test`. Tests are run in random order.
 
 Tests are run inside a savepoint, and rolled back at completion. A test can fail simply by calling
 `raise exception`. Future versions of pgpkg will probably include some simple testing tools.

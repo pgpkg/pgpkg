@@ -57,9 +57,8 @@ It is likely that this problem can be resolved, but we're not there yet.
 
 ## Schema search path
 
-Every function created by `pgpkg` has the `search_path` set (to the package schema and `public`).
-This means that functions can refer to other objects without a schema qualification. The search
-path is also set during migrations and tests.
+Every function created by `pgpkg` has the `search_path` set to "pgpkg", "pg_temp", "public".
+The search path is also set during migrations and tests.
 
 Note that it's easy to change the `search_path`, and even without changing it, you can simply write code
 that refers to any other schema. However, this approach is thwarted during upgrades because the schema role
