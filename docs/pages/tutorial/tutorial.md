@@ -56,7 +56,7 @@ just created, so that's what we should use.
 With these two files, our `hello-pgpkg` folder now contains a pgpkg package. We can apply
 it to the database with a single command:
 
-    $ pgpkg .
+    $ pgpkg --commit .
 
 (if you want to see what `pgpkg` actually does, use `pgpkg --verbose .`)
 
@@ -83,7 +83,7 @@ With `pgpkg` you can simply edit the existing definition. So, edit func.sql:
 
 Apply the changes to the database:
 
-    $ pgpkg .
+    $ pgpkg --commit .
 
 And run it again:
 
@@ -128,7 +128,7 @@ To do this, edit the file `schema/@migration.pgpkg`, and add the single line:
 `pgpkg` keeps track of the migration scripts it has already run, so you can simply 
 apply the updated package again:
 
-    $ pgpkg .
+    $ pgpkg --commit .
 
 Let's see if the table exists:
 
@@ -153,7 +153,7 @@ look like this:
 
 You can again apply the updated package to the database:
 
-    $ pgpkg .
+    $ pgpkg --commit .
 
 Let's see if the data has been added:
 
@@ -187,7 +187,7 @@ Edit the new file `world.sql`:
     
 Apply the updated package again:
 
-    $ pgpkg .
+    $ pgpkg --commit .
 
 And now let's see if it worked:
 
@@ -216,7 +216,7 @@ in your project:
 
 As usual, apply the changes to the database:
 
-    $ pgpkg .
+    $ pgpkg --commit .
 
 The test will have been applied, but you won't see anything if it passes.
 
@@ -246,7 +246,7 @@ to the console during the testing process. Edit `world_test.sql` to add a notice
 
 Let's install it, which will run the test:
 
-    $ pgpkg .           
+    $ pgpkg --commit .           
     [notice]: Testing the world
 
 Any `raise notice` commands from tests that run will be printed to the console.
@@ -261,7 +261,7 @@ A successful test is one that finds a problem - so let's create a problem!
 
 Now, reinstall the package, which will re-run the tests:
 
-    $ pgpkg .         
+    $ pgpkg --commit .         
     [notice]: Testing the world
     ./world_test.sql:1: test failed: hello.world_test(): pq: the world is not right
            3:         raise notice 'Testing the world';

@@ -2,12 +2,16 @@
 
 ## Priority / first release
 
+- [X] make --dry-run the default, and require --commit to commit.
+- [ ] deployment - pgpkg is useless without this
+  - [ ] needs an option such as "--zip" that produces a zip package from a source tree
+    this can then be used for deployment of packages outside of Go.
+  - [ ] zip package needs to include all dependencies.
+  - [ ] needs instructions for Go and shell
 - [ ] --[in|ex]clude-tests skips tests in other schemas, should only skip own test
 - [ ] package up the tool as a binary (github actions?)
 - [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
-- [ ] documentation for toml Uses:
-- [ ] needs an option such as "--zip" that produces a zip package from a source tree
-  this can then be used for deployment of packages outside of Go.
+- [ ] documentation for toml Uses: clause.
 
 - [ ] review & update tutorial to latest standards
   - [ ] add a readme to the example package linking to the tutorial and explaining it a bit.

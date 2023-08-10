@@ -11,7 +11,7 @@ import (
 var Options struct {
 	Verbose        bool           // print lots of stuff
 	Summary        bool           // print a summary of the installation
-	DryRun         bool           // rollback after installation (good for testing)
+	DryRun         bool           // rollback after installation (default)
 	ShowTests      bool           // Show the result of each SQL test that was run.
 	SkipTests      bool           // Don't run the tests. Useful when fixing them!
 	IncludePattern *regexp.Regexp // Pattern to use for running tests
@@ -92,6 +92,9 @@ func ParseArgs(prefix string) error {
 		switch switchName {
 		case "dry-run":
 			Options.DryRun = true
+
+		case "commit":
+			Options.DryRun = false
 
 		case "verbose":
 			Options.Verbose = true

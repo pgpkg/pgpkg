@@ -18,6 +18,7 @@ review them with PRs alongside other changes, and deploy them seamlessly to prod
 
 ## Documentation
 
+* [Pgpkg Manual](pages/manual.md)
 * [Pgpkg Tutorial](pages/tutorial/tutorial.md)
 * [Why stored procedures?](#why-stored-procedures)
 * [What is pl/pgsql?](#what-is-plpgsql)

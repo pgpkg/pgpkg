@@ -73,7 +73,7 @@ func dropTempDB(dsn string, dbname string) error {
 // Start an interactive psql session with the given DSN, and wait for it to exit.
 func doReplSession(dsn string) error {
 	// Create a new command
-	cmd := exec.Command("psql", "-v", "PROMPT1=pgpkg> ", dsn)
+	cmd := exec.Command("psql", "-v", "PROMPT1=pgpkg> ", "-v", "PROMPT2=pgpkg| ", dsn)
 
 	// Set the command's input and output to standard input and output
 	cmd.Stdin = os.Stdin
@@ -102,6 +102,9 @@ func main() {
 
 	var replDb string
 	var replDSN string
+
+	// Don't commit to the database by accident.
+	pgpkg.Options.DryRun = true
 
 	// Keep a copy of the original DSN, since we modify it during REPL.
 	defaultDSN := os.Getenv("DSN")
@@ -133,6 +136,8 @@ func main() {
 		replDSN = os.Getenv("DSN")
 		replDSN = replDSN + " dbname=" + replDb
 		os.Setenv("DSN", replDSN)
+
+		pgpkg.Options.DryRun = false
 	}
 
 	p := pgpkg.NewProject()

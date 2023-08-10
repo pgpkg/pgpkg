@@ -22,18 +22,19 @@ error reporting is not as good as it could be, and is an area of focus at this t
 
 ## Running pgpkg
 
-The easiest way to run pgpkg is:
+The easiest way to run `pgpkg` is:
 
     pgpkg .
 
 this will search for a `pgpkg.toml` file in the current and parent directories, and perform
 a database migration from that point.
 
-In the above example, the migration will be committed. You might want to start with
+By default, `pgpkg` performs a "dry run" and does not commit database changes.
+To save your changes, use `--commit`:
 
-    pgpkg --dry-run .
+    pgpkg --commit .
 
-which will prevent `pgpkg` from modifying your database. See [options](#options)
+which will tell `pgpkg` to modify your database. See [options](#options)
 
 ## Database Connection
 
@@ -231,7 +232,10 @@ supporting functions, nor test data are visible to production code after a migra
 ### Transactions and Testing
 
 `--dry-run`: perform a full schema migration (including tests), but don't commit the results. The target database
-is therefore left unchanged.
+is therefore left unchanged (default).
+
+`--commit`: perform a full schema migration (including tests). If the migration is successful,
+the transaction will be committed, and the target database will be modified.
 
 `--show-tests`: This option prints a pass/fail status for each test that's run.
 
@@ -252,8 +256,8 @@ to display more information:
 
 ### REPL
 
-`--repl`: create a temporary database, perform a full migration, and then start an interactive `psql` shell.
-The temporary database is dropped once you exit the shell.
+`--repl`: create a temporary database, perform a full migration, commit it, and then
+start an interactive `psql` session. The temporary database is dropped once you exit the shell.
 
 ## pgpkg schema
 
