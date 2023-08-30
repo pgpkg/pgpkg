@@ -90,12 +90,6 @@ func ParseArgs(prefix string) error {
 		switchName := pgpkgArgs[1]
 
 		switch switchName {
-		case "dry-run":
-			Options.DryRun = true
-
-		case "commit":
-			Options.DryRun = false
-
 		case "verbose":
 			Options.Verbose = true
 			Options.ShowTests = true

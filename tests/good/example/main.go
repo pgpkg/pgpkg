@@ -10,9 +10,9 @@ import (
 var hello embed.FS
 
 func main() {
-	pgpkg.ParseArgs()
+	pgpkg.ParseArgs("")
 	var p pgpkg.Project
-	p.AddFS(hello)
+	p.AddEmbeddedFS(hello, "hello")
 
 	db, err := p.Open()
 	if err != nil {

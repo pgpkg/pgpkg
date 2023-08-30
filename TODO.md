@@ -2,18 +2,23 @@
 
 ## Priority / first release
 
-- [X] make --dry-run the default, and require --commit to commit.
-- [ ] deployment - pgpkg is useless without this
-  - [ ] needs an option such as "--zip" that produces a zip package from a source tree
-    this can then be used for deployment of packages outside of Go.
-  - [ ] zip package needs to include all dependencies.
-  - [ ] needs instructions for Go and shell
+- [ ] "pgpkg export <path>" ignores <path>, just uses pwd
+- [ ] "pgpkg repl|try|deploy <file.zip>" should work
+- [ ] Cache needs to use an FS rather than a path, so it can use Zip caches (zip files should only have a search cache)
+- [ ] make sure repl|try|deploy works properly for dependencies, current directory, ZIP files
+- [ ] check cmd/pgpkg.go for dead code comments
+- [ ] pgpkg export (maybe it should be pgpkg zip?) should name the ZIP file after the package. 
+- [ ] 'pgpkg uses' should import a package and then add it to 'Uses='
+- [ ] change uses of "filepath" to just use "path", ie. filepath.Join() should be path.Join()
+- [ ] passing an invalid filename (eg, "bc.zipexample") doesn't print an error
+- [ ] rename "project" to "target" ? include an explicit DSN as part of the target?
+- [ ] check/review that docs still work with (eg, tutorial, manual) - especially after the verb changes
+- [ ] create a test for good dependencies, circular dependencies, and missing dependencies.
 - [ ] --[in|ex]clude-tests skips tests in other schemas, should only skip own test
 - [ ] package up the tool as a binary (github actions?)
 - [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
-- [ ] documentation for toml Uses: clause.
-
-- [ ] review & update tutorial to latest standards
+- [ ] update documentation for toml Uses:, Extensions clause.
+- [ ] review & update tutorial & docs to latest standards
   - [ ] add a readme to the example package linking to the tutorial and explaining it a bit.
 - [ ] create some structured tests e.g. dependencies, uses, unit tests
 - [ ] packages are treated individually which will cause dependency problems.
@@ -24,6 +29,7 @@
 
 ## New / Triage
 
+- [ ] if a schema hasn't changed (functions, migrations etc) then don't make any changes.
 - [ ] make "go test" work with pgpkg
 - [ ] allow some kind of "init" or "post" script in MOBs.
 
@@ -139,3 +145,30 @@
   - [X] trap ^C properly during repl mode
 - [X] put pgpkg schema first in schema search and put assertion ops into pgpkg schema
   - [X] this may fix stack traces too, but if not - fix them
+- [X] make --dry-run the default, and require --commit to commit.
+- [X] add verbs:
+  - [X] pgpkg deploy (same as --commit)
+  - [X] pgpkg repl   (same as --repl)
+  - [X] pgpkg try    (same as deploy --dry-run)
+  - [X] pgpkg export (new)
+  - [X] update docs
+- [X] `pgpkg deploy` should be able to deploy packages exported by `pgpkg export`.
+- [X] review code for dead comments
+- [X] implement a cache for projects. .pgpkg?
+- [X] Project.pkgs should be a map of name:Package rather than an aray, could then also detect dupes
+- [X] get local dependencies ("Uses") working.
+- [X] once all sources are added to a project, reorder them to resolve dependencies before processing.
+- [X] pgpkg commands should default to "current" package, ie, search parents for pgpkg.toml
+- [X] ignore dot-files when scanning folders
+- [X] need ability to add packages to the cache: `pgpkg cache <path>`
+- [X] when importing package c, package b (incorrectly) gets a @migration file, but c doesn't. Why don't they both?
+- [X] `pgpkg import` needs to re-import any package that's explicitly mentioned
+- [X] `pgpkg import` should import dependencies only if they are not already present in cache; err if dependencies not found
+- [X] when importing C, which depends on B; if B is in the local cache then don't import from C's cache; also, it's not an error if it's not in C's cache 
+- [X] remove references to "packages.pgpkg"
+- [X] Update ZIP writer to just copy the *.sql, toml and migration files, along with the .pgpkg
+- [X] non-go deployment
+  - [X] needs an "export" option
+  - [X] needs documentation (manual) for Go and shell
+  - [X] zip package needs to include all dependencies / possibly just use an embedded .pgpkg cache?
+- [X] repl is not reliably dropping the "temporary" database (maybe when an error occurs during deploy?)

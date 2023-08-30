@@ -41,7 +41,7 @@ func (b *Bundle) getUnit(path string) (*Unit, bool) {
 // until requested.
 func (b *Bundle) addUnit(path string) error {
 	if Options.Verbose {
-		Verbose.Println("add unit:", path)
+		Verbose.Printf("%s: add unit: %s", b.Package.Name, path)
 	}
 
 	unit := &Unit{

@@ -7,45 +7,192 @@ import (
 	"github.com/lib/pq"
 	"io/fs"
 	"os"
+	"path"
 )
 
-// Project represents a group of packages that are to be installed into a single
-// database. This struct is responsible for downloading and managing packages,
-// and arranging for them to be installed in the correct order.
+// Project represents a collection of individual packages that are to be installed into a single
+// database. This struct is responsible for tracking the package sources that make up a project,
+// including dependencies and caches, and arranging for them to be installed in the correct order.
 //
-// This type is intended to be the main interface for Go integration with `pgpgk`.
+// You work with a project by adding the "sources" you need - which might be directories, ZIP files,
+// embedded filesystems, or embedded ZIP binaries. If a project- or search-cache is defined, then
+// this will be used to find dependencies.
 //
-// You work with a project by adding the packages you need, and then installing it.
-// The `pgpkg` package is always installed automatically.
-
+// Once you've added all the sources for your project, p.Open() or p.Migrate() performs the migration.
+//
+// The `pgpkg` package is always installed automatically, and is never exported.
 type Project struct {
 	Sources []Source
+	pkgs    map[string]*Package
+	Cache   *Cache   // primary cache for this project
+	Search  []*Cache // other caches to search for dependencies.
 }
 
-func (p *Project) AddFS(fsList ...fs.FS) {
-	for _, fsys := range fsList {
-		p.Sources = append(p.Sources, &FSSource{fs: fsys, location: "embedded"})
+func (p *Project) AddEmbeddedFS(f fs.FS, path string) (*Package, error) {
+	src, err := NewFSSource(f, path)
+	if err != nil {
+		return nil, err
 	}
+	return p.AddPackage(src, false)
 }
 
-// AddZip adds a ZIP filesystem using the given bytes.
-// This is useful when using embedded packages go:embed.
-func (p *Project) AddZip(zipByteList ...[]byte) {
-	for _, zipBytes := range zipByteList {
-		p.Sources = append(p.Sources, &ZipSource{zipBytes: zipBytes, location: "embedded"})
+//func (p *Project) AddZipByteSource(zipBytes []byte) (*Package, error) {
+//	zipByteSource, err := NewZipByteSource(zipBytes)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return p.AddPackage(zipByteSource, false)
+//}
+//
+//// AddZipFileSource loads a byte array from a file and then calls AddZipByteSource().
+//func (p *Project) AddZipFileSource(path string) (*Package, error) {
+//	bytes, err := os.ReadFile(path)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return p.AddZipByteSource(bytes)
+//}
+
+//func (p *Project) AddDirSource(path string) (*Package, error) {
+//	return p.AddPackage(NewDirSource(path), false)
+//}
+
+// AddPackage adds an individual package to the project.
+func (p *Project) AddPackage(source Source, isDependency bool) (*Package, error) {
+	p.Sources = append(p.Sources, source)
+
+	pkgfs, err := source.FS()
+	if err != nil {
+		return nil, err
 	}
+
+	pkg, err := readPackage(p, source.Location(), pkgfs, "")
+	if err != nil {
+		return nil, err
+	}
+
+	pkg.IsDependency = isDependency
+
+	existing, ok := p.pkgs[pkg.Name]
+	if ok {
+		return nil, fmt.Errorf("duplicate package %s; found in %s, but also in %s", pkg.Name, existing.Location, pkg.Location)
+	}
+
+	p.pkgs[pkg.Name] = pkg
+	return pkg, nil
 }
 
-// AddPath adds a Path to the project, relative to the working directory.
+// AddPathSource adds a package source to the project, relative to the working directory.
 // The path can refer to a ZIP file or a directory.
-func (p *Project) AddPath(paths ...string) {
-	for _, path := range paths {
-		p.Sources = append(p.Sources, &PathSource{path: path, location: path})
+//func (p *Project) AddPathSource(paths ...string) error {
+//	for _, pkgPath := range paths {
+//		if strings.HasSuffix(pkgPath, ".zip") {
+//			if _, err := p.AddZipFileSource(pkgPath); err != nil {
+//				return fmt.Errorf("unable to include package %s: %w", pkgPath, err)
+//			}
+//		} else {
+//			if _, err := p.AddDirSource(pkgPath); err != nil {
+//				return fmt.Errorf("unable to read package %s: %w", pkgPath, err)
+//			}
+//		}
+//	}
+//
+//	return nil
+//}
+
+func (p *Project) AddSource(src Source) (*Package, error) {
+	return p.AddPackage(src, false)
+}
+
+// Get a list of the keys for a map, as a string.
+func mapKeys[T any](m map[string]T) string {
+	keys := ""
+	for k := range m {
+		if keys != "" {
+			keys = keys + ","
+		}
+		keys = keys + k
 	}
+	return keys
+}
+
+func (p *Project) installPackages(tx *PkgTx) error {
+	// Sort packages by dependencies.
+	pkgs, err := p.sortPackages()
+	if err != nil {
+		return err
+	}
+
+	// Install packages in dependency order.
+	for _, pkgName := range pkgs {
+		pkg := p.pkgs[pkgName]
+		if err := pkg.Apply(tx); err != nil {
+			return fmt.Errorf("unable to install package %s: %w", pkg.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// resolveDependencies adds any dependent packages ("Uses") to the project, by looking in
+// the cache.
+func (p *Project) resolveDependencies() error {
+
+	for _, pkg := range p.pkgs {
+		for _, uses := range pkg.config.Uses {
+
+			// Has the dependency already been added to the package?
+			_, ok := p.pkgs[uses]
+			if ok {
+				continue
+			}
+
+			found := false
+			caches := []*Cache{}
+
+			// search caches, if any, take precedence over project cache.
+			if p.Search != nil {
+				caches = append(caches, p.Search...)
+			}
+
+			if p.Cache != nil {
+				caches = append(caches, p.Cache)
+			}
+
+			for _, cache := range caches {
+				src, err := cache.getCachedSource(uses)
+				if err == CachePkgNotFound {
+					continue
+				} else if err != nil {
+					return fmt.Errorf("%s: %w", pkg.Name, err)
+				}
+
+				if _, err := p.AddPackage(src, true); err != nil {
+					return fmt.Errorf("%s: unable to add dependency %s: %w", pkg.Name, uses, err)
+				}
+
+				// Package found, nothing more to do.
+				found = true
+				break
+			}
+
+			if !found {
+				return fmt.Errorf("%s: dependency not found in package caches: %s", pkg.Name, uses)
+			}
+		}
+	}
+
+	return nil
 }
 
 // Open opens the given database, installs the packages from the project, and
-// returns the database connection. Packages are installed within a single transaction.
+// returns the database connection.
+//
+// Open is the main entry point for pgpkg.
+//
+// Packages are installed within a single transaction.
 // Migrations and tests are applied automatically. Package installation is atomic;
 // it either fully succeeds or fails without changing the database.
 //
@@ -53,15 +200,16 @@ func (p *Project) AddPath(paths ...string) {
 // This call checks that the error was significant and will adjust the OS exit
 // status accordingly. See pgpkg.Exit() for more details.
 func (p *Project) Open() (*sql.DB, error) {
+	if err := p.resolveDependencies(); err != nil {
+		return nil, err
+	}
+
+	if err := p.parseSchemas(); err != nil {
+		return nil, err
+	}
 
 	// If DSN isn't set, libpq will use PGHOST etc.
 	dsn := os.Getenv("DSN")
-
-	// Load the packages before we do anything, in case there are problems.
-	pkgs, err := p.loadPackages()
-	if err != nil {
-		return nil, err
-	}
 
 	base, err := pq.NewConnector(dsn)
 	if err != nil {
@@ -91,12 +239,10 @@ func (p *Project) Open() (*sql.DB, error) {
 		return nil, fmt.Errorf("unable to initialize pgpkg: %w", err)
 	}
 
-	for _, pkg := range pkgs {
-		if err = pkg.Apply(tx); err != nil {
-			_ = tx.Rollback()
-			_ = db.Close()
-			return nil, fmt.Errorf("unable to install package %s: %w", pkg.Name, err)
-		}
+	if err := p.installPackages(tx); err != nil {
+		_ = tx.Rollback()
+		_ = db.Close()
+		return nil, fmt.Errorf("unable to complete package installation: %w", err)
 	}
 
 	if Options.DryRun {
@@ -118,26 +264,33 @@ func (p *Project) Open() (*sql.DB, error) {
 	return db, nil
 }
 
-// Load all the packages from the project, and return them.
-func (p *Project) loadPackages() ([]*Package, error) {
-
-	var pkgs []*Package
-
-	for _, source := range p.Sources {
-		pkgfs, err := source.FS()
-		if err != nil {
-			return nil, fmt.Errorf("unable to load package %s: %w", source.Location(), err)
-		}
-
-		pkg, err := loadPackage(p, source.Location(), pkgfs)
-		if err != nil {
-			return nil, err
-		}
-
-		pkgs = append(pkgs, pkg)
+func (p *Project) Migrate() error {
+	db, err := p.Open()
+	if err != nil {
+		return err
 	}
 
-	return pkgs, nil
+	err = db.Close()
+	if err != nil {
+		return fmt.Errorf("unable to close database after migration: %w", err)
+	}
+
+	return nil
+}
+
+// Load all the schemas for all the packages from the project.
+// This is likely to be expensive because it requires parsing the entire
+// set of files in each package.
+func (p *Project) parseSchemas() error {
+
+	for _, pkg := range p.pkgs {
+		err := pkg.readSchema()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 //go:embed pgpkg
@@ -155,31 +308,91 @@ func (p *Project) Init(tx *PkgTx) error {
 		return fmt.Errorf("unable to read schema: %w", err)
 	}
 
-	pkg, err := loadPackage(p, "embedded pgpkg", pgpkgFS)
-	if err != nil {
-		return fmt.Errorf("unable to load pgpkg package: %w", err)
+	basePkg, ok := p.pkgs["github.com/pgpkg/pgpkg"]
+	if !ok {
+		return fmt.Errorf("base package (github.com/pgpkg/pgpkg) not found")
 	}
 
-	if pkg.SchemaNames[0] != PGKSchemaName {
-		return fmt.Errorf("expected root schema name %s, got %s", PGKSchemaName, pkg.SchemaNames[0])
+	if basePkg.SchemaNames[0] != PGKSchemaName {
+		return fmt.Errorf("expected root schema name %s, got %s", PGKSchemaName, basePkg.SchemaNames[0])
 	}
 
 	// We can force the package to run all the migration scripts without
 	// checking if they have been already run. This prevents the migration
 	// from trying to lookup database tables before they are created.
 	if isInitialised == 0 {
-		pkg.bootstrapSchema = true
-	}
-
-	// Apply the pgpkg schema itself.
-	if err = pkg.Apply(tx); err != nil {
-		return fmt.Errorf("unable to create/update pgpkg package: %w", err)
+		basePkg.bootstrapSchema = true
 	}
 
 	return nil
 }
 
-// NewProject creates a new project.
+// NewProject creates a new project. It adds the "pgpkg" package to the project, which is
+// required to track the objects we create and remove.
 func NewProject() *Project {
-	return &Project{}
+	p := &Project{
+		pkgs: make(map[string]*Package),
+	}
+
+	// Always include the embedded pgpkg schema. This is treated specially, and is always
+	// installed first.
+	if _, err := p.AddEmbeddedFS(pgpkgFS, "pgpkg"); err != nil {
+		panic(err)
+	}
+
+	return p
+}
+
+// NewProjectFrom creates a new project and adds the package found at path.
+// It also configures (and possibly creates) a project cache, also rooted at the given path.
+// If searchCaches is not nil, these will be searched in order when resolving dependencies.
+// Search caches take precedence over the project cache.
+func NewProjectFrom(pkgPath string, searchCaches ...*Cache) (*Project, error) {
+	p := NewProject()
+	src, err := NewSource(pkgPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := p.AddSource(src); err != nil {
+		return nil, err
+	}
+
+	//root, err := src.FS()
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	// If there is a cache in .pgpkg, use it.
+	//var cfs fs.FS
+	//if cfs, err = fs.Sub(root, ".pgpkg"); err != nil {
+	//	if !errors.Is(err, fs.ErrNotExist) {
+	//		if err != nil {
+	//			return nil, fmt.Errorf("unable to open cache: %w", err)
+	//		}
+	//	}
+	//}
+
+	//if cfs != nil {
+	//	p.Cache = NewCache(cfs)
+	//}
+
+	cacheDir := path.Join(pkgPath, ".pgpkg")
+	i, err := os.Stat(cacheDir)
+	if os.IsNotExist(err) {
+		err = os.Mkdir(cacheDir, 0700)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create package cache %s: %w", cacheDir, err)
+		}
+	} else if err != nil {
+		return nil, fmt.Errorf("unable to open cache: %w", err)
+	} else {
+		if !i.IsDir() {
+			return nil, fmt.Errorf("package cache %s: not a directory", cacheDir)
+		}
+	}
+	p.Cache = NewCache(cacheDir)
+	p.Search = searchCaches
+
+	return p, nil
 }

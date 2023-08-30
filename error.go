@@ -129,7 +129,7 @@ func (c *PKGErrorContext) Print(contextLines int) {
 // Exit usually prints the error message (with context, if available), and then exits immediately with status 1.
 // However, err == ErrUserRequest then no message is printed and we exit with status 0.
 // project.Open() will return ErrUserRequest if the command-line options indicate a dry run or other
-// condition that should not result in a program starting.
+// condition that should not result in a program printing an error.
 //
 // Applications should call pgpkg.Exit(err) after calling project.Open() if err is not nil.
 func Exit(err error) {

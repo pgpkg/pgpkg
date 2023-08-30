@@ -15,6 +15,10 @@ pgpkg is designed explicitly to enable you to use the same source code workflows
 edit your SQL functions in the same IDE, commit them to the same Git repository, review them with PRs alongside other
 changes, and deploy them seamlessly to production.
 
+## Usage
+
+    pgpkg {deploy | repl | try | export} [options] [packages]
+
 ## Status
 
 pgpkg is alpha quality. It is very usable, but some features aren't yet complete, or work with caveats. In particular,
@@ -24,17 +28,19 @@ error reporting is not as good as it could be, and is an area of focus at this t
 
 The easiest way to run `pgpkg` is:
 
-    pgpkg .
+    pgpkg deploy .
 
 this will search for a `pgpkg.toml` file in the current and parent directories, and perform
 a database migration from that point.
 
-By default, `pgpkg` performs a "dry run" and does not commit database changes.
-To save your changes, use `--commit`:
+`pgpkg deploy` will modify your database. If you want to do a test migration, use `pgpkg try` instead:
 
-    pgpkg --commit .
+    pgpkg try .
 
-which will tell `pgpkg` to modify your database. See [options](#options)
+`pgpkg try` is identical to `pgpkg deploy`, except that the database transaction used to upgrade the
+database is aborted, meaning that your database is not changed.
+
+See [commands](#commands) for more detail.
 
 ## Database Connection
 
@@ -51,26 +57,44 @@ in the DSN variable.
 ## Configuration
 
 A pgpkg package is any directory (and its children) containing a configuration file called `pgpkg.toml`. The
-configuration file contains a package ID (using Go's [module path format](https://go.dev/ref/mod#module-path)),
-a list of database schemas, and an optional list of external modules to be loaded.
+configuration file contains a package ID, a list of database schemas, and an optional list of database extensions
+and external packages to be loaded.
 
 One of the benefits of pgpkg is that it lets you put your SQL function code next to your native code. To achieve
 this, `pgpkg.toml` should be placed at the root of your source tree; in Go, this would usually be in the same
-folder as `go.mod`.
+folder as `go.mod` or `.git`.
 
-With such a configuration, you can put `.sql` function declarations anywhere in your source tree.
-
-> Note that while pgpkg uses Go's module path naming convention, you do not need to know Go to use pgpkg.
+With such a configuration, you can put `.sql` function declarations anywhere in your source tree. (To extract
+the SQL definitions from your code when you want to deploy a schema, see `pgpkg export`)
 
 The schemas listed in `pgpkg.toml` are automatically created by pgpkg when it starts.
 
     Package = "github.com/owner/repository"
     Schemas = [ "schema1", "schema2" ]
+    Extensions = [ "ext1", "ext2" ]
     Uses = [ "module1", "module2" ]
 
-> Note that `Uses` is currently experimental, and not recommended for use in production.
-
 pgpkg maintains its own private schema, unsurprisingly called `pgpkg`. This is described in more detail below.
+
+### `Package`
+
+`Package` is the name of the package, using Go's [module path format](https://go.dev/ref/mod#module-path).
+You do not need to know Go to use pgpkg. All packages must have a name.
+
+### `Schemas`
+
+`Schemas` is a list of one or more schema names for your package. All packages must exist in at least one schema.
+The schemas listed in this clause are created automatically by `pgpkg`.
+
+### `Extensions`
+
+`Extensions` is a list of Postgresql database extensions required by your package. These extensions will be installed
+automatically by `pgpgk`.
+
+### `Uses`
+
+`Uses` is a list of `pgpkg` package names which this package depends on. Note that `Uses` is currently
+experimental, and not recommended for use in production.
 
 ## Managed Objects
 
@@ -225,17 +249,65 @@ and the database is left unchanged.
 Tests are run within savepoints, which are rolled back before completing the migration. Neither test functions,
 supporting functions, nor test data are visible to production code after a migration is complete.
 
+## Commands
+
+### `deploy` - deploy packages
+
+    pgpkg deploy [options] <packages...>
+
+`pgpkg deploy` installs the given packages into the database (or updates them if they aren't already present),
+and - unless directed otherwise with *options* - runs the SQL unit tests.
+
+If the installation succeeds and the tests pass, `pgpkg deploy` will commit the transaction, resulting in permanent
+changes to the database.
+
+If any part of the installation fails, the entire transaction is aborted and the database is left unchanged.
+
+Note that `pgpkg` only applies database migrations that have not already been applied. `pgpkg` will create any
+schemas and extensions as needed.
+
+### `try` - test packages
+
+    pgpkg try [options] <packages...>
+
+`pgpkg try` is identical to `pgpkg deploy`, except that, even if deployment is successful, the database transaction is
+aborted, and the database is left unchanged. `pgpkg try` lets you try a deployment before committing to it.
+
+### `repl` - interact with packages
+
+    pgpkg repl <packages...>
+
+`pgpkg repl` creates a temporary database, deploys the schema into it (effectively using `pgpkg deploy`), and starts
+an interactive `psql`session. This allows you to explore, interact and debug your schema. The temporary database is
+dropped when `psql`is exited.
+
+### `export` - create a stand-alone package
+
+    pgpkg export <packages...>
+
+`pgpkg export` creates a single ZIP file containing all the listed packages, and any dependencies.
+The resulting ZIP file can be used with `pgpkg deploy` (or `pgpkg try`) to deploy the given packages.
+
+Because `pgpkg` is designed to allow you to mix your native source code and SQL source code, `pgpkg export` provides
+a way of extracting only the pgpkg-related files from a source code tree. It is intended for use during an
+automated build process; the resulting ZIP file can be shipped with your application to your production
+environment, where it can be processed using`pgpkg` as part of the upgrade or application startup process.
+
+For example, in a Java environment, you would use `pgpkg export` to create a `pgpkg.zip` file which you might
+bundle into a container along with your application JAR, the JDK, and the `pgpkg` binary. As part of the
+container startup script, before starting the Java application, you can run `pgpkg deploy pgpkg.zip`.
+This will ensure that the schema is upgraded before the application starts.
+
+> Note: if you are using Go, `pgpkg` supports embedding package files into the Go binary, thereby
+> creating a completely stand-alone schema upgrade mechanism that does not require shipping of
+> either the schema files or the pgpkg binary. See
+> [the pgpkg tutorial](tutorial/go.md) for more information.
+
 ## Options
 
 `pgpkg` supports a number of command-line options.
 
-### Transactions and Testing
-
-`--dry-run`: perform a full schema migration (including tests), but don't commit the results. The target database
-is therefore left unchanged (default).
-
-`--commit`: perform a full schema migration (including tests). If the migration is successful,
-the transaction will be committed, and the target database will be modified.
+### Testing
 
 `--show-tests`: This option prints a pass/fail status for each test that's run.
 
@@ -250,18 +322,13 @@ the transaction will be committed, and the target database will be modified.
 pgpkg normally runs silently (unless your SQL code includes `raise notice` messages). These options tell pgpkg
 to display more information:
 
-`--verbose`: This option print logs describing what pgpkg is up to.
+`--verbose`: This option print logs describing *exactly* what pgpkg is up to.
 
 `--summary`: This option print a summary of pgpkg operations when it finishes.
 
-### REPL
-
-`--repl`: create a temporary database, perform a full migration, commit it, and then
-start an interactive `psql` session. The temporary database is dropped once you exit the shell.
-
 ## pgpkg schema
 
-The pgpkg schema consists of three tables:
+`pgpkg` creates a schema (called `pgpkg`), which contains three tables:
 
 * `pgpkg.pkg`: list of packages that have been installed into this database.
 * `pgpkg.managed_object`: list of managed objects that have been installed into this database.

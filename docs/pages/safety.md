@@ -3,7 +3,7 @@
 > **BE WARNED** that these are early days for pgpkg. I have made an attempt to
 > provide a framework to enable security via Postgresql primitives (such as
 > the use of roles and schemas), but at this time you should consider any package you use to
-> potentially have the ability to read and write to your database.
+> potentially have the ability to read and write to your whole database.
 > 
 > pgpkg is great for reuse of internally developed code, but **an adversary would certainly
 > be able to defeat the security measures currently in use at this time**.

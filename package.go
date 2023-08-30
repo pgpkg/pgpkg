@@ -2,7 +2,6 @@ package pgpkg
 
 import (
 	"fmt"
-	"github.com/BurntSushi/toml"
 	"github.com/lib/pq"
 	"io/fs"
 	"os"
@@ -13,11 +12,11 @@ import (
 
 const migrationFilename = "@migration.pgpkg"
 
-// Package represents a single schema in a database. pgpkg
+// Package represents a set of schemas in a database. pgpkg
 // keeps track of and maintains the objects declared in the
 // package, but doesn't touch anything else.
 //
-// Packages are divided into three bundles, called structure,
+// Packages are divided into three bundles, called schema,
 // MOB and tests. Each bundle operates in a unique way.
 //
 // The database structure is represented by a list of upgrade
@@ -51,21 +50,13 @@ type Package struct {
 	StatMigrationCount int // Stat showing how many migration scripts were run
 	StatTestCount      int // Stat showing how many tests there are.
 
-	Schema *Schema // probably not a bundle, unless bundles can load on demand
+	Schema *Schema
 	MOB    *MOB
 	Tests  *Tests
 
+	IsDependency    bool // This package was loaded from .pgpkg cache
 	bootstrapSchema bool // migrate without checking migration table. Allows pgpkg to bootstrap itself.
 	config          *configType
-}
-
-// Load the settings
-type configType struct {
-	Package    string
-	Schema     string // for backward compatibility only
-	Schemas    []string
-	Extensions []string
-	Uses       []string
 }
 
 func (p *Package) newBundle() *Bundle {
@@ -309,7 +300,7 @@ func (p *Package) Apply(tx *PkgTx) error {
 
 // Read the configuration TOML file and update the package accordingly.
 // If the package is already configured, it's an error.
-func (p *Package) loadConfig(tomlPath string) error {
+func (p *Package) parseConfig(tomlPath string) error {
 
 	if p.config != nil {
 		return fmt.Errorf("duplicate configuration found: %s", tomlPath)
@@ -317,32 +308,20 @@ func (p *Package) loadConfig(tomlPath string) error {
 
 	pkgConfigReader, err := p.Root.Open(tomlPath)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	defer pkgConfigReader.Close()
 
-	var config configType
-
-	if _, err := toml.NewDecoder(pkgConfigReader).Decode(&config); err != nil {
-		return fmt.Errorf("unable to read package config: %w", err)
-	}
-
-	// Convert single-schema name to slice, for backward compatibility
-	if config.Schema != "" && config.Schemas == nil {
-		config.Schemas = []string{config.Schema}
-	}
-
-	for _, schemaName := range config.Schemas {
-		if !schemaPattern.MatchString(schemaName) {
-			return fmt.Errorf("illegal schema name in pgpkg.toml: %s", schemaName)
-		}
+	config, err := parseConfig(pkgConfigReader)
+	if err != nil {
+		return err
 	}
 
 	p.Name = config.Package
 	p.SchemaNames = SanitizeSlice(schemaPattern, config.Schemas)
 	p.RoleName = Sanitize(rolePattern, "$"+p.Name)
-	p.config = &config
+	p.config = config
 
 	return nil
 }
@@ -357,8 +336,14 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 
 	name := d.Name()
 
+	// Ignore the pgpkg.toml file.
 	if name == "pgpkg.toml" {
-		return p.loadConfig(path)
+		return nil
+	}
+
+	// Ignore dot-files other than "." itself
+	if name != "." && name[0] == '.' {
+		return fs.SkipDir
 	}
 
 	if d.IsDir() {
@@ -385,69 +370,43 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 	return nil
 }
 
-// Locate the pgpkg.toml file in the supplied filesystem. This is necessary because embedded filesystems
-// include the entire path to the embedding, which means we have to traverse the tree to find the root
-// of the package.
-func findPackageDir(root fs.FS) (fs.FS, error) {
-	var tomlFile string
+// Load the project details - the TOML file - without reading the rest of the schema data.
+func readPackage(project *Project, location string, base fs.FS, dir string) (*Package, error) {
 
-	// Search for the toml file.
-	err := fs.WalkDir(root, ".", func(path string, d fs.DirEntry, err error) error {
-		if d == nil {
-			return nil
+	var err error
+	root := base
+
+	if dir != "" {
+		if root, err = fs.Sub(base, dir); err != nil {
+			return nil, err
 		}
-
-		if d.Name() == "pgpkg.toml" {
-			tomlFile = path
-			return fs.SkipAll
-		}
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to find pgpkg.toml: %w", err)
-	}
-
-	if tomlFile == "" {
-		return nil, fmt.Errorf("unable to find pgpkg.toml")
-	}
-
-	tomlDir := filepath.Dir(tomlFile)
-	sub, err := fs.Sub(root, tomlDir)
-	if err != nil {
-		return nil, fmt.Errorf("unable to find root directory of %s: %w", tomlDir, err)
-	}
-
-	return sub, nil
-}
-
-func loadPackage(project *Project, location string, pkgFS fs.FS) (*Package, error) {
-
-	// The FS might not be rooted at the exact location of the toml file due
-	// to go:embed not being able to trim the path. So we search for the toml
-	// file in the provided FS.
-	pkgDir, err := findPackageDir(pkgFS)
-	if err != nil {
-		return nil, err
 	}
 
 	pkg := &Package{
 		Project:  project,
 		Location: location,
-		Root:     pkgDir,
+		Root:     root,
 	}
 
-	pkg.Schema = &Schema{Bundle: pkg.newBundle()}
-	pkg.MOB = &MOB{Bundle: pkg.newBundle()}
-	pkg.Tests = &Tests{Bundle: pkg.newBundle()}
-
-	// Only walk the directory in which the toml file was found, rather than
-	// the entire filesystem provided in pkgFS.
-	if err = fs.WalkDir(pkgDir, ".", pkg.addUnit); err != nil {
-		return nil, fmt.Errorf("unable to load package %s: %w", location, err)
+	if err := pkg.parseConfig("pgpkg.toml"); err != nil {
+		return nil, err
 	}
 
 	return pkg, nil
+}
+
+func (p *Package) readSchema() error {
+	p.Schema = &Schema{Bundle: p.newBundle()}
+	p.MOB = &MOB{Bundle: p.newBundle()}
+	p.Tests = &Tests{Bundle: p.newBundle()}
+
+	// Only walk the directory in which the toml file was found, rather than
+	// the entire filesystem provided in pkgFS.
+	if err := fs.WalkDir(p.Root, ".", p.addUnit); err != nil {
+		return fmt.Errorf("unable to read schema for package %s: %w", p.Name, err)
+	}
+
+	return nil
 }
 
 func (p *Package) isValidSchema(search string) bool {
