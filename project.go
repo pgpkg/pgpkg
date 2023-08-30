@@ -7,7 +7,6 @@ import (
 	"github.com/lib/pq"
 	"io/fs"
 	"os"
-	"path"
 )
 
 // Project represents a collection of individual packages that are to be installed into a single
@@ -24,8 +23,8 @@ import (
 type Project struct {
 	Sources []Source
 	pkgs    map[string]*Package
-	Cache   *Cache   // primary cache for this project
-	Search  []*Cache // other caches to search for dependencies.
+	Cache   *WriteCache // primary cache for this project
+	Search  []Cache     // other caches to search for dependencies.
 }
 
 func (p *Project) AddEmbeddedFS(f fs.FS, path string) (*Package, error) {
@@ -150,7 +149,7 @@ func (p *Project) resolveDependencies() error {
 			}
 
 			found := false
-			caches := []*Cache{}
+			caches := []Cache{}
 
 			// search caches, if any, take precedence over project cache.
 			if p.Search != nil {
@@ -162,7 +161,7 @@ func (p *Project) resolveDependencies() error {
 			}
 
 			for _, cache := range caches {
-				src, err := cache.getCachedSource(uses)
+				src, err := cache.GetCachedSource(uses)
 				if err == CachePkgNotFound {
 					continue
 				} else if err != nil {
@@ -347,7 +346,7 @@ func NewProject() *Project {
 // It also configures (and possibly creates) a project cache, also rooted at the given path.
 // If searchCaches is not nil, these will be searched in order when resolving dependencies.
 // Search caches take precedence over the project cache.
-func NewProjectFrom(pkgPath string, searchCaches ...*Cache) (*Project, error) {
+func NewProjectFrom(pkgPath string, searchCaches ...Cache) (*Project, error) {
 	p := NewProject()
 	src, err := NewSource(pkgPath)
 	if err != nil {
@@ -358,41 +357,18 @@ func NewProjectFrom(pkgPath string, searchCaches ...*Cache) (*Project, error) {
 		return nil, err
 	}
 
-	//root, err := src.FS()
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	// If there is a cache in .pgpkg, use it.
-	//var cfs fs.FS
-	//if cfs, err = fs.Sub(root, ".pgpkg"); err != nil {
-	//	if !errors.Is(err, fs.ErrNotExist) {
-	//		if err != nil {
-	//			return nil, fmt.Errorf("unable to open cache: %w", err)
-	//		}
-	//	}
-	//}
-
-	//if cfs != nil {
-	//	p.Cache = NewCache(cfs)
-	//}
-
-	cacheDir := path.Join(pkgPath, ".pgpkg")
-	i, err := os.Stat(cacheDir)
-	if os.IsNotExist(err) {
-		err = os.Mkdir(cacheDir, 0700)
-		if err != nil {
-			return nil, fmt.Errorf("unable to create package cache %s: %w", cacheDir, err)
-		}
-	} else if err != nil {
-		return nil, fmt.Errorf("unable to open cache: %w", err)
-	} else {
-		if !i.IsDir() {
-			return nil, fmt.Errorf("package cache %s: not a directory", cacheDir)
-		}
+	// Get a cache from the top-level project source. If it's a writable cache, use it as the project
+	// cache. Otherwise, add it as the top-level search cache.
+	cache, err := src.Cache()
+	if err != nil {
+		fmt.Printf("warning: %v\n", err)
+	} else if writeCache, ok := cache.(*WriteCache); ok {
+		p.Cache = writeCache
+	} else if cache != nil {
+		p.Search = append(p.Search, cache)
 	}
-	p.Cache = NewCache(cacheDir)
-	p.Search = searchCaches
+
+	p.Search = append(p.Search, searchCaches...)
 
 	return p, nil
 }

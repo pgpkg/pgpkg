@@ -260,7 +260,7 @@ func importPackage() {
 	// Load the project which is to be imported. Dependencies are resolved using the
 	// targe project cache first. This means that if a dependency is already imported,
 	// there won't be an error, even if the source package doesn't have the dependency cached.
-	i, err := pgpkg.NewProjectFrom(importPkgPath, p.Cache)
+	i, err := pgpkg.NewProjectFrom(importPkgPath, &p.Cache.ReadCache)
 	if err != nil {
 		pgpkg.Exit(err)
 	}

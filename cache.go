@@ -9,23 +9,34 @@ import (
 	"path/filepath"
 )
 
-// Each project is linked to a dependency cache which contains dependencies listed
-// in the "Uses" section of pgpkg.toml.
+// Cache represents a dependency cache which contains the source of any dependencies listed in
+// the "Uses" section of pgpkg.toml.
 //
-// Users can import project dependencies into the project cache with `pgpkg import`.
+// Users can manually import project dependencies into the project cache with `pgpkg import`.
+type Cache interface {
+	GetCachedSource(pkgName string) (Source, error)
+}
 
-type Cache struct {
+type ReadCache struct {
+	fs fs.FS // Filesystem derived from the root directory
+}
+
+type WriteCache struct {
+	ReadCache
 	dir string // root directory of the cache, in local filesystem. Typically rooted at the ".pgpkg" directory.
-	fs  fs.FS  // Filesystem derived from the root directory
 }
 
 var CachePkgNotFound = errors.New("package not found in cache")
 
-func NewCache(dir string) *Cache {
-	return &Cache{dir: dir, fs: os.DirFS(dir)}
+func NewWriteCache(dir string) *WriteCache {
+	return &WriteCache{dir: dir, ReadCache: ReadCache{fs: os.DirFS(dir)}}
 }
 
-func (c *Cache) getCachedSource(pkgName string) (Source, error) {
+func NewReadCache(cfs fs.FS) *ReadCache {
+	return &ReadCache{fs: cfs}
+}
+
+func (c *ReadCache) GetCachedSource(pkgName string) (Source, error) {
 	pkgFs, err := fs.Sub(c.fs, pkgName)
 	if err != nil {
 		return nil, fmt.Errorf("error finding subfs: %w", err)
@@ -34,6 +45,8 @@ func (c *Cache) getCachedSource(pkgName string) (Source, error) {
 	// Check that a package exists here
 	f, err := pkgFs.Open("pgpkg.toml")
 	if f != nil {
+		// we only got the file descriptor to test for existence of the file;
+		// we're not intending to use it here.
 		f.Close()
 	}
 
@@ -49,7 +62,7 @@ func (c *Cache) getCachedSource(pkgName string) (Source, error) {
 }
 
 // Import the build units into the cache
-func (c *Cache) importUnits(bundle *Bundle, cachePath string) error {
+func (c *WriteCache) importUnits(bundle *Bundle, cachePath string) error {
 	// List of directories we've already created. Note that MkdirAll doesn't
 	// return an error if a directory exists, so this cache is here simply to avoid calling that
 	// possibly expensive function more than necessary.
@@ -86,7 +99,7 @@ func (c *Cache) importUnits(bundle *Bundle, cachePath string) error {
 }
 
 // Import the migration file.
-func (c *Cache) importMigration(srcPkg *Package, targetPath string) error {
+func (c *WriteCache) importMigration(srcPkg *Package, targetPath string) error {
 	srcSchema := srcPkg.Schema
 	if len(srcSchema.migrationIndex) == 0 {
 		return nil // no migration scripts; nothing to import.
@@ -114,13 +127,13 @@ func (c *Cache) importMigration(srcPkg *Package, targetPath string) error {
 }
 
 // RemovePackage removes (deletes) a package from the cache.
-func (c *Cache) RemovePackage(pkgName string) error {
+func (c *WriteCache) RemovePackage(pkgName string) error {
 	targetPath := path.Join(c.dir, pkgName)
 	return os.RemoveAll(targetPath)
 }
 
 // Import a single project into the cache.
-func (c *Cache) importPackage(pkg *Package) error {
+func (c *WriteCache) importPackage(pkg *Package) error {
 	targetPath := path.Join(c.dir, pkg.Name)
 
 	if pkg.IsDependency {
@@ -175,7 +188,7 @@ func (c *Cache) importPackage(pkg *Package) error {
 // ImportProject imports the given project into the cache. If the project has dependencies,
 // these are imported from the child project's cache, unless they are already present in the
 // target cache.
-func (c *Cache) ImportProject(p *Project) error {
+func (c *WriteCache) ImportProject(p *Project) error {
 
 	// Resolve dependencies on the target project.
 	if err := p.resolveDependencies(); err != nil {

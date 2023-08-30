@@ -2,11 +2,11 @@
 
 ## Priority / first release
 
+- [ ] `pgpkg` commands typically default to current project unless another is specified. But `pgpkg import` can take both a path to the project
+      AND a path to a package, and this is confusing. So probably need to override package path with a flag rather than positional arguments.
 - [ ] "pgpkg export <path>" ignores <path>, just uses pwd
-- [ ] "pgpkg repl|try|deploy <file.zip>" should work
-- [ ] Cache needs to use an FS rather than a path, so it can use Zip caches (zip files should only have a search cache)
 - [ ] make sure repl|try|deploy works properly for dependencies, current directory, ZIP files
-- [ ] check cmd/pgpkg.go for dead code comments
+- [ ] check cmd/pgpkg.go for dead code comments, also project.go, cache.go; and a general review.
 - [ ] pgpkg export (maybe it should be pgpkg zip?) should name the ZIP file after the package. 
 - [ ] 'pgpkg uses' should import a package and then add it to 'Uses='
 - [ ] change uses of "filepath" to just use "path", ie. filepath.Join() should be path.Join()
@@ -172,3 +172,5 @@
   - [X] needs documentation (manual) for Go and shell
   - [X] zip package needs to include all dependencies / possibly just use an embedded .pgpkg cache?
 - [X] repl is not reliably dropping the "temporary" database (maybe when an error occurs during deploy?)
+- [X] "pgpkg repl|try|deploy <file.zip>" should work
+- [X] Cache needs to use an FS rather than a path, so it can use Zip caches (zip files should only have a search cache)
