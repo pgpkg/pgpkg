@@ -21,7 +21,8 @@ import (
 //
 // The `pgpkg` package is always installed automatically, and is never exported.
 type Project struct {
-	Sources []Source
+	Root    *Package // the root (main package) of this project
+	Sources []Source // All package sources, in no particular order.
 	pkgs    map[string]*Package
 	Cache   *WriteCache // primary cache for this project
 	Search  []Cache     // other caches to search for dependencies.
@@ -34,29 +35,6 @@ func (p *Project) AddEmbeddedFS(f fs.FS, path string) (*Package, error) {
 	}
 	return p.AddPackage(src, false)
 }
-
-//func (p *Project) AddZipByteSource(zipBytes []byte) (*Package, error) {
-//	zipByteSource, err := NewZipByteSource(zipBytes)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return p.AddPackage(zipByteSource, false)
-//}
-//
-//// AddZipFileSource loads a byte array from a file and then calls AddZipByteSource().
-//func (p *Project) AddZipFileSource(path string) (*Package, error) {
-//	bytes, err := os.ReadFile(path)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return p.AddZipByteSource(bytes)
-//}
-
-//func (p *Project) AddDirSource(path string) (*Package, error) {
-//	return p.AddPackage(NewDirSource(path), false)
-//}
 
 // AddPackage adds an individual package to the project.
 func (p *Project) AddPackage(source Source, isDependency bool) (*Package, error) {
@@ -82,24 +60,6 @@ func (p *Project) AddPackage(source Source, isDependency bool) (*Package, error)
 	p.pkgs[pkg.Name] = pkg
 	return pkg, nil
 }
-
-// AddPathSource adds a package source to the project, relative to the working directory.
-// The path can refer to a ZIP file or a directory.
-//func (p *Project) AddPathSource(paths ...string) error {
-//	for _, pkgPath := range paths {
-//		if strings.HasSuffix(pkgPath, ".zip") {
-//			if _, err := p.AddZipFileSource(pkgPath); err != nil {
-//				return fmt.Errorf("unable to include package %s: %w", pkgPath, err)
-//			}
-//		} else {
-//			if _, err := p.AddDirSource(pkgPath); err != nil {
-//				return fmt.Errorf("unable to read package %s: %w", pkgPath, err)
-//			}
-//		}
-//	}
-//
-//	return nil
-//}
 
 func (p *Project) AddSource(src Source) (*Package, error) {
 	return p.AddPackage(src, false)
@@ -353,8 +313,10 @@ func NewProjectFrom(pkgPath string, searchCaches ...Cache) (*Project, error) {
 		return nil, err
 	}
 
-	if _, err := p.AddSource(src); err != nil {
+	if root, err := p.AddSource(src); err != nil {
 		return nil, err
+	} else {
+		p.Root = root
 	}
 
 	// Get a cache from the top-level project source. If it's a writable cache, use it as the project

@@ -17,7 +17,7 @@ changes, and deploy them seamlessly to production.
 
 ## Usage
 
-    pgpkg {deploy | repl | try | export} [options] [packages]
+    pgpkg {deploy | repl | try | export | import} [options] [packages]
 
 ## Status
 
@@ -253,10 +253,16 @@ supporting functions, nor test data are visible to production code after a migra
 
 ### `deploy` - deploy packages
 
-    pgpkg deploy [options] <packages...>
+    pgpkg deploy [options] [package]
 
-`pgpkg deploy` installs the given packages into the database (or updates them if they aren't already present),
+`pgpkg deploy` installs a package into the database (or updates them if they are already present),
 and - unless directed otherwise with *options* - runs the SQL unit tests.
+
+If `package` is specified, it should name a directory or ZIP file containing the package to be installed.
+If not specified, `pgpkg` will search the current working directory and parent directories to find a `pgpkg.toml`
+file, and install from there. This allows the command to be run from any subdirectory of a package.
+
+If any `options` are specified, they are processed as described below.
 
 If the installation succeeds and the tests pass, `pgpkg deploy` will commit the transaction, resulting in permanent
 changes to the database.
@@ -266,32 +272,63 @@ If any part of the installation fails, the entire transaction is aborted and the
 Note that `pgpkg` only applies database migrations that have not already been applied. `pgpkg` will create any
 schemas and extensions as needed.
 
-### `try` - test packages
+### `try` - installation dry run
 
-    pgpkg try [options] <packages...>
+    pgpkg try [options] [package]
 
 `pgpkg try` is identical to `pgpkg deploy`, except that, even if deployment is successful, the database transaction is
 aborted, and the database is left unchanged. `pgpkg try` lets you try a deployment before committing to it.
 
+The optional `package` argument is documented in `pgpkg deploy`. 
+
+If any `options` are specified, they are processed as described below.
+
 ### `repl` - interact with packages
 
-    pgpkg repl <packages...>
+    pgpkg repl [options] [package]
 
 `pgpkg repl` creates a temporary database, deploys the schema into it (effectively using `pgpkg deploy`), and starts
 an interactive `psql`session. This allows you to explore, interact and debug your schema. The temporary database is
 dropped when `psql`is exited.
 
+The optional `package` argument is documented in `pgpkg deploy`.
+
+If any `options` are specified, they are processed as described below.
+
+### `import` - import a package into the current package
+
+    pgpkg import [package] <from-package>
+
+`pgpgk import` imports another package into the current package, typically as a dependency.
+If the specified `from-package` has dependencies that have not been imported into the current
+package, those dependencies are also imported.
+
+This command allows you to create SQL packages which can be used by other packages
+as dependencies. The imported package can create user data types, functions, system views
+and any other object (including migrated database tables) which can then be used by
+the top-level package.
+
+The optional `package` argument is documented in `pgpkg deploy`.
+
+The required `from-package` is the path to a package to be imported.
+
+Similar to `pgpkg export`, if the path pointed to by `from-package` includes
+intermingled SQL and native source code, only the SQL code and supporting files
+will be imported.
+
 ### `export` - create a stand-alone package
 
-    pgpkg export <packages...>
+    pgpkg export [package]
 
-`pgpkg export` creates a single ZIP file containing all the listed packages, and any dependencies.
-The resulting ZIP file can be used with `pgpkg deploy` (or `pgpkg try`) to deploy the given packages.
+`pgpkg export` creates a single ZIP file containing the given package, including any dependencies.
+The resulting ZIP file can be used with `deploy`, `repl`, `try` or `import`.
+
+The optional `package` argument is documented in `pgpkg deploy`.
 
 Because `pgpkg` is designed to allow you to mix your native source code and SQL source code, `pgpkg export` provides
 a way of extracting only the pgpkg-related files from a source code tree. It is intended for use during an
 automated build process; the resulting ZIP file can be shipped with your application to your production
-environment, where it can be processed using`pgpkg` as part of the upgrade or application startup process.
+environment, where it can be processed using `pgpkg` as part of the upgrade or application startup process.
 
 For example, in a Java environment, you would use `pgpkg export` to create a `pgpkg.zip` file which you might
 bundle into a container along with your application JAR, the JDK, and the `pgpkg` binary. As part of the

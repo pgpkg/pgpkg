@@ -265,6 +265,10 @@ func importPackage() {
 		pgpkg.Exit(err)
 	}
 
+	if i.Root.Name == p.Root.Name {
+		pgpkg.Exit(fmt.Errorf("cowardly refusing to import a project into itself"))
+	}
+
 	if err := p.Cache.ImportProject(i); err != nil {
 		pgpkg.Exit(err)
 	}

@@ -136,6 +136,9 @@ func (c *WriteCache) RemovePackage(pkgName string) error {
 func (c *WriteCache) importPackage(pkg *Package) error {
 	targetPath := path.Join(c.dir, pkg.Name)
 
+	// If the package being imported is a dependency (presumably of the imported project), and if it
+	// already exists in the cache, refuse to import it - since this could potentially downgrade the
+	// existing package.
 	if pkg.IsDependency {
 		_, err := os.Stat(targetPath)
 		if err == nil {
@@ -147,6 +150,8 @@ func (c *WriteCache) importPackage(pkg *Package) error {
 			return err
 		}
 	} else {
+		// If the package being imported is not a dependency then we can assume it's been
+		// imported directly, which forces the package to be replaced.
 		if err := c.RemovePackage(pkg.Name); err != nil {
 			return err
 		}
@@ -188,19 +193,19 @@ func (c *WriteCache) importPackage(pkg *Package) error {
 // ImportProject imports the given project into the cache. If the project has dependencies,
 // these are imported from the child project's cache, unless they are already present in the
 // target cache.
-func (c *WriteCache) ImportProject(p *Project) error {
+func (c *WriteCache) ImportProject(srcProject *Project) error {
 
 	// Resolve dependencies on the target project.
-	if err := p.resolveDependencies(); err != nil {
+	if err := srcProject.resolveDependencies(); err != nil {
 		return err
 	}
 
 	// Load the packages before we do anything, in case there are problems.
-	if err := p.parseSchemas(); err != nil {
+	if err := srcProject.parseSchemas(); err != nil {
 		return err
 	}
 
-	for _, pkg := range p.pkgs {
+	for _, pkg := range srcProject.pkgs {
 		// don't export pgpkg itself.
 		if pkg.Name == "github.com/pgpkg/pgpkg" {
 			continue
