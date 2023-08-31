@@ -5,6 +5,7 @@ import (
 	"github.com/lib/pq"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -40,8 +41,8 @@ type Package struct {
 	Project     *Project
 	Name        string   // canonical, unique name of the pgpkg package
 	Location    string   // Location of this package
-	Root        fs.FS    // The filesystem that holds the package
-	SchemaNames []string // packages participate in one or more schemas
+	Source      Source   // Source of the package (dir, zip, embedded, ...)
+	SchemaNames []string // Packages participate in one or more schemas
 	RoleName    string   // Associated role name
 
 	StatFuncCount      int // Stat showing the number of functions in the package
@@ -306,7 +307,7 @@ func (p *Package) parseConfig(tomlPath string) error {
 		return fmt.Errorf("duplicate configuration found: %s", tomlPath)
 	}
 
-	pkgConfigReader, err := p.Root.Open(tomlPath)
+	pkgConfigReader, err := p.Source.Open(tomlPath)
 	if err != nil {
 		return err
 	}
@@ -349,7 +350,7 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 	if d.IsDir() {
 		// If this is a directory, and it contains migrations, then
 		// process it with a separate walk().
-		if _, err = fs.Stat(p.Root, filepath.Join(path, migrationFilename)); err == nil {
+		if _, err = fs.Stat(p.Source, filepath.Join(path, migrationFilename)); err == nil {
 			if err = p.Schema.loadMigrations(path); err != nil {
 				return err
 			}
@@ -371,21 +372,19 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 }
 
 // Load the project details - the TOML file - without reading the rest of the schema data.
-func readPackage(project *Project, location string, base fs.FS, dir string) (*Package, error) {
-
+func readPackage(project *Project, source Source, dir string) (*Package, error) {
 	var err error
-	root := base
 
 	if dir != "" {
-		if root, err = fs.Sub(base, dir); err != nil {
+		if source, err = source.Sub(dir); err != nil {
 			return nil, err
 		}
 	}
 
 	pkg := &Package{
 		Project:  project,
-		Location: location,
-		Root:     root,
+		Source:   source,
+		Location: source.Location(),
 	}
 
 	if err := pkg.parseConfig("pgpkg.toml"); err != nil {
@@ -402,7 +401,7 @@ func (p *Package) readSchema() error {
 
 	// Only walk the directory in which the toml file was found, rather than
 	// the entire filesystem provided in pkgFS.
-	if err := fs.WalkDir(p.Root, ".", p.addUnit); err != nil {
+	if err := fs.WalkDir(p.Source, ".", p.addUnit); err != nil {
 		return fmt.Errorf("unable to read schema for package %s: %w", p.Name, err)
 	}
 
@@ -417,4 +416,52 @@ func (p *Package) isValidSchema(search string) bool {
 	}
 
 	return false
+}
+
+// AddUses adds the given package name to the Uses clause of the package.
+// Returns false if the package already exists in the Uses clause.
+// Note that this does not update the config file; to do this, see WriteConfig.
+func (p *Package) AddUses(pkg string) bool {
+	uses := p.config.Uses
+
+	// check that it doesn't already exist
+	if uses != nil {
+		for _, u := range uses {
+			if u == pkg {
+				return false
+			}
+		}
+	}
+
+	p.config.Uses = append(p.config.Uses, pkg)
+	return true
+}
+
+func (p *Package) WriteConfig() error {
+	// We can only write to this package if it came from a directory.
+	dirFS, ok := p.Source.(*DirSource)
+	if !ok {
+		return fmt.Errorf("package was not loaded from filesystem")
+	}
+
+	tempFile := path.Join(dirFS.Path(), "pgpkg-new.toml")
+	pkgConfigWriter, err := os.Create(tempFile)
+	if err != nil {
+		return fmt.Errorf("unable to create config file %s: %w", tempFile, err)
+	}
+
+	if err := p.config.writeConfig(pkgConfigWriter); err != nil {
+		return fmt.Errorf("unable to write config file %s: %w", tempFile, err)
+	}
+
+	if err := pkgConfigWriter.Close(); err != nil {
+		return fmt.Errorf("unable to complete config file write to %s: %w", tempFile, err)
+	}
+
+	tomlFile := path.Join(dirFS.Path(), "pgpkg.toml")
+	if err := os.Rename(tempFile, tomlFile); err != nil {
+		return fmt.Errorf("unable to replace existing pgpkg.toml: %w", err)
+	}
+
+	return nil
 }

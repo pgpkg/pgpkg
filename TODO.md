@@ -2,15 +2,12 @@
 
 ## Priority / first release
 
-- [ ] `pgpkg` commands typically default to current project unless another is specified. But `pgpkg import` can take both a path to the project
-      AND a path to a package, and this is confusing. To this end: `pgpkg import [target] <source>`
-- [ ] "pgpkg export <path>" ignores <path>, just uses pwd
-- [ ] rename "cache" to "repository"
-- [ ] TOML package name sanitisation (in config.Uses, config.Name)
-- [ ] make sure repl|try|deploy works properly for dependencies, current directory, ZIP files
+- [ ] consider 'pgpkg upgrade' instead of 'import' for upgrading a package in the cache, this resolves problems with import updating Uses
+- [ ] `pgpkg export` doesn't write all dependencies if pkg path not specified in CLI; appears to be looking for references using CWD ???
+- [ ] TOML package name checking/sanitation (in config.Uses, config.Name)
+- [ ] make sure repl|try|deploy works properly for dependencies, specific path, current directory, child directory, ZIP files
 - [ ] check cmd/pgpkg.go for dead code comments, also project.go, cache.go; and a general review.
 - [ ] pgpkg export (maybe it should be pgpkg zip?) should name the ZIP file after the package. 
-- [ ] 'pgpkg import' should add the package to uses if it's not there already
 - [ ] change uses of "filepath" to just use "path", ie. filepath.Join() should be path.Join()
 - [ ] passing an invalid filename (eg, "bc.zipexample") doesn't print an error
 - [ ] rename "project" to "target" ? include an explicit DSN as part of the target?
@@ -178,3 +175,9 @@
 - [X] Cache needs to use an FS rather than a path, so it can use Zip caches (zip files should only have a search cache)
 - [X] `project` needs a way to identify the main project (maybe in the pkg map)
 - [X] `pgpkg import` should not be able to import the current package.
+- [X] pgpkg import needs to take two positional parameters, ie: `pgpkg import [target] <source>`
+- [X] "pgpkg export <path>" ignores <path>, just uses pwd
+- [X] `pgpkg export` still writes packages.pgpkg
+- [X] 'pgpkg import' should add a package to Uses, if it's not in Uses already and is not replacing an already-cached package (note: this behaviour is already documented)
+- [X] Source should implement fs.FS (ie, by adding Open() method), in which case we could remove FS from Package struct.
+- [X] clean up source.go from FS refactor.

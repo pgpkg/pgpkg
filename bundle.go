@@ -29,7 +29,7 @@ func (b *Bundle) HasUnits() bool {
 
 // Open an arbitrary file from the bundle.
 func (b *Bundle) Open(path string) (fs.File, error) {
-	return b.Package.Root.Open(filepath.Join(b.Path, path))
+	return b.Package.Source.Open(filepath.Join(b.Path, path))
 }
 
 func (b *Bundle) getUnit(path string) (*Unit, bool) {

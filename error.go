@@ -52,7 +52,7 @@ func (e *PKGError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Object.Location(), e.Message)
 }
 
-// Root unwraps the errors until we get to the very last PKGError.
+// UnwrapAll unwraps the errors until we get to the very last PKGError.
 func (e *PKGError) UnwrapAll() []*PKGError {
 	var err error
 	var pkgErrors []*PKGError

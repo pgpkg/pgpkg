@@ -28,14 +28,14 @@ error reporting is not as good as it could be, and is an area of focus at this t
 
 The easiest way to run `pgpkg` is:
 
-    pgpkg deploy .
+    pgpkg deploy
 
 this will search for a `pgpkg.toml` file in the current and parent directories, and perform
 a database migration from that point.
 
 `pgpkg deploy` will modify your database. If you want to do a test migration, use `pgpkg try` instead:
 
-    pgpkg try .
+    pgpkg try
 
 `pgpkg try` is identical to `pgpkg deploy`, except that the database transaction used to upgrade the
 database is aborted, meaning that your database is not changed.
@@ -59,6 +59,9 @@ in the DSN variable.
 A pgpkg package is any directory (and its children) containing a configuration file called `pgpkg.toml`. The
 configuration file contains a package ID, a list of database schemas, and an optional list of database extensions
 and external packages to be loaded.
+
+> **Warning**: `pgpkg` may make changes to a project's TOML file (for example, see `pgpgk import`);
+> any comments in this file are not currently preserved.
 
 One of the benefits of pgpkg is that it lets you put your SQL function code next to your native code. To achieve
 this, `pgpkg.toml` should be placed at the root of your source tree; in Go, this would usually be in the same
@@ -299,14 +302,16 @@ If any `options` are specified, they are processed as described below.
 
     pgpkg import [package] <from-package>
 
-`pgpgk import` imports another package into the current package, typically as a dependency.
-If the specified `from-package` has dependencies that have not been imported into the current
-package, those dependencies are also imported.
+`pgpgk import` imports `from-package` into the specified package path, and adds it as a dependency
+if it's not already. If the specified `from-package` has dependencies that have not been
+imported into the current package, those dependencies are also imported.
 
-This command allows you to create SQL packages which can be used by other packages
-as dependencies. The imported package can create user data types, functions, system views
-and any other object (including migrated database tables) which can then be used by
-the top-level package.
+> **Warning** this command updates a package's `pgpkg.toml` file, which will strip any comments
+> out of the file.
+
+This command allows you to include SQL packages as dependencies. The imported package can create user
+data types, functions, system views and any other object (including migrated database tables)
+which can then be used by importing package.
 
 The optional `package` argument is documented in `pgpkg deploy`.
 
@@ -315,6 +320,11 @@ The required `from-package` is the path to a package to be imported.
 Similar to `pgpkg export`, if the path pointed to by `from-package` includes
 intermingled SQL and native source code, only the SQL code and supporting files
 will be imported.
+
+`pgpkg import` will always import the specified package into the cache, and will import
+any dependencies, but will decline to import dependencies that already exist in the cache.
+This behaviour is intended to avoid inadvertently downgrading packages you already depend on.
+To upgrade existing packages, import them directly.
 
 ### `export` - create a stand-alone package
 
@@ -362,6 +372,22 @@ to display more information:
 `--verbose`: This option print logs describing *exactly* what pgpkg is up to.
 
 `--summary`: This option print a summary of pgpkg operations when it finishes.
+
+## Package Cache
+
+A `pgpkg` package will typically contain a *cache directory*; this cache is stored in a subdirectory called `.pgpkg`
+in the top-level package directory.
+
+If a package depends on one or more other packages, those packages must exist in the cache. In this way,
+a package is generally self-contained. Packages in the cache are stored in a directory tree based on the package
+path.
+
+You can add packages to the cache using `pgpkg import`, which will also add the specified package as a dependency
+to your project.
+
+ZIP files created by `pgpkg export` will include a `.pgpkg` directory, thereby making ZIP files self-contained.
+
+> Note that files in `.pgpkg` should be included in source code control.
 
 ## pgpkg schema
 

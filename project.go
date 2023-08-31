@@ -40,12 +40,7 @@ func (p *Project) AddEmbeddedFS(f fs.FS, path string) (*Package, error) {
 func (p *Project) AddPackage(source Source, isDependency bool) (*Package, error) {
 	p.Sources = append(p.Sources, source)
 
-	pkgfs, err := source.FS()
-	if err != nil {
-		return nil, err
-	}
-
-	pkg, err := readPackage(p, source.Location(), pkgfs, "")
+	pkg, err := readPackage(p, source, "")
 	if err != nil {
 		return nil, err
 	}

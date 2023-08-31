@@ -127,7 +127,7 @@ func (s *Schema) loadMigrations(migrationDir string) error {
 		migrationSet[path] = true
 	}
 
-	return fs.WalkDir(s.Package.Root, migrationDir, func(path string, d fs.DirEntry, err error) error {
+	return fs.WalkDir(s.Package.Source, migrationDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -151,7 +151,7 @@ func (s *Schema) loadMigrations(migrationDir string) error {
 }
 
 func (s *Schema) loadCatalog(migrationDir string) ([]string, error) {
-	catalog, err := s.Package.Root.Open(filepath.Join(migrationDir, migrationFilename))
+	catalog, err := s.Package.Source.Open(filepath.Join(migrationDir, migrationFilename))
 	if err != nil {
 		return nil, err
 	}

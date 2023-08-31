@@ -100,14 +100,27 @@ func doReplSession(dsn string) error {
 	return nil
 }
 
-func deploy(commit bool) {
+func dropTempDBOrExit(dsn string, replDb string) {
+	if err := dropTempDB(dsn, replDb); err != nil {
+		fmt.Fprintf(os.Stderr, "unable to drop REPL database %s: %v\n", replDb, err)
+		os.Exit(1)
+	}
+}
+
+func doDeploy(commit bool) {
 	pgpkg.Options.DryRun = !commit
 
 	if err := pgpkg.ParseArgs(""); err != nil {
 		pgpkg.Exit(err)
 	}
 
-	pkgPath, err := findPkgPath()
+	// This is here just so we can easily add new flags later if needed.
+	flagSet := flag.NewFlagSet("deploy", flag.ExitOnError)
+	if err := flagSet.Parse(os.Args[2:]); err != nil {
+		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
+	}
+
+	pkgPath, err := findPkg(flagSet.Args())
 	if err != nil {
 		pgpkg.Exit(err)
 	}
@@ -123,14 +136,7 @@ func deploy(commit bool) {
 	}
 }
 
-func dropTempDBOrExit(dsn string, replDb string) {
-	if err := dropTempDB(dsn, replDb); err != nil {
-		fmt.Fprintf(os.Stderr, "unable to drop REPL database %s: %v\n", replDb, err)
-		os.Exit(1)
-	}
-}
-
-func repl() {
+func doRepl() {
 	var replDb string
 	var replDSN string
 
@@ -141,28 +147,15 @@ func repl() {
 		pgpkg.Exit(err)
 	}
 
-	var pkgPath string
-	var err error
-
 	// This is here just so we can easily add new flags later if needed.
 	flagSet := flag.NewFlagSet("repl", flag.ExitOnError)
 	if err := flagSet.Parse(os.Args[2:]); err != nil {
 		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
 	}
 
-	if flagSet.NArg() == 0 {
-		// No args: find project in current or parent dir
-		pkgPath, err = findPkgPath()
-		if err != nil {
-			pgpkg.Exit(err)
-		}
-	} else if flagSet.NArg() == 1 {
-		// single arg: find project in specific directory.
-		pkgPath = flagSet.Arg(0)
-	} else {
-		// multiple args is an error
-		usage()
-		os.Exit(1)
+	pkgPath, err := findPkg(flagSet.Args())
+	if err != nil {
+		pgpkg.Exit(err)
 	}
 
 	p, err := pgpkg.NewProjectFrom(pkgPath)
@@ -197,8 +190,14 @@ func repl() {
 	}
 }
 
-func export() {
-	pkgPath, err := findPkgPath()
+func doExport() {
+	// This is here just so we can easily add new flags later if needed.
+	flagSet := flag.NewFlagSet("export", flag.ExitOnError)
+	if err := flagSet.Parse(os.Args[2:]); err != nil {
+		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
+	}
+
+	pkgPath, err := findPkg(flagSet.Args())
 	if err != nil {
 		pgpkg.Exit(err)
 	}
@@ -231,17 +230,33 @@ func export() {
 	fmt.Println("exported to", zipName)
 }
 
-func importPackage() {
-	if err := pgpkg.ParseArgs(""); err != nil {
-		pgpkg.Exit(err)
+func doImport() {
+	// This is here just so we can easily add new flags later if needed.
+	flagSet := flag.NewFlagSet("import", flag.ExitOnError)
+	if err := flagSet.Parse(os.Args[2:]); err != nil {
+		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
 	}
 
-	pkgPath, err := findPkgPath()
-	if err != nil {
-		pgpkg.Exit(err)
+	// unlike other commands, pgpkg import can have two positional parameters, being the target package
+	// and the package being imported (source package).
+	args := flagSet.Args()
+
+	// We want to import srcPkgPath into targetPkgPath
+	var targetPkgPath, srcPkgPath string
+	var err error
+
+	switch len(args) {
+	case 1:
+		targetPkgPath, err = findDefaultPkg()
+		srcPkgPath = args[0]
+	case 2:
+		targetPkgPath = args[0]
+		srcPkgPath = args[1]
+	default:
+		pgpkg.Exit(fmt.Errorf("usage: pgpkg import [target] <source>"))
 	}
 
-	p, err := pgpkg.NewProjectFrom(pkgPath)
+	p, err := pgpkg.NewProjectFrom(targetPkgPath)
 	if err != nil {
 		pgpkg.Exit(err)
 	}
@@ -250,17 +265,10 @@ func importPackage() {
 		pgpkg.Exit(fmt.Errorf("project has no cache"))
 	}
 
-	// os.Args[0]=program name, os.Args[1]=command verb, os.Args[2]=import filename(s)
-	if len(os.Args) != 3 {
-		usage()
-		fmt.Println("pgpkg import requires a package path to import")
-	}
-
-	importPkgPath := os.Args[2]
 	// Load the project which is to be imported. Dependencies are resolved using the
 	// targe project cache first. This means that if a dependency is already imported,
 	// there won't be an error, even if the source package doesn't have the dependency cached.
-	i, err := pgpkg.NewProjectFrom(importPkgPath, &p.Cache.ReadCache)
+	i, err := pgpkg.NewProjectFrom(srcPkgPath, &p.Cache.ReadCache)
 	if err != nil {
 		pgpkg.Exit(err)
 	}
@@ -272,6 +280,13 @@ func importPackage() {
 	if err := p.Cache.ImportProject(i); err != nil {
 		pgpkg.Exit(err)
 	}
+
+	if p.Root.AddUses(i.Root.Name) {
+		// Uses clause added, need to write the config out
+		if err := p.Root.WriteConfig(); err != nil {
+			pgpkg.Exit(fmt.Errorf("unable to write package config: %w", err))
+		}
+	}
 }
 
 func usage() {
@@ -280,7 +295,7 @@ func usage() {
 
 // Search from the current directory backwards until we find a "pgpkg.toml" file,
 // then return the directory in which it was found.
-func findPkgPath() (string, error) {
+func findDefaultPkg() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
@@ -301,10 +316,25 @@ func findPkgPath() (string, error) {
 		cwd = path.Dir(cwd)
 
 		// Only search until the home directory of the current user.
+		// This check is done last so that the current directory is always
+		// searched, even if it's not inside the user's home.
 		if !strings.HasPrefix(cwd, homeDir) {
 			return "", fmt.Errorf("no package found")
 		}
 	}
+}
+
+// If args contains a package, return that. Otherwise, search for a target package.
+func findPkg(args []string) (string, error) {
+	if len(args) == 0 {
+		return findDefaultPkg()
+	}
+
+	if len(args) == 1 {
+		return args[0], nil
+	}
+
+	return "", fmt.Errorf("multiple package paths specified")
 }
 
 // This command-line version of pgpkg takes one or more directories or ZIP files, and installs them into the database.
@@ -316,19 +346,19 @@ func main() {
 
 	switch os.Args[1] {
 	case "deploy":
-		deploy(true)
+		doDeploy(true)
 
 	case "try":
-		deploy(false)
+		doDeploy(false)
 
 	case "repl":
-		repl()
+		doRepl()
 
 	case "export":
-		export()
+		doExport()
 
 	case "import":
-		importPackage()
+		doImport()
 
 	default:
 		usage()
