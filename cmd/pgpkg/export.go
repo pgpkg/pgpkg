@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/pgpkg/pgpkg"
 	"os"
+	"path"
 )
 
 func doExport() {
@@ -25,8 +26,8 @@ func doExport() {
 		pgpkg.Exit(err)
 	}
 
-	// in-memory zip
-	zipName := "pgpkg.zip"
+	zipName := path.Base(p.Root.Name) + ".zip"
+
 	zipFile, err := os.Create(zipName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "pgpkg: unable to open ZIP file %s for writing: %v\n", zipName, err)

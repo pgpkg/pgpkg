@@ -10,6 +10,7 @@ import (
 var schemaPattern = regexp.MustCompile("^[a-z0-9][-_a-z0-9]*$")    // schema names
 var rolePattern = regexp.MustCompile("^[$a-z0-9][-._/a-z0-9]*$")   // role names (can have leading $)
 var extensionPattern = regexp.MustCompile("^[a-z0-9][-_a-z0-9]*$") // database extension names
+var packageNamePattern = regexp.MustCompile("^([a-zA-Z0-9_-]+\\.)*[a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)*$")
 
 // Sanitize checks that an identifier is valid per the given regexp, and panics if it doesn't.
 // It's meant to be the last line of defence when SQL can't use interpolation.
@@ -28,4 +29,17 @@ func SanitizeSlice(pattern *regexp.Regexp, values []string) []string {
 		result = append(result, Sanitize(pattern, v))
 	}
 	return result
+}
+
+// CheckPackageName checks if the given string is a valid pgpkg package name
+// and returns an error if not.
+func CheckPackageName(name string) error {
+
+	// Compile the regular expression
+	// Check if the name matches the pattern
+	if packageNamePattern.MatchString(name) {
+		return nil
+	}
+
+	return fmt.Errorf("invalid package name: %s", name)
 }

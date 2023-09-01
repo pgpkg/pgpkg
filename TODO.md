@@ -2,8 +2,6 @@
 
 ## Priority / first release
 
-- [ ] TOML package name checking/sanitation (in config.Uses, config.Name)
-- [ ] pgpkg export (maybe it should be pgpkg zip?) should name the ZIP file after the package.
 - [ ] --[in|ex]clude-tests skips tests in other schemas, should only skip top level package tests (or: should include schema name in patterns)
 - [ ] packages should be purged and installed in (reverse-)dependency order
 - [ ] finalise thoughts on SECURITY DEFINER, frankly I think it shouldn't be there.
@@ -178,3 +176,5 @@
 - [X] move CLI commands into separate files (makes the code easier to understand)
 - [X] pgpkg cli should search parents like Git does, implement Uses
 - [X] `pgpkg export` doesn't always write all dependencies - and is non-deterministic about it
+- [X] TOML package name checking/sanitation (in config.Uses, config.Name)
+- [X] pgpkg export (maybe it should be pgpkg zip?) should name the ZIP file after the package.

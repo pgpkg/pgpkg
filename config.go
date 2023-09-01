@@ -35,6 +35,16 @@ func parseConfig(reader io.Reader) (*configType, error) {
 		}
 	}
 
+	if err := CheckPackageName(config.Package); err != nil {
+		return nil, err
+	}
+
+	for _, uses := range config.Uses {
+		if err := CheckPackageName(uses); err != nil {
+			return nil, err
+		}
+	}
+
 	return &config, nil
 }
 
