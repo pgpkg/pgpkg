@@ -67,7 +67,7 @@ func (s *Schema) loadMigrationState(tx *PkgTx) error {
 
 func (s *Schema) saveMigrationState(tx *PkgTx) error {
 	// Update the pgpkg.migration table to reflect the migration state.
-	for path, _ := range s.migratedState {
+	for path := range s.migratedState {
 		if _, err := tx.Exec("insert into pgpkg.migration (pkg, path) values ($1, $2)", s.Package.Name, path); err != nil {
 			return fmt.Errorf("unable to save migration state: %w", err)
 		}

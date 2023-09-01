@@ -2,47 +2,35 @@
 
 ## Priority / first release
 
-- [ ] consider 'pgpkg upgrade' instead of 'import' for upgrading a package in the cache, this resolves problems with import updating Uses
-- [ ] `pgpkg export` doesn't write all dependencies if pkg path not specified in CLI; appears to be looking for references using CWD ???
 - [ ] TOML package name checking/sanitation (in config.Uses, config.Name)
+- [ ] pgpkg export (maybe it should be pgpkg zip?) should name the ZIP file after the package.
+- [ ] --[in|ex]clude-tests skips tests in other schemas, should only skip top level package tests (or: should include schema name in patterns)
+- [ ] packages should be purged and installed in (reverse-)dependency order
+- [ ] finalise thoughts on SECURITY DEFINER, frankly I think it shouldn't be there.
+
+## Testing
+
 - [ ] make sure repl|try|deploy works properly for dependencies, specific path, current directory, child directory, ZIP files
-- [ ] check cmd/pgpkg.go for dead code comments, also project.go, cache.go; and a general review.
-- [ ] pgpkg export (maybe it should be pgpkg zip?) should name the ZIP file after the package. 
-- [ ] change uses of "filepath" to just use "path", ie. filepath.Join() should be path.Join()
-- [ ] passing an invalid filename (eg, "bc.zipexample") doesn't print an error
-- [ ] rename "project" to "target" ? include an explicit DSN as part of the target?
 - [ ] check/review that docs still work with (eg, tutorial, manual) - especially after the verb changes
 - [ ] create a test for good dependencies, circular dependencies, and missing dependencies.
-- [ ] --[in|ex]clude-tests skips tests in other schemas, should only skip own test
-- [ ] package up the tool as a binary (github actions?)
-- [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
 - [ ] update documentation for toml Uses:, Extensions clause.
 - [ ] review & update tutorial & docs to latest standards
   - [ ] add a readme to the example package linking to the tutorial and explaining it a bit.
 - [ ] create some structured tests e.g. dependencies, uses, unit tests
-- [ ] packages are treated individually which will cause dependency problems.
-  - [ ] purges from head to tail
-  - [ ] applies from tail to head
-  - [ ] needs basic dependency scaffolding, see TODO-DEPS.md
-- [ ] tests need SECURITY DEFINER etc as well
-
-## New / Triage
-
-- [ ] if a schema hasn't changed (functions, migrations etc) then don't make any changes.
-- [ ] make "go test" work with pgpkg
-- [ ] allow some kind of "init" or "post" script in MOBs.
 
 ## Bugs
 
+- [ ] occasional error "unable to drop REPL database pgpkg.xxxxxxxx: unable to drop temp database "pgpkg.isovixpo" when trying `pgpkg repl`
+- [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
+- [ ] change uses of "filepath" to just use "path", ie. filepath.Join() should be path.Join()
 - [ ] when a function can't be installed due to an error, and another function depends on it,
   the second function is printed as the error; but the problem is the first function. we should print
   ALL incomplete MOBs if we can't progress, or, at least, the first one to not install.
 - [ ] need to remove roles if a package is removed from Uses[]
 - [ ] toml Uses[] fails with 'sql: no rows in result set' if a package is not registered. error is ambiguous
 - [ ] schema name is missing from function call errors, preventing nice stack traces
-- [ ] views need security definers too
 - [ ] packages are able to improperly create circular dependencies, which is a security issue, because a dependency
-  could trick pgpkg into providing access to a higher level package.
+  could trick pgpkg into providing access to a higher level package (not sure if this is still possible; needs checking).
 - [ ] when tests/table-ref/schema/ref.sql fails, the context is technically correct but visually stupid.
 - [ ] when printing a stack trace (error context), only show the context source for the current package
   e.g. if a test fails when it calls some other package, show the source code location in the test package
@@ -53,10 +41,14 @@
 
 ## Features
 
+- [ ] packages need versioning
+- [ ] package up the tool as a binary (github actions?)
+- [ ] if a schema hasn't changed (functions, migrations etc) then don't make any changes.
+- [ ] make "go test" work with pgpkg
+- [ ] allow some kind of "init" or "post" script in MOBs.
 - [ ] generate Go stubs, maybe even Java stubs :-)
-- [ ] add api support for stored *procedures*
-- [ ] dependency management, download, registration, etc
-  - [ ] pgpkg cli should search parents like Git does, implement Uses
+- [ ] add support for stored *procedure* MOBs
+- [ ] remove dependency downloading
 - [ ] introspect SQL and plpgsql functions for unwanted statements / set role etc.
   - [ ] ensure search_path and `security definer` are not specified in function definitions
   - [ ] ensure that statements being executed aren't equivalent to "commit", "rollback", "savepoint", "release", etc
@@ -64,8 +56,8 @@
 
 ## Docs
 
-- [ ] add a supabase example in the tutorial, maybe vultr, AWS, some other hosted PG as well
-  maybe a general "installing psql"
+- [ ] add examples in the tutorial, maybe supabase, vultr, AWS, some other hosted PGs as well
+- [ ] maybe a general "installing psql" document
 
 # Done
 
@@ -181,3 +173,8 @@
 - [X] 'pgpkg import' should add a package to Uses, if it's not in Uses already and is not replacing an already-cached package (note: this behaviour is already documented)
 - [X] Source should implement fs.FS (ie, by adding Open() method), in which case we could remove FS from Package struct.
 - [X] clean up source.go from FS refactor.
+- [X] check cmd/pgpkg.go for dead code comments, also project.go, cache.go; and a general review.
+- [X] passing an invalid filename (eg, "bc.zipexample") doesn't print an error
+- [X] move CLI commands into separate files (makes the code easier to understand)
+- [X] pgpkg cli should search parents like Git does, implement Uses
+- [X] `pgpkg export` doesn't always write all dependencies - and is non-deterministic about it

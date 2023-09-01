@@ -45,7 +45,7 @@ func NewFSSource(efs fs.FS, dir string) (*FSSource, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &FSSource{fs: root, location: "embedded:" + dir}, nil
+	return &FSSource{fs: root, location: "fs:" + dir}, nil
 }
 
 func (f *FSSource) Open(name string) (fs.File, error) {
@@ -137,7 +137,7 @@ func NewZipByteSource(zipBytes []byte) (*ZipByteSource, error) {
 		return nil, fmt.Errorf("unable to read ZIP data: %w", err)
 	}
 
-	return &ZipByteSource{location: "embedded:", fs: zipfs}, nil
+	return &ZipByteSource{location: "zip:", fs: zipfs}, nil
 }
 
 // NewZipPathSource creates a new ZIP source from a filesystem path.

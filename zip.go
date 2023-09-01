@@ -24,8 +24,8 @@ func writeMigration(zw *zip.Writer, pkgPath string, schema *Schema) error {
 		return fmt.Errorf("unable to create migration file %s: %w", filename, err)
 	}
 
-	for _, path := range schema.migrationIndex {
-		if _, err := mw.Write([]byte(path + "\n")); err != nil {
+	for _, p := range schema.migrationIndex {
+		if _, err := mw.Write([]byte(p + "\n")); err != nil {
 			return fmt.Errorf("unable to add path to migration file %s: %w", filename, err)
 		}
 	}
@@ -124,22 +124,6 @@ func WriteProject(z *zip.Writer, p *Project) error {
 
 		if err := writePackage(z, pkg); err != nil {
 			return err
-		}
-	}
-
-	// write packages.pgpkg
-	indexName := "packages.pgpkg"
-	pw, err := z.Create(indexName)
-	if err != nil {
-		return fmt.Errorf("unable to create package index %s: %w", indexName, err)
-	}
-
-	for _, pkg := range p.pkgs {
-		if pkg.Name == "github.com/pgpkg/pgpkg" {
-			continue
-		}
-		if _, err := pw.Write([]byte(pkg.Name + "\n")); err != nil {
-			return fmt.Errorf("unable to write packages index: %c", err)
 		}
 	}
 

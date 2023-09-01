@@ -47,7 +47,7 @@ func (c *ReadCache) GetCachedSource(pkgName string) (Source, error) {
 	if f != nil {
 		// we only got the file descriptor to test for existence of the file;
 		// we're not intending to use it here.
-		f.Close()
+		_ = f.Close()
 	}
 
 	if err == nil {
@@ -88,10 +88,14 @@ func (c *WriteCache) importUnits(bundle *Bundle, cachePath string) error {
 		if err != nil {
 			return fmt.Errorf("unable to create unit file %s: %w", unitpath, err)
 		}
-		defer uw.Close()
 
 		if _, err := uw.Write([]byte(unit.Source)); err != nil {
+			_ = uw.Close()
 			return fmt.Errorf("unable to write unit file %s: %w", unitpath, err)
+		}
+
+		if err := uw.Close(); err != nil {
+			return err
 		}
 	}
 

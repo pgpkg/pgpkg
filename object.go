@@ -19,7 +19,7 @@ func getParamType(fp *pg_query.FunctionParameter) string {
 	argType := fp.ArgType
 	typeName := QualifiedName(fp.ArgType.Names)
 	if argType.ArrayBounds != nil {
-		for _ = range argType.ArrayBounds {
+		for range argType.ArrayBounds {
 			typeName = typeName + "[]"
 		}
 	}

@@ -38,6 +38,7 @@ func (p *Project) AddEmbeddedFS(f fs.FS, path string) (*Package, error) {
 
 // AddPackage adds an individual package to the project.
 func (p *Project) AddPackage(source Source, isDependency bool) (*Package, error) {
+
 	p.Sources = append(p.Sources, source)
 
 	pkg, err := readPackage(p, source, "")
@@ -60,7 +61,7 @@ func (p *Project) AddSource(src Source) (*Package, error) {
 	return p.AddPackage(src, false)
 }
 
-// Get a list of the keys for a map, as a string.
+// Get a list of the keys for a map, as a string. Used for debugging.
 func mapKeys[T any](m map[string]T) string {
 	keys := ""
 	for k := range m {
@@ -90,50 +91,66 @@ func (p *Project) installPackages(tx *PkgTx) error {
 	return nil
 }
 
+func (p *Project) addDependency(uses string) error {
+	// Has the dependency already been added to the package?
+	_, ok := p.pkgs[uses]
+	if ok {
+		return nil
+	}
+
+	caches := []Cache{}
+
+	// search caches, if any, take precedence over project cache.
+	if p.Search != nil {
+		caches = append(caches, p.Search...)
+	}
+
+	if p.Cache != nil {
+		caches = append(caches, p.Cache)
+	}
+
+	for _, cache := range caches {
+		src, err := cache.GetCachedSource(uses)
+		if err == CachePkgNotFound {
+			continue
+		} else if err != nil {
+			return err
+		}
+
+		if _, err := p.AddPackage(src, true); err != nil {
+			return err
+		}
+
+		// Package found, nothing more to do.
+		return nil
+	}
+
+	return fmt.Errorf("dependency not found")
+}
+
 // resolveDependencies adds any dependent packages ("Uses") to the project, by looking in
-// the cache.
+// the cache(s). The way this works is that we look at the Uses clause of each known package,
+// and add the named packages to the project's package list by searching the project caches.
+// We then look at the newly added packages to find their dependencies, and so on.
 func (p *Project) resolveDependencies() error {
+	visited := make(map[string]bool) // list of packages that we have already visited.
 
-	for _, pkg := range p.pkgs {
-		for _, uses := range pkg.config.Uses {
-
-			// Has the dependency already been added to the package?
-			_, ok := p.pkgs[uses]
-			if ok {
+	// The project package list is a map, so we can't just iterate through it.
+	// Instead, we keep going until there's an error or until all the packages
+	// have been visited.
+	for len(visited) < len(p.pkgs) {
+		// the list of packages gets added to as we resolve dependencies, but we only have to check
+		// packages we haven't visited before.
+		for _, pkg := range p.pkgs {
+			if visited[pkg.Name] {
 				continue
 			}
 
-			found := false
-			caches := []Cache{}
-
-			// search caches, if any, take precedence over project cache.
-			if p.Search != nil {
-				caches = append(caches, p.Search...)
-			}
-
-			if p.Cache != nil {
-				caches = append(caches, p.Cache)
-			}
-
-			for _, cache := range caches {
-				src, err := cache.GetCachedSource(uses)
-				if err == CachePkgNotFound {
-					continue
-				} else if err != nil {
-					return fmt.Errorf("%s: %w", pkg.Name, err)
+			visited[pkg.Name] = true
+			for _, uses := range pkg.config.Uses {
+				if err := p.addDependency(uses); err != nil {
+					return fmt.Errorf("unable to add dependency %s of package %s: %w", uses, pkg.Name, err)
 				}
-
-				if _, err := p.AddPackage(src, true); err != nil {
-					return fmt.Errorf("%s: unable to add dependency %s: %w", pkg.Name, uses, err)
-				}
-
-				// Package found, nothing more to do.
-				found = true
-				break
-			}
-
-			if !found {
-				return fmt.Errorf("%s: dependency not found in package caches: %s", pkg.Name, uses)
 			}
 		}
 	}
@@ -201,7 +218,7 @@ func (p *Project) Open() (*sql.DB, error) {
 
 	if Options.DryRun {
 		err = tx.Rollback()
-		db.Close()
+		_ = db.Close()
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +228,7 @@ func (p *Project) Open() (*sql.DB, error) {
 	}
 
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("unable to complete package installation: %w", err)
 	}
 

@@ -5,7 +5,7 @@ import (
 )
 
 // sortPackages provides topological sort, which is used to determine the order
-// in which packages should be installed, based on the dependency graph.
+// in which packages should be installed, based on the dependency ("Uses") graph.
 func (p *Project) sortPackages() ([]string, error) {
 	visited := make(map[string]bool)
 	var stack []string
