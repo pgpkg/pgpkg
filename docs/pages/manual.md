@@ -1,50 +1,99 @@
 # pgpkg
 
-pgpkg is a small, fast and safe Postgresql database migration command-line tool (and Go library) focussed on
-ergonomics, simplicity, reliability and reusability:
-
-* ergonomics: SQL function source code can be edited in the same source tree as your native code;
-* simplicity: SQL code requires no special migration syntax or file names;
-* reliability: migrations are transactional and can include SQL unit tests;
-* reusability: SQL code can be reused as modules in multiple projects.
-
-pgpkg makes writing Postgresql stored functions as easy as writing functions in any other language, such as Go, Java
-or Python. It lets your SQL code live next to your native code, so you can easily switch between languages in your IDE.
-
-pgpkg is designed explicitly to enable you to use the same source code workflows as your native code: you can
-edit your SQL functions in the same IDE, commit them to the same Git repository, review them with PRs alongside other
-changes, and deploy them seamlessly to production.
+Packaging tool for Postgresql.
 
 ## Usage
 
     pgpkg {deploy | repl | try | export | import} [options] [packages]
 
-## Status
+## Description
 
-pgpkg is alpha quality. It is very usable, but some features aren't yet complete, or work with caveats. In particular,
-error reporting is not as good as it could be, and is an area of focus at this time.
+pgpkg is a small, fast and safe Postgresql database migration command-line tool (and Go library) that
+makes it easy to incorporate Postgresql database functions into your native code. It aims to be:
+
+* ergonomic: SQL function source code can be edited in the same source tree as your native code;
+* simple: SQL code requires no special migration syntax or file names, and pgpkg has minimal configuration;
+* reliable: migrations are transactional - and can include SQL unit tests;
+* composable: SQL code can be reused as libraries in other SQL projects.
+
+With pgpkg, you can use the same source code workflows as your native (non-SQL) code: you can
+edit your SQL functions in the same IDE, commit them to the same Git repository, review them with PRs alongside other
+changes, deploy them seamlessly to production, and even write unit tests.
+
+pgpkg includes tools to help you import other packages into your workspace, deploy your code against a
+temporary database, migrate an existing database, run unit tests, and export the SQL code for deployment
+into production.
+
+## Status and Compatibility
+
+pgpkg is alpha quality. It is very usable, but some features aren't yet complete, work with caveats, or are buggy.
+In particular, error reporting is not as good as it could be, and is an area of focus at this time.
+
+The format for packages, configurations, environment variables, tests etc remains subject to change
+until pgpkg 1.0 is released.
+
+pgpkg is not likely to damage your database (unless you write SQL that tells it to), but as with any database tool,
+you should always have a backup of your important data, especially when you're getting started.
+
+pgpgk should run on any modern postgresql database. It can be safely used on databases containing
+existing tables or functions, and won't modify those tables or functions unless instructed to do so.
+
+pgpkg has not been tested on Windows, and I suspect it won't work due to path issues. This is not
+intentional, and I welcome any help in this area.
+
+## Pgpkg packages
+
+A pgpkg package is any directory or ZIP file whose root contains a package configuration in a file called `pgpkg.toml`.
+
+Packages are always installed into one or more database schemas, which must be specified in the
+package configuration. pgpkg will create the schemas if they don't exist.
+
+pgpkg packages may also contain a directory called `.pgpkg`. This directory is a cache of packages imported
+from elsewhere and used as dependencies in your project.
+
+In pgpkg, SQL functions, views and triggers can be declared in any `.sql` file in the directory tree, meaning
+that your SQL functions can be intermingled with your native code. Other database objects, such as tables, domains
+and UDTs, are stored in a special directory and are migrated sequentially. The structure of a package is
+described in more detail, later.
 
 ## Running pgpkg
 
-The easiest way to run `pgpkg` is:
+> Note: by default, `pgpkg` will search for a `pgpkg.toml` file by starting in your working directory and searching
+> the parents. In the following examples, we assume you're in a subdirectory of your package directory, but you can
+> also specify a project directory.
 
-    pgpkg deploy
+To create a temporary database, install your package(s), run your tests, and then run `psql`
+on the new database:
 
-this will search for a `pgpkg.toml` file in the current and parent directories, and perform
-a database migration from that point.
+    pgpkg repl
 
-`pgpkg deploy` will modify your database. If you want to do a test migration, use `pgpkg try` instead:
+`repl` is a great tool for quickly testing and exploring your code while developing a new package.
+The database is dropped when you quit `psql`.
+
+To perform a test installation of your package into an existing database (specified by the `PG*` environment
+variables): 
 
     pgpkg try
 
-`pgpkg try` is identical to `pgpkg deploy`, except that the database transaction used to upgrade the
-database is aborted, meaning that your database is not changed.
+Even if `try` is successful, the database transaction used to upgrade the database is aborted,
+meaning that your database is not changed.
+
+To perform a permanent installation of your package into an existing database:
+
+    pgpkg deploy
+
+`deploy` will replace all functions, views and triggers previously installed with `pgpgk` with the latest versions,
+and will run a sequential migration of tables and other objects. Note that database objects created outside of
+`pgpkg` won't be modified unless explicitly instructed in your `.sql` files.
+
+`pgpkg deploy` is the only one of these commands which will modify an existing database.
 
 See [commands](#commands) for more detail.
 
 ## Database Connection
 
-pgpkg uses the standard libpq environment variables and defaults (`PGHOST`, etc). If you can run
+pgpkg uses the standard libpq environment variables and defaults (`PGHOST`, etc), which can be found
+[here](https://www.postgresql.org/docs/current/libpq-envars.html). If you can run
 `psql` with no options, you can use pgpkg. pgpkg also supports a `DSN` environment variable to specify a Postgresql
 data source name, which can be used to override the `PG*` settings.
 
@@ -61,53 +110,61 @@ configuration file contains a package ID, a list of database schemas, and an opt
 and external packages to be loaded.
 
 > **Warning**: `pgpkg` may make changes to a project's TOML file (for example, see `pgpgk import`);
-> any comments in this file are not currently preserved.
+> any comments in the project file will be lost.
 
-One of the benefits of pgpkg is that it lets you put your SQL function code next to your native code. To achieve
+A great feature of pgpkg is that it lets you put your SQL function code next to your native code. To achieve
 this, `pgpkg.toml` should be placed at the root of your source tree; in Go, this would usually be in the same
 folder as `go.mod` or `.git`.
 
-With such a configuration, you can put `.sql` function declarations anywhere in your source tree. (To extract
-the SQL definitions from your code when you want to deploy a schema, see `pgpkg export`)
+With such a configuration, you can put `.sql` files containing SQL function declarations *anywhere*
+in your source tree.
 
 The schemas listed in `pgpkg.toml` are automatically created by pgpkg when it starts.
 
+Here's an example `pgpkg.toml`:
+
     Package = "github.com/owner/repository"
     Schemas = [ "schema1", "schema2" ]
-    Extensions = [ "ext1", "ext2" ]
-    Uses = [ "module1", "module2" ]
+    Extensions = [ "pgcrypto", "tablefunc" ]
+    Uses = [ "github.com/owner/types", "github.com/owner/constants" ]
 
 pgpkg maintains its own private schema, unsurprisingly called `pgpkg`. This is described in more detail below.
 
 ### `Package`
 
-`Package` is the name of the package, using Go's [module path format](https://go.dev/ref/mod#module-path).
-You do not need to know Go to use pgpkg. All packages must have a name.
+`Package` is the name of the package, which consists of an optional domain name followed by an arbitrary path.
+`pgpkg` uses a package naming convention similar to Go's module naming convention. Any unique path will work.
 
 ### `Schemas`
 
-`Schemas` is a list of one or more schema names for your package. All packages must exist in at least one schema.
-The schemas listed in this clause are created automatically by `pgpkg`.
+`Schemas` is a list of one or more schema names that your package will be installed into. pgpkg requires all your
+code and tables to be declared only in these schemas. The schemas listed in this clause are created automatically
+by `pgpkg`.
 
 ### `Extensions`
 
 `Extensions` is a list of Postgresql database extensions required by your package. These extensions will be installed
-automatically by `pgpgk`.
+automatically by `pgpgk` if they don't already exist. `pgpkg` reduces privileges when installing your code; the
+`extensions` are installed using the privileges of the invoking user.
 
 ### `Uses`
 
-`Uses` is a list of `pgpkg` package names which this package depends on. Note that `Uses` is currently
-experimental, and not recommended for use in production.
+`Uses` is a list of `pgpkg` package names which this package depends on. You can add dependencies to a package using
+`pgpkg import <path>` (where <path> is the path to the package you want to import), which will automatically add the
+imported package name to the `Uses` clause.
 
-## Managed Objects
+## Functions, Views and Triggers
 
-In pgpkg, **managed objects** are functions, views or triggers which are explicitly tracked by pgpkg, and installed
-automatically as part of a migration. All other objects, including data types and tables, are considered
-*migrated objects* (see next section).
+In pgpkg, functions, views or triggers are called **managed objects**. These objects are declared only once,
+in any `.sql` file in your tree. They are explicitly tracked by pgpkg, and installed or upgraded automatically as part
+of the deployment process.
+
+All other objects, such as user data types and tables, are considered *migrated objects* (see next section).
 
 Managed objects are stored in any number of `.sql` files, either in the directory containing `pgpkg.toml`, or one of
 its children. If `pgpkg.toml` is in the root of your source tree, then you can declare a function simply by creating
-an `.sql` file in your source tree, and writing code.
+an `.sql` file in your source tree, and writing regular SQL code. `pgpkg` does not require any special syntax
+for `.sql` files.
 
 During a migration, **any existing managed objects in the database are automatically dropped**. Migration scripts
 are then executed in order (see below). Once this is done, the latest version of managed objects are re-installed.
@@ -118,8 +175,8 @@ pgpkg automatically resolves dependencies between managed objects in the same sc
 in any order and in any file. For example, if a function `f()` depends on a view `v`, the view will be created before
 the function, regardless of where `f()` and `v` are declared in the source tree.
 
-Note that pgpkg expects to have complete control over the creation and removal of managed objects. They should not appear in
-migration scripts, and they should not generally be created or dropped outside of pgpkg.
+Note that pgpkg expects to have complete control over the creation and removal of managed objects. They should not
+appear in migration scripts, and they should not generally be created or dropped outside pgpkg.
 
 > Exceptions to this rule can, of course, be made during development. Since `.sql` files are literally just SQL scripts
 > with no special syntax, it's often convenient to reload function declarations from within `psql` itself.
@@ -132,11 +189,12 @@ migration scripts, and they should not generally be created or dropped outside o
 *managed objects* - that is, any database object that is not a function, view or trigger.
 
 Unlike managed objects, pgpkg never automatically creates or drops migrated objects. Instead, their state
-is defined by a (possibly large) set of *migration scripts* which are executed in a defined order. 
+is defined by a sequence of *migration scripts* - SQL scripts with no special syntax or filenames - which are
+executed in the order specified by a migration configuration file. 
 
-Migration scripts are simple `.sql` files containing any number of SQL statements. They are stored in a directory
-whose root contains a file called `@migration.pgpkg`. This directory must be a child of the directory
-containing `pgpkg.toml`.
+Migration scripts are stored in a directory whose root contains a file called `@migration.pgpkg`.
+This directory must be a child of the directory containing `pgpkg.toml`. The scripts themselves are
+simple `.sql` files containing any number of SQL statements. 
 
 You can put any SQL statements at all in a migration script, but you should not generally include functions, views
 or triggers, since these are *managed objects* (see above). Example statements in migration scripts might include
@@ -148,8 +206,9 @@ any or all of:
 * `create type ...`
 
 The file `@migration.pgpkg` lists the migration scripts in the order that they are to be executed.
-`@migration.pgpkg` can also contain blank lines and comments. The "@" in the filename is intended to make
-the file appear at the top of a directory when viewed in an IDE.
+`@migration.pgpkg` can also contain blank lines and comments.
+
+> The "@" in the filename is intended to make the file appear at the top of a directory when viewed in an IDE.
 
 Here's an example `@migration.pgpkg` for a fictional database:
 
@@ -159,32 +218,40 @@ Here's an example `@migration.pgpkg` for a fictional database:
 When you need to make changes to a schema, simply create a new SQL file containing the changes, and add it
 to the end of `@migration.pgpkg`.
 
+> We've found that using a versioning convention on your migration scripts makes it easier to reason about your schema.
+> For example, if you need to make a change to a `story` table created in `story.sql`,
+> put those changes in a file called `story@001.sql`. This will group all changes to the `story` table
+> together in your IDE. Note that this is just a convention, and not a requirement of `pgpkg`.
+> Remember that the specific order that these scripts are run is specified only in the `@migration.pgpgk` file.
+
 When `pgpkg` is run, it finds any scripts in the migration catalog which have not already been executed,
 and executes them. Scripts are always run in the exact order specified in `@migration.pgpkg`.
 
-**Warning**: The relative path name used for a migration script is used to track if it has been run or not.
+**Warning**: The relative path name used for each migration script is used to track if it has been run or not.
 You should not change the path of a migration script once it has been executed.
 
-Regardless of the number of migration scripts to be run, all scripts are run a single transaction.
+Regardless of the number of migration scripts to be run, all scripts are run in a single transaction.
 If any migration script fails, the entire operation is aborted and the database is left unmodified.
 
-pgpkg will print an error if a file exists in or under migration directory, but is not listed in `@migration.pgpkg`.
+pgpkg will print an error if a file exists in or under the migration directory, but is not listed in `@migration.pgpkg`.
 
-Scripts in the migration directory must not declare managed objects.
+Scripts in the migration directory must not declare managed objects. Doing so is likely to cause unexpected
+behaviour.
 
 Migrated objects are expected to be created only in the schemas declared in `pgpkg.toml`. `pgpkg` may refuse to run
-scripts which perform operations outside declared schemas, but this is not yet implemented reliability.
+scripts which perform operations outside declared schemas, but note that this is not yet implemented reliability.
 
 An interesting (and intended) consequence of the way pgpkg migrations work is that it makes it easy for teams to
-merge migration scripts from git branches into trunk. Unlike migration tools that use filename sequence numbers to
-order migrations, pgpkg's approach means that developers working on branches are unlikely to create merge conflicts.
+merge migration scripts from git branches into main. pgpkg's approach means that developers working on branches
+are unlikely to create migration script merge conflicts.
 
 In the event that two schema changes are made by different teams and then merged, there is little chance that they
-will be dependent on one another, which means they can be added to `@migration.pgpkg` in any order.
+will be dependent on one another, which means they can be added to `@migration.pgpkg` in any order. Conflicts will only
+arise if teams create identical filenames.
 
 ## Tests
 
-pgpkg supports the writing of SQL unit tests, which are declared as SQL functions. Despite the small learning curve,
+pgpkg makes it easy to write SQL unit tests, which are declared as SQL functions. Despite the small learning curve,
 we find it much more productive to write tests using `pgpkg`, than to run a schema migration and manually test it
 using `psql` (however, we do support this workflow during development: see the [REPL option](#repl), below).
 
@@ -194,8 +261,9 @@ If any test fails, the migration is aborted.
 
 Tests are installed and run inside savepoints. Test savepoints are automatically rolled back before the migration is
 complete. Test functions are never visible to production code, and any data created or modified by tests
-is also removed (or restored). This lets you write isolated tests which create or delete any data from the database,
-without polluting it.
+is also removed (or restored).
+
+This lets you write isolated tests which create or delete any data from the database, without polluting it.
 
 Tests are declared in non-migration scripts whose name matches `*_test.sql`. Test files can appear anywhere managed
 scripts can appear. A test script can declare any number of functions.
@@ -203,7 +271,7 @@ scripts can appear. A test script can declare any number of functions.
 Functions declared in `_test` scripts are never visible to production code.
 
 If a test script declares a function whose name ends in `_test()`, that function is automatically called by pgpkg
-before committing a migration. Such test functions may not have arguments. Here is an example of a test
+before committing a migration. Such test functions must not have arguments. Here is an example of a test
 function declaration:
 
     create or replace function story.add_test() returns void language plpgsql as ...
@@ -237,8 +305,8 @@ can print more information about them.
 
 ## Transactions
 
-pgpkg always executes within a single database transaction, regardless of the number of migration
-scripts which need to be run.
+pgpkg always executes within a single database transaction, regardless of the number of scripts or tests
+which need to be run.
 
 A migration only succeeds if:
 
@@ -249,8 +317,9 @@ A migration only succeeds if:
 If any of these statements is not true, or any other error occurs, the migration transaction is aborted
 and the database is left unchanged.
 
-Tests are run within savepoints, which are rolled back before completing the migration. Neither test functions,
-supporting functions, nor test data are visible to production code after a migration is complete.
+Tests are run within savepoints, which are rolled back before completing the migration. None of the test functions,
+test-supporting functions, inserted, updated or deleted data are visible to production code after a migration is
+complete.
 
 ## Commands
 
@@ -272,10 +341,13 @@ changes to the database.
 
 If any part of the installation fails, the entire transaction is aborted and the database is left unchanged.
 
-Note that `pgpkg` only applies database migrations that have not already been applied. `pgpkg` will create any
-schemas and extensions as needed.
+For migrated objects, **`pgpkg` only applies database migrations that have not already been applied**. It records
+the pathname of each successful migration, and will only apply a given migration once. Migrations which have not yet
+been performed are then applied in the order specified.
 
-### `try` - installation dry run
+`pgpkg` will create the schemas and extensions specified in the `pgpkg.toml` file.
+
+### `try` - deployment dry run
 
     pgpkg try [options] [package]
 
@@ -302,42 +374,48 @@ If any `options` are specified, they are processed as described below.
 
     pgpkg import [package] <from-package>
 
-`pgpgk import` imports `from-package` into the specified package path, and adds it as a dependency
-if it's not already. If the specified `from-package` has dependencies that have not been
-imported into the current package, those dependencies are also imported.
+`pgpgk import` imports `from-package` into the given package (or the default package
+if one is not specified), and adds it to the Uses clause of the `pgpkg.toml` file
+if it's not there already.
+
+The import process copies `pgpkg` files including `pgpkg.toml`, `@migration.pgpkg`, the directory
+structure, and all `.sql` files into a cache folder called `.pgpkg` in the target package. If the SQL code
+in the from-package is mixed with native code, the native code is **not** copied.
+
+If the specified `from-package` has dependencies that have not previously been imported into the current package,
+those dependencies are also imported.
 
 > **Warning** this command updates a package's `pgpkg.toml` file, which will strip any comments
 > out of the file.
 
-This command allows you to include SQL packages as dependencies. The imported package can create user
-data types, functions, system views and any other object (including migrated database tables)
-which can then be used by importing package.
+This command allows you to include SQL packages as dependencies in the `Uses` clause of your package.
+The imported package can create user data types, functions, system views and any other object (including sequentially
+migrated database tables) which can then be used by the importing package.
 
-The optional `package` argument is documented in `pgpkg deploy`.
+The optional `package` argument, referring to target package into which the from-package is to be imported,
+is documented in `pgpkg deploy`.
 
 The required `from-package` is the path to a package to be imported.
 
-Similar to `pgpkg export`, if the path pointed to by `from-package` includes
-intermingled SQL and native source code, only the SQL code and supporting files
-will be imported.
-
-`pgpkg import` will always import the specified package into the cache, and will import
-any dependencies, but will decline to import dependencies that already exist in the cache.
-This behaviour is intended to avoid inadvertently downgrading packages you already depend on.
+`pgpkg import` will always import the specified package into the cache. If necessary, it will also
+import missing dependencies, but it will decline to import dependencies that already exist in the cache.
+This behaviour is intended to avoid inadvertently modifying packages you already depend on.
 To upgrade existing packages, import them directly.
 
-### `export` - create a stand-alone package
+Note that pgpkg does not (currently) implement or support package versioning.
+
+### `export` - export a package into a deployable archive
 
     pgpkg export [package]
 
 `pgpkg export` creates a single ZIP file containing the given package, including any dependencies.
-The resulting ZIP file can be used with `deploy`, `repl`, `try` or `import`.
+The resulting ZIP file can be used directly with `deploy`, `repl`, `try` or `import`.
 
 The optional `package` argument is documented in `pgpkg deploy`.
 
 Because `pgpkg` is designed to allow you to mix your native source code and SQL source code, `pgpkg export` provides
 a way of extracting only the pgpkg-related files from a source code tree. It is intended for use during an
-automated build process; the resulting ZIP file can be shipped with your application to your production
+automated build process; the resulting ZIP file can be shipped with your native application to your production
 environment, where it can be processed using `pgpkg` as part of the upgrade or application startup process.
 
 For example, in a Java environment, you would use `pgpkg export` to create a `pgpkg.zip` file which you might
@@ -378,14 +456,15 @@ to display more information:
 A `pgpkg` package will typically contain a *cache directory*; this cache is stored in a subdirectory called `.pgpkg`
 in the top-level package directory.
 
-If a package depends on one or more other packages, those packages must exist in the cache. In this way,
+If a package depends on one or more other packages, those packages *must* exist in the cache. In this way,
 a package is generally self-contained. Packages in the cache are stored in a directory tree based on the package
 path.
 
 You can add packages to the cache using `pgpkg import`, which will also add the specified package as a dependency
 to your project.
 
-ZIP files created by `pgpkg export` will include a `.pgpkg` directory, thereby making ZIP files self-contained.
+ZIP files created by `pgpkg export` will include a `.pgpkg` directory containing dependencies, thereby making
+ZIP files self-contained.
 
 > Note that files in `.pgpkg` should be included in source code control.
 

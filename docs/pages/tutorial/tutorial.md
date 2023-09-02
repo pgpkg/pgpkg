@@ -5,15 +5,15 @@
 
 ## Introduction
 
-pgpkg is a database migration tool that reduces the hassle of writing and shipping stored
-functions and other static objects in Postgresql.
+pgpkg is a database migration tool that makes it much easier to write and deploy stored functions, views and
+triggers in Postgresql.
 
 With pgpkg, there is no need to create a migration script every time you change a stored
 function, view or trigger. You just change the original file, and pgpkg looks after the rest.
 
 In addition to managing functions, views and triggers separately from other database
-objects, pgpkg also includes a **safe and fast database migration system**, and an SQL
-based **unit testing tool**.
+objects, pgpkg also includes a **safe and fast sequential migration system** for tables and other objects,
+and an SQL based **unit testing tool**.
 
 Each of these features will be demonstrated in this tutorial.
 
@@ -22,11 +22,22 @@ Each of these features will be demonstrated in this tutorial.
 You need access to a Postgresql database and sufficient privileges to create schemas and
 roles. For more information see [prerequisites](prerequisites.md).
 
+Your shell environment should have the appropriate Postgresql environment variables set. These are defined in
+the [Postgresql documentation](https://www.postgresql.org/docs/current/libpq-envars.html). If you can run `psql`,
+then `pgpkg` should work.
+
 ## Installing pgpkg
 
 Install pgpkg:
 
     $ go install github.com/pgpkg/cmd/pgpkg
+
+## Creating a database
+
+Create a database for the tutorial:
+
+    $ createdb hello
+    $ export PGDATABASE=hello
 
 ## Writing your first function
 
@@ -56,7 +67,7 @@ just created, so that's what we should use.
 With these two files, our `hello-pgpkg` folder now contains a pgpkg package. We can apply
 it to the database with a single command:
 
-    $ pgpkg deploy .
+    $ pgpkg deploy
 
 (if you want to see what `pgpkg` actually does, use `pgpkg --verbose .`)
 
@@ -70,8 +81,8 @@ If all goes well, you will now have a function defined in your database:
     
     (1 row)
 
-Hmm, that didn't quite work how we wanted. It printed the message to the console
-instead of returning the message as a value. Let's fix that bug!
+While it worked, it turns out there's a bug in our code. The function printed a message to the console
+instead of returning the message as a value. Let's fix that!
 
 With traditional migration tools, you would need to create a new version of the function
 as an upgrade. With `pgpkg` you can simply edit the existing definition. So, edit func.sql:
@@ -84,7 +95,7 @@ as an upgrade. With `pgpkg` you can simply edit the existing definition. So, edi
 
 Apply the changes to the database:
 
-    $ pgpkg deploy .
+    $ pgpkg deploy
 
 And run it again:
 
@@ -129,7 +140,7 @@ To do this, edit the file `schema/@migration.pgpkg`, and add the single line:
 `pgpkg` keeps track of the migration scripts it has already run, so you can simply 
 apply the updated package again:
 
-    $ pgpkg deploy .
+    $ pgpkg deploy
 
 Let's see if the table exists:
 
@@ -154,7 +165,7 @@ look like this:
 
 You can again apply the updated package to the database:
 
-    $ pgpkg deploy .
+    $ pgpkg deploy
 
 Let's see if the data has been added:
 
@@ -188,7 +199,7 @@ Edit the new file `world.sql`:
     
 Apply the updated package again:
 
-    $ pgpkg deploy .
+    $ pgpkg deploy
 
 And now let's see if it worked:
 
@@ -204,8 +215,9 @@ It worked! Now, let's write a test to make sure it keeps working.
 ## Unit Tests
 
 `pgpkg` regards any SQL file ending in `_test.sql` as a test (it doesn't look for
-tests in the migration directory, though). Try adding this script to `world_test.sql`
-in your project:
+tests in the migration directory, though).
+
+Try adding this script to `world_test.sql` in your project:
 
     create or replace function hello.world_test() returns void language plpgsql as $$
         begin
@@ -217,14 +229,14 @@ in your project:
 
 As usual, apply the changes to the database:
 
-    $ pgpkg deploy .
+    $ pgpkg deploy
 
 The test will have been applied, but you won't see anything if it passes, because `pgpkg` doesn't log much, unless
 something goes wrong.
 
 To see if the tests are working, use `--show-tests`:
 
-    $ pgpkg deploy --show-tests .
+    $ pgpkg deploy --show-tests
     pgpkg: 2023/08/11 15:16:40   [pass] pgpkg.op_test()
     pgpkg: 2023/08/11 15:16:40   [pass] hello.world_test()
 
@@ -248,7 +260,7 @@ to the console during the testing process. Edit `world_test.sql` to add a notice
 
 Let's install the new script, which will run the test and display the notice to the console:
 
-    $ pgpkg deploy .           
+    $ pgpkg deploy         
     [notice]: Testing the world
 
 Any `raise notice` commands from tests that run will be printed to the console.
@@ -263,7 +275,7 @@ A successful test is one that finds a problem - so let's create a problem!
 
 Now, reinstall the package, which will re-run the tests:
 
-    $ pgpkg deploy .         
+    $ pgpkg deploy        
     [notice]: Testing the world
     ./world_test.sql:1: test failed: hello.world_test(): pq: the world is not right
            3:         raise notice 'Testing the world';

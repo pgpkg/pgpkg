@@ -1,10 +1,9 @@
 # pgpkg todo
 
-## Priority / first release
+## Priority
 
-- [ ] --[in|ex]clude-tests skips tests in other schemas, should only skip top level package tests (or: should include schema name in patterns)
-- [ ] packages should be purged and installed in (reverse-)dependency order
-- [ ] finalise thoughts on SECURITY DEFINER, frankly I think it shouldn't be there.
+- [ ] packages should be purged and installed in (reverse-)dependency order (probably start at project.go: 83 - currently remove and add is done at same time)
+  - [ ] need a unit test of function dependencies that fails when dependency order is not honoured
 
 ## Testing
 
@@ -18,6 +17,7 @@
 
 ## Bugs
 
+- [ ] --[in|ex]clude-tests skips tests in other schemas, should only skip top level package tests (or: should include schema name in patterns)
 - [ ] occasional error "unable to drop REPL database pgpkg.xxxxxxxx: unable to drop temp database "pgpkg.isovixpo" when trying `pgpkg repl`
 - [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
 - [ ] change uses of "filepath" to just use "path", ie. filepath.Join() should be path.Join()
@@ -178,3 +178,5 @@
 - [X] `pgpkg export` doesn't always write all dependencies - and is non-deterministic about it
 - [X] TOML package name checking/sanitation (in config.Uses, config.Name)
 - [X] pgpkg export (maybe it should be pgpkg zip?) should name the ZIP file after the package.
+- [X] Remove security definer from function definitions
+- [X] update README, add release notes, clean up docs. Then we can push it.
