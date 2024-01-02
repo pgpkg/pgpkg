@@ -2,7 +2,7 @@ module github.com/pgpkg/example
 
 go 1.20
 
-require github.com/pgpkg/pgpkg v0.0.0-20230308035832-9dac5760b539
+require github.com/pgpkg/pgpkg latest
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
@@ -12,4 +12,4 @@ require (
 	google.golang.org/protobuf v1.23.0 // indirect
 )
 
-replace github.com/pgpkg/pgpkg => ../../../
+replace github.com/pgpkg/pgpkg => ../../
