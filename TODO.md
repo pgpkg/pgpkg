@@ -2,6 +2,7 @@
 
 ## Priority
 
+- [ ] pgpkg.Open() should take a DSN. Only if the DSN is not supplied, use the env.  
 - [ ] packages should be purged and installed in (reverse-)dependency order (probably start at project.go: 83 - currently remove and add is done at same time)
   - [ ] need a unit test of function dependencies that fails when dependency order is not honoured
 
@@ -180,3 +181,5 @@
 - [X] pgpkg export (maybe it should be pgpkg zip?) should name the ZIP file after the package.
 - [X] Remove security definer from function definitions
 - [X] update README, add release notes, clean up docs. Then we can push it.
+- [X] support for CREATE CAST.
+- [X] support for arbitrary commands in managed objects (this might be removed later)

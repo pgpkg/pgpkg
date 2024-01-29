@@ -189,6 +189,11 @@ func (s *Statement) Location() string {
 	return fmt.Sprintf("%s:%d", s.Unit.Location(), s.LineNumber)
 }
 
+func (s *Statement) LocationOffset(offset int) string {
+	return fmt.Sprintf("%s:%d", s.Unit.Location(), s.LineNumber + offset)
+}
+
+
 func (s *Statement) DefaultContext() *PKGErrorContext {
 	return &PKGErrorContext{
 		Source:     s.Source,

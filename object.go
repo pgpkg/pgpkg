@@ -3,6 +3,7 @@ package pgpkg
 import (
 	"fmt"
 	pg_query "github.com/pganalyze/pg_query_go/v4"
+	"os"
 	"strings"
 )
 
@@ -15,16 +16,19 @@ type ManagedObject struct {
 	ObjectArgs   []string
 }
 
-func getParamType(fp *pg_query.FunctionParameter) string {
-	argType := fp.ArgType
-	typeName := QualifiedName(fp.ArgType.Names)
-	if argType.ArrayBounds != nil {
-		for range argType.ArrayBounds {
+func getTypeName(name *pg_query.TypeName) string {
+	typeName := QualifiedName(name.Names)
+	if name.ArrayBounds != nil {
+		for range name.ArrayBounds {
 			typeName = typeName + "[]"
 		}
 	}
 
 	return typeName
+}
+
+func getParamType(fp *pg_query.FunctionParameter) string {
+	return getTypeName(fp.ArgType)
 }
 
 func (s *Statement) getFunctionObject() (*ManagedObject, error) {
@@ -54,6 +58,15 @@ func (s *Statement) getFunctionObject() (*ManagedObject, error) {
 		ObjectType:   "function",
 		ObjectName:   fmt.Sprintf("%s.%s(%s)", schema, AsString(createFunctionStmt.Funcname[1]), strings.Join(args, ",")),
 		ObjectArgs:   args,
+	}, nil
+}
+
+func (s *Statement) getCastObject() (*ManagedObject, error) {
+	createCastStmt := s.Tree.Stmt.GetCreateCastStmt()
+	return &ManagedObject{
+		ObjectSchema: "public",
+		ObjectType:   "cast",
+		ObjectName:   getTypeName(createCastStmt.Sourcetype) + " as " + getTypeName(createCastStmt.Targettype),
 	}, nil
 }
 
@@ -155,6 +168,18 @@ func (s *Statement) GetManagedObject() (*ManagedObject, error) {
 
 	case stmt.GetCommentStmt() != nil:
 		s.object, err = s.getCommentObject()
+
+	case stmt.GetCreateCastStmt() != nil:
+		s.object, err = s.getCastObject()
+
+	default:
+		clip := strings.TrimSpace(strings.Replace(s.Source[:20], "\n", " ", -1))
+		fmt.Fprintf(os.Stderr, "WARNING: %s: unknown statement type (in '%s...'); will attempt to execute anyway\n", s.Location(), clip)
+		s.object = &ManagedObject{
+			ObjectSchema: "unknown",
+			ObjectType:   "unknown",
+			ObjectName:   s.Location(),
+		}
 	}
 
 	if err != nil {
@@ -165,5 +190,5 @@ func (s *Statement) GetManagedObject() (*ManagedObject, error) {
 		return s.object, nil
 	}
 
-	return nil, PKGErrorf(s, nil, "only functions, triggers, views and comments are supported in MOB")
+	return nil, PKGErrorf(s, nil, "only functions, triggers, views and comments are supported for managed objects")
 }

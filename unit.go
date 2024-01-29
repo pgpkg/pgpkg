@@ -39,20 +39,22 @@ func (u *Unit) addStatement(lineNumber int, sql string, tree *pg_query.RawStmt) 
 
 	// Skip over empty lines or lines that start with "--".
 	lines := strings.Split(sql, "\n")
-	lineOffset := 0
+	skipped := 0
+	offset := 0
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line != "" && !strings.HasPrefix(line, "--") {
 			break
 		}
-		lineOffset++
+		skipped++
+		offset += len(line) + 1
 	}
 
 	statement := &Statement{
 		Unit:       u,
-		LineNumber: lineNumber + lineOffset,
+		LineNumber: lineNumber + skipped,
 		Tree:       tree,
-		Source:     sql,
+		Source:     sql[offset:],
 	}
 
 	u.Statements = append(u.Statements, statement)

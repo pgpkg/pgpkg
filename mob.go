@@ -117,6 +117,10 @@ func (s *stmtStoredState) getDropStatement() string {
 		return fmt.Sprintf("drop %s if exists %s", s.objType, s.objName)
 	case "comment on function", "comment on view":
 		return fmt.Sprintf("%s %s is null", s.objType, s.objName)
+	case "cast":
+		return fmt.Sprintf("drop cast (%s)", s.objName)
+	case "unknown":
+		return ""
 	}
 
 	panic(fmt.Errorf("unknown object type: %s", s.objType))
@@ -196,7 +200,8 @@ func (m *MOB) purge(tx *PkgTx) error {
 	return applyState(tx, purgeState)
 }
 
-// Update the database with the new state of the MOB.
+// Update the pgpkg.managed_object table with the new state of the MOB, by deleting existing
+// entries and inserting new ones from the list of successful MOBs processed.
 func (m *MOB) updateState(tx *PkgTx) error {
 	_, err := tx.Exec("delete from pgpkg.managed_object where pkg=$1", m.Bundle.Package.Name)
 	if err != nil {
