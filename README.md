@@ -1,10 +1,11 @@
-# pgpkg - a schema and package manager for Postgresql
+# pgpkg - simplifies Postgresql stored procedure development.
 
 ![pgpkg logo](docs/logo-small.png)
 
-pgpkg is a small and fast command-line tool (and Go library) that lets pl/pgSQL functions live
-side-by-side with regular code, allowing you use the exact same IDE (or non-IDE) development workflows for SQL and non-SQL
-code.
+pgpkg is a small and fast command-line tool (and Go library) that lets your pl/pgSQL functions live
+side-by-side with regular code, allowing you to use the exact same workflows, source code control,
+IDE (or non-IDE) and other development workflows for both SQL and non-SQL code. It automatically
+deploys your functions without the need to maintain migration scripts.
 
 You can edit your SQL functions in the same IDE, commit them to the same Git repository,
 review them with PRs alongside native code changes, and deploy them seamlessly to production.
