@@ -165,9 +165,20 @@ func applyState(tx *PkgTx, state *stmtApplyState) error {
 		state.pending = state.failed
 		state.failed = nil
 
+		// If we weren't able to make any progress at all, then something's wrong.
 		if len(state.pending) == lenPending {
-			ps := state.pending[0]
-			return PKGErrorf(ps, ps.Error, "unable to install MOB")
+			allErrors := []*PKGError{}
+			for _, pending := range state.pending {
+				if pending.Error != nil {
+					allErrors = append(allErrors, PKGErrorf(pending, pending.Error, "unable to install MOB"))
+				}
+			}
+
+			if len(allErrors) > 1 {
+				allErrors[0].Errors = allErrors[1:]
+			}
+
+			return allErrors[0]
 		}
 	}
 

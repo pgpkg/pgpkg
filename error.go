@@ -38,6 +38,10 @@ type PKGError struct {
 	Object  PKGObject
 	Context *PKGErrorContext
 	Err     error
+
+	// In the case of applying a migration, there may be multiple errors,
+	// e.g. if a MOB can't be processed (typically because of dependencies).
+	Errors []*PKGError
 }
 
 func (e *PKGError) Unwrap() error {
@@ -149,4 +153,8 @@ func PrintError(err error) {
 	}
 
 	pkgErr.PrintRootContext(2)
+
+	for _, subErr := range pkgErr.Errors {
+		subErr.PrintRootContext(2)
+	}
 }
