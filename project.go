@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/lib/pq"
 	"io/fs"
-	"os"
 )
 
 // Project represents a collection of individual packages that are to be installed into a single
@@ -170,7 +169,10 @@ func (p *Project) resolveDependencies() error {
 // If this method returns an error, you should call pgpkg.Exit(err) to exit.
 // This call checks that the error was significant and will adjust the OS exit
 // status accordingly. See pgpkg.Exit() for more details.
-func (p *Project) Open() (*sql.DB, error) {
+//
+// If dsn is an empty string, pgpkg will attempt to use the PGPKG_DSN environment
+// variable. If PGPKG_DSN is not set, pgpkg will use the usual libpq PG environment variables.
+func (p *Project) Open(dsn string) (*sql.DB, error) {
 	if err := p.resolveDependencies(); err != nil {
 		return nil, err
 	}
@@ -178,9 +180,6 @@ func (p *Project) Open() (*sql.DB, error) {
 	if err := p.parseSchemas(); err != nil {
 		return nil, err
 	}
-
-	// If DSN isn't set, libpq will use PGHOST etc.
-	dsn := os.Getenv("DSN")
 
 	base, err := pq.NewConnector(dsn)
 	if err != nil {
@@ -235,8 +234,8 @@ func (p *Project) Open() (*sql.DB, error) {
 	return db, nil
 }
 
-func (p *Project) Migrate() error {
-	db, err := p.Open()
+func (p *Project) Migrate(dsn string) error {
+	db, err := p.Open(dsn)
 	if err != nil {
 		return err
 	}

@@ -25,7 +25,7 @@ func main() {
 		pgpkg.Exit(err)
 	}
 
-	db, err := p.Open()
+	db, err := p.Open("")
 	if err != nil {
 		pgpkg.Exit(err)
 	}

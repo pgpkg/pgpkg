@@ -1,0 +1,3 @@
+Package = "github.com/example/dependencies"
+Schemas = ["deps"]
+Uses = ["github.com/example/dependencies/a"]

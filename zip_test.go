@@ -37,14 +37,16 @@ func showZip(buf []byte) {
 }
 
 func TestZip(t *testing.T) {
-	p := NewProject()
-	p.AddPathSource("tests/good/example")
+	p, err := NewProjectFrom("tests/good/example")
+	if err != nil {
+		panic(err)
+	}
 
 	// in-memory zip
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 
-	err := WriteProject(zipWriter, p)
+	err = WriteProject(zipWriter, p)
 	if err != nil {
 		panic(err)
 	}

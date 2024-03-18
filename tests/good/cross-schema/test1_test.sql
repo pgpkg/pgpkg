@@ -8,14 +8,14 @@ create or replace function cs2.func2() returns integer language 'sql' as $$ sele
 
 create or replace function cs1.cs1_test() returns void language plpgsql as $$
     begin
-        perform func1();
-        perform func2();
+        perform cs1.func1();
+        perform cs2.func2();
     end;
 $$;
 
 create or replace function cs2.cs2_test() returns void language plpgsql as $$
     begin
-        perform func1();
-        perform func2();
+        perform cs1.func1();
+        perform cs2.func2();
     end;
 $$;

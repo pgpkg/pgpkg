@@ -11,15 +11,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	dsn := os.Getenv("PGPKG_DSN")
+
 	switch os.Args[1] {
 	case "deploy":
-		doDeploy()
+		doDeploy(dsn)
 
 	case "try":
-		doTry()
+		doTry(dsn)
 
 	case "repl":
-		doRepl()
+		doRepl(dsn)
 
 	case "export":
 		doExport()

@@ -1,5 +1,5 @@
 package main
 
-func doTry() {
-	apply(false)
+func doTry(dsn string) {
+	apply(dsn, false)
 }

@@ -2,6 +2,8 @@
 
 ## Priority
 
+- [ ] would be awesome if the REPL option could (perhaps optionally) preserve the test functions. 
+- [ ] @migration.pgpkg should just be a list of scripts in pgpgk.toml (which means they can be anywhere, and there's even less config?) - could be part of the TOML even
 - [ ] pgpkg.Open() should take a DSN. Only if the DSN is not supplied, use the env.  
 - [ ] packages should be purged and installed in (reverse-)dependency order (probably start at project.go: 83 - currently remove and add is done at same time)
   - [ ] need a unit test of function dependencies that fails when dependency order is not honoured

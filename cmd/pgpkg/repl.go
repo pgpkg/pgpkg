@@ -28,8 +28,7 @@ func mkTempDbName() string {
 // Create a temporary database with a random name.
 // We do this by connecting to the database using the environment,
 // and running "create database".
-func createTempDB() (string, error) {
-	dsn := os.Getenv("DSN")
+func createTempDB(dsn string) (string, error) {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return "", fmt.Errorf("unable to open database: %w", err)
@@ -104,13 +103,7 @@ func dropTempDBOrExit(dsn string, replDb string) {
 	}
 }
 
-func doRepl() {
-	var replDb string
-	var replDSN string
-
-	// Keep a copy of the original DSN, since we modify it during REPL.
-	defaultDSN := os.Getenv("DSN")
-
+func doRepl(dsn string) {
 	if err := pgpkg.ParseArgs(""); err != nil {
 		pgpkg.Exit(err)
 	}
@@ -131,23 +124,21 @@ func doRepl() {
 		pgpkg.Exit(err)
 	}
 
-	replDb, err = createTempDB()
+	replDbName, err := createTempDB(dsn)
 	if err != nil {
 		pgpkg.Exit(fmt.Errorf("pgpkg: unable to create REPL database: %w\n", err))
 	}
 
-	defer dropTempDBOrExit(defaultDSN, replDb)
-
 	// Add the REPL dbname to the DSN, which will override the PGDATABASE environment variable.
 	// If there are two dbnames, only the last one is used, effectively overriding
 	// anything in the environment.
-	replDSN = os.Getenv("DSN")
-	replDSN = replDSN + " dbname=" + replDb
-	os.Setenv("DSN", replDSN)
+	replDSN := dsn + " dbname=" + replDbName
+
+	defer dropTempDBOrExit(dsn, replDbName)
 
 	pgpkg.Options.DryRun = false
 
-	err = p.Migrate()
+	err = p.Migrate(replDSN)
 	if err != nil {
 		pgpkg.Exit(err)
 	}
@@ -157,4 +148,3 @@ func doRepl() {
 		fmt.Fprintf(os.Stderr, "psql error: %v\n", err)
 	}
 }
-

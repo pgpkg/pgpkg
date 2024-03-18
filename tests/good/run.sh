@@ -21,7 +21,7 @@ exitStatus=0
 
 for good in `find . -type d -depth 1`
 do
-  if ! pgpkg --dry-run --verbose $good >> $log 2>&1
+  if ! pgpkg try $good >> $log 2>&1
   then
     echo "* FAIL: $good"
     exitStatus=1  # keep running tests but exit with status when done

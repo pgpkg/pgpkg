@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func apply(commit bool) {
+func apply(dsn string, commit bool) {
 	pgpkg.Options.DryRun = !commit
 
 	if err := pgpkg.ParseArgs(""); err != nil {
@@ -30,12 +30,12 @@ func apply(commit bool) {
 		pgpkg.Exit(err)
 	}
 
-	err = p.Migrate()
+	err = p.Migrate(dsn)
 	if err != nil {
 		pgpkg.Exit(err)
 	}
 }
 
-func doDeploy() {
-	apply(true)
+func doDeploy(dsn string) {
+	apply(dsn, true)
 }
