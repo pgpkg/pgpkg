@@ -253,7 +253,15 @@ arise if teams create identical filenames.
 
 pgpkg makes it easy to write SQL unit tests, which are declared as SQL functions. Despite the small learning curve,
 we find it much more productive to write tests using `pgpkg`, than to run a schema migration and manually test it
-using `psql` (however, we do support this workflow during development: see the [REPL option](#repl), below).
+using `psql` or other tools (however, we do support this workflow during development: see the [REPL option](#repl),
+below).
+
+Tests are run as part of every migration. During development, you can run a complete schema build from scratch
+in a temporary database, and run all the tests, with
+
+    pgpkg test
+
+This is particularly useful in the early days of schema development.
 
 SQL unit tests are executed after a migration has fully completed, but before the migration transaction is committed.
 

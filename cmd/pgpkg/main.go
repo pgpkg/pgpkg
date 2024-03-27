@@ -23,6 +23,9 @@ func main() {
 	case "repl":
 		doRepl(dsn)
 
+	case "test":
+		doTest(dsn)
+
 	case "export":
 		doExport()
 

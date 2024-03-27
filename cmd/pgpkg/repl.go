@@ -114,37 +114,74 @@ func doRepl(dsn string) {
 		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
 	}
 
-	pkgPath, err := findPkg(flagSet.Args())
+	tempDbName, err := initTempDb(dsn, flagSet)
 	if err != nil {
 		pgpkg.Exit(err)
+	}
+
+	defer dropTempDBOrExit(dsn, tempDbName)
+
+	if err = doReplSession(tempDbName); err != nil {
+		fmt.Fprintf(os.Stderr, "psql error: %v\n", err)
+	}
+}
+
+func doTest(dsn string) {
+	if err := pgpkg.ParseArgs(""); err != nil {
+		pgpkg.Exit(err)
+	}
+
+	// This is here just so we can easily add new flags later if needed.
+	flagSet := flag.NewFlagSet("test", flag.ExitOnError)
+	if err := flagSet.Parse(os.Args[2:]); err != nil {
+		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
+	}
+
+	// This is set by default with pgpkg test.
+	pgpkg.Options.ShowTests = true
+
+	// The purpose of "pgpkg test" is just to build the schema in a test database
+	// and return, reporting any errors along the way. So that's what we do!
+	tempDbName, err := initTempDb(dsn, flagSet)
+	if err != nil {
+		pgpkg.Exit(err)
+	}
+
+	dropTempDBOrExit(dsn, tempDbName)
+}
+
+// Set up the project in a temp DB, and return the database's name.
+// Before exiting, the database should be removed by the caller with dropTempDBOrExit().
+// This is used by "pgpkg repl" and "pgpgk test".
+func initTempDb(dsn string, flagSet *flag.FlagSet) (string, error) {
+	pkgPath, err := findPkg(flagSet.Args())
+	if err != nil {
+		return "", err
 	}
 
 	p, err := pgpkg.NewProjectFrom(pkgPath)
 	if err != nil {
-		pgpkg.Exit(err)
+		return "", err
 	}
 
-	replDbName, err := createTempDB(dsn)
+	tempDbName, err := createTempDB(dsn)
 	if err != nil {
-		pgpkg.Exit(fmt.Errorf("pgpkg: unable to create REPL database: %w\n", err))
+		return "", fmt.Errorf("pgpkg: unable to create REPL database: %w\n", err)
 	}
 
 	// Add the REPL dbname to the DSN, which will override the PGDATABASE environment variable.
 	// If there are two dbnames, only the last one is used, effectively overriding
 	// anything in the environment.
-	replDSN := dsn + " dbname=" + replDbName
-
-	defer dropTempDBOrExit(dsn, replDbName)
+	tempDSN := dsn + " dbname=" + tempDbName
 
 	pgpkg.Options.DryRun = false
 
-	err = p.Migrate(replDSN)
+	err = p.Migrate(tempDSN)
 	if err != nil {
-		pgpkg.Exit(err)
+		// Clean up the database if there's an error; the caller will probably forget to do so.
+		dropTempDBOrExit(dsn, tempDSN)
+		return "", err
 	}
 
-	err = doReplSession(replDSN)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "psql error: %v\n", err)
-	}
+	return tempDbName, nil
 }
