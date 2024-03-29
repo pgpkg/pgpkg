@@ -185,3 +185,8 @@ func (t *Tests) Run(tx *PkgTx) error {
 
 	return nil
 }
+
+func (t *Tests) PrintInfo(w InfoWriter) {
+	w.Println("Test Bundle")
+	t.Bundle.PrintInfo(w)
+}

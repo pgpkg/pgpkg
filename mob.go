@@ -264,3 +264,8 @@ func (m *MOB) Apply(tx *PkgTx) error {
 
 	return applyState(tx, m.state)
 }
+
+func (m *MOB) PrintInfo(w InfoWriter) {
+	w.Println("Managed Object Bundle")
+	m.Bundle.PrintInfo(w)
+}

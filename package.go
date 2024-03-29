@@ -330,7 +330,6 @@ func (p *Package) parseConfig(tomlPath string) error {
 var validNames = regexp.MustCompile("[^#]*")
 
 func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
-
 	if err != nil {
 		return err
 	}
@@ -344,7 +343,11 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 
 	// Ignore dot-files other than "." itself
 	if name != "." && name[0] == '.' {
-		return fs.SkipDir
+		if d.IsDir() {
+			return fs.SkipDir
+		} else {
+			return nil
+		}
 	}
 
 	if d.IsDir() {
@@ -464,4 +467,31 @@ func (p *Package) WriteConfig() error {
 	}
 
 	return nil
+}
+
+func (p *Package) PrintInfo(w InfoWriter) {
+	w.Print("Package name", p.Name)
+	w.Print("Location", p.Location)
+	w.Print("Source", p.Source)
+	w.Print("SchemaNames", p.SchemaNames)
+	w.Print("RoleName", p.RoleName)
+
+	if p.Schema != nil {
+		p.Schema.PrintInfo(w)
+	} else {
+		w.Println("no schema")
+	}
+
+	if p.MOB != nil {
+		p.MOB.PrintInfo(w)
+	} else {
+		w.Println("no managed objects")
+	}
+
+	if p.Tests != nil {
+		p.Tests.PrintInfo(w)
+	} else {
+		w.Println("no tests")
+	}
+
 }

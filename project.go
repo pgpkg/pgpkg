@@ -173,11 +173,7 @@ func (p *Project) resolveDependencies() error {
 // If dsn is an empty string, pgpkg will attempt to use the PGPKG_DSN environment
 // variable. If PGPKG_DSN is not set, pgpkg will use the usual libpq PG environment variables.
 func (p *Project) Open(dsn string) (*sql.DB, error) {
-	if err := p.resolveDependencies(); err != nil {
-		return nil, err
-	}
-
-	if err := p.parseSchemas(); err != nil {
+	if err := p.Parse(); err != nil {
 		return nil, err
 	}
 
@@ -344,4 +340,33 @@ func NewProjectFrom(pkgPath string, searchCaches ...Cache) (*Project, error) {
 	p.Search = append(p.Search, searchCaches...)
 
 	return p, nil
+}
+
+func (p *Project) PrintInfo(w InfoWriter) {
+	var srcLocations []string
+	for _, s := range p.Sources {
+		srcLocations = append(srcLocations, s.Location())
+	}
+
+	w.Print("Project Sources", srcLocations)
+
+	for name, pkg := range p.pkgs {
+		w.Println("Package", name)
+		pkg.PrintInfo(w)
+		w.Println()
+	}
+}
+
+// Parse prepares a project for migrating or other processing by resolving any dependencies
+// and parsing the schemas.
+func (p *Project) Parse() error {
+	if err := p.resolveDependencies(); err != nil {
+		return err
+	}
+
+	if err := p.parseSchemas(); err != nil {
+		return err
+	}
+
+	return nil
 }

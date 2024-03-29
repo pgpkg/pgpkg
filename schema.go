@@ -23,6 +23,11 @@ type Schema struct {
 	migratedState  map[string]bool // set of paths that have been newly migrated
 }
 
+func (s *Schema) PrintInfo(w InfoWriter) {
+	w.Print("Schema bundle", s.migrationDir)
+	s.Bundle.PrintInfo(w)
+}
+
 func (s *Schema) ApplyUnit(tx *PkgTx, u *Unit) error {
 	// unfortunately parser errors return almost no information, so the best
 	// we can do is identify the build unit. This seems to be a problem with

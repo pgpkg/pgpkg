@@ -32,6 +32,9 @@ func main() {
 	case "import":
 		doImport()
 
+	case "info":
+		doInfo()
+
 	default:
 		usage()
 		os.Exit(1)

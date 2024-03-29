@@ -74,6 +74,10 @@ func (f *FSSource) Cache() (Cache, error) {
 	return NewReadCache(cache), nil
 }
 
+func (f *FSSource) String() string {
+	return "FSSource(" + f.location + ")"
+}
+
 type DirSource struct {
 	dir string
 	fs  fs.FS
@@ -122,6 +126,10 @@ func (ds *DirSource) Open(name string) (fs.File, error) {
 // underlying filesystem location.
 func (ds *DirSource) Path() string {
 	return ds.dir
+}
+
+func (ds *DirSource) String() string {
+	return "DirSource(" + ds.dir + ")"
 }
 
 type ZipByteSource struct {
@@ -187,4 +195,8 @@ func NewSource(pkgPath string) (Source, error) {
 	} else {
 		return NewDirSource(pkgPath), nil
 	}
+}
+
+func (zs *ZipByteSource) String() string {
+	return "ZipByteSource(" + zs.location + ")"
 }

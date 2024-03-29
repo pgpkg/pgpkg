@@ -10,7 +10,7 @@ import (
 // There are three types of bundles: MOB, schema and test. These are implemented
 // by embedding Bundle.
 //
-// Different bundles have distinct behaviours; structure
+// Different bundles have distinct behaviours; schema
 // bundles perform upgrades, MOB bundles replace
 // existing code, and test bundles are executed after
 // everything else is complete.
@@ -20,6 +20,13 @@ type Bundle struct {
 	Path    string           // Path of this bundle, relative to the Package
 	Index   map[string]*Unit // Index of location of each unit.
 	Units   []*Unit          // Ordered list of build units within the bundle
+}
+
+func (b *Bundle) PrintInfo(w InfoWriter) {
+	w.Print("Bundle Path", b.Path)
+	for _, u := range b.Units {
+		w.Print("  Unit", u.Source+":"+u.Path)
+	}
 }
 
 // HasUnits indicates if any build units were found for this bundle.

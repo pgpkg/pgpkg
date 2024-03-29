@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/pgpkg/pgpkg"
 	"os"
 	"path"
 	"strings"
@@ -44,6 +45,10 @@ func findDefaultPkg() (string, error) {
 
 // If args contains a package, return that. Otherwise, search for a target package.
 func findPkg(args []string) (string, error) {
+	if pgpkg.Options.Verbose {
+		fmt.Println("findPkg, args=", args)
+	}
+
 	if len(args) == 0 {
 		return findDefaultPkg()
 	}
