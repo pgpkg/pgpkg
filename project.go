@@ -30,7 +30,7 @@ type Project struct {
 func (p *Project) AddEmbeddedFS(f fs.FS, path string) (*Package, error) {
 	src, err := NewFSSource(f, path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to add embedded FS: %s: %w", path, err)
 	}
 	return p.AddPackage(src, false)
 }

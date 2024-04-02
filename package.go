@@ -380,7 +380,7 @@ func readPackage(project *Project, source Source, dir string) (*Package, error) 
 
 	if dir != "" {
 		if source, err = source.Sub(dir); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to read package: source %s: %w", source, err)
 		}
 	}
 

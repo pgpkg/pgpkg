@@ -43,7 +43,7 @@ type FSSource struct {
 func NewFSSource(efs fs.FS, dir string) (*FSSource, error) {
 	root, err := fs.Sub(efs, dir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to create new FS source: %s: %w", dir, err)
 	}
 	return &FSSource{fs: root, location: "fs:" + dir}, nil
 }
@@ -68,7 +68,7 @@ func (f *FSSource) Location() string {
 func (f *FSSource) Cache() (Cache, error) {
 	cache, err := fs.Sub(f.fs, ".pgpkg")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to open cache .pgpkg: %w", err)
 	}
 
 	return NewReadCache(cache), nil
@@ -172,7 +172,7 @@ func (zs *ZipByteSource) Sub(dir string) (Source, error) {
 func (zs *ZipByteSource) Cache() (Cache, error) {
 	cache, err := fs.Sub(zs.fs, ".pgpkg")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to open zip source: .pgpkg: %w", err)
 	}
 
 	return NewReadCache(cache), nil
