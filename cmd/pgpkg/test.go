@@ -12,14 +12,14 @@ func doTest(dsn string) {
 		pgpkg.Exit(err)
 	}
 
+	// This is set by default with pgpkg test.
+	pgpkg.Options.ShowTests = true
+
 	// This is here just so we can easily add new flags later if needed.
 	flagSet := flag.NewFlagSet("test", flag.ExitOnError)
 	if err := flagSet.Parse(os.Args[2:]); err != nil {
 		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
 	}
-
-	// This is set by default with pgpkg test.
-	pgpkg.Options.ShowTests = true
 
 	// The purpose of "pgpkg test" is just to build the schema in a test database
 	// and return, reporting any errors along the way. So that's what we do!

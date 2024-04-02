@@ -13,6 +13,7 @@ var Options struct {
 	Summary        bool           // print a summary of the installation
 	DryRun         bool           // rollback after installation (default)
 	ShowTests      bool           // Show the result of each SQL test that was run.
+	ShowSkipped    bool           // Show skipped tests
 	SkipTests      bool           // Don't run the tests. Useful when fixing them!
 	IncludePattern *regexp.Regexp // Pattern to use for running tests
 	ExcludePattern *regexp.Regexp // Pattern to use for running tests
@@ -46,6 +47,9 @@ Transactions and Testing Options
 
 --exclude-tests=[regexp]
     run all tests, except those whose SQL function name matches the given regexp.
+
+--show-skipped
+    logs all tests, even if they are skipped. By default, only tests that run are logged.
 
 Logging Options
 
@@ -100,6 +104,9 @@ func ParseArgs(prefix string) error {
 
 		case "show-tests":
 			Options.ShowTests = true
+
+		case "show-skipped":
+			Options.ShowSkipped = true
 
 		case "skip-tests":
 			Options.SkipTests = true

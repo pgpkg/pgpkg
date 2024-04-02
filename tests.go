@@ -160,7 +160,7 @@ func (t *Tests) Run(tx *PkgTx) error {
 	for testName, testStmt := range t.NamedTests {
 		if Options.IncludePattern != nil {
 			if !Options.IncludePattern.MatchString(testName) {
-				if Options.ShowTests {
+				if Options.ShowSkipped {
 					Stdout.Println("- [skip]", testName)
 				}
 				continue
@@ -169,7 +169,7 @@ func (t *Tests) Run(tx *PkgTx) error {
 
 		if Options.ExcludePattern != nil {
 			if Options.ExcludePattern.MatchString(testName) {
-				if Options.ShowTests {
+				if Options.ShowSkipped {
 					Stdout.Println("- [skip]", testName)
 				}
 				continue
