@@ -311,6 +311,21 @@ pgpkg typically runs without printing anything to the console. However, there ar
 [several pgpkg options for dealing with tests](#transactions-and-testing) which
 can print more information about them.
 
+## Other SQL Files
+
+`pgpkg` will look for filenames ending in `*.sql` in any directory tree containing a `pgpkg.toml` file.
+This means that utility or test data SQL needs to be stored outside such a directory. But `pgpkg` is often
+used in the top-level directory of a project, which makes it difficult to create utility SQL files that
+end with the `.sql` file extension.
+
+To resolve this, `pgpkg` recognises a special SQL comment, `--pgpkg-ignore`, that you can include as the first line of an SQL
+file that you want pgpkg to ignore. For example, a file called `createdb.sql` might contain the following:
+
+    --pgpkg:ignore
+    create database test;
+
+`pgpkg` will still find this file, but will skip it during all processing.
+
 ## Transactions
 
 pgpkg always executes within a single database transaction, regardless of the number of scripts or tests

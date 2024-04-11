@@ -2,6 +2,7 @@
 
 ## Priority
 
+- [ ] don't run tests if nothing's changed
 - [ ] don't create .pgpkg unless we're going to put something in it.
 - [ ] would be awesome if the REPL option could (perhaps optionally) preserve the test functions. 
 - [ ] @migration.pgpkg should just be a list of scripts in pgpgk.toml (which means they can be anywhere, and there's even less config?) - could be part of the TOML even

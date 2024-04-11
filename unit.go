@@ -64,7 +64,7 @@ func (u *Unit) addStatement(lineNumber int, sql string, tree *pg_query.RawStmt) 
 func (u *Unit) Parse() error {
 	r, err := u.Bundle.Open(u.Path)
 	if err != nil {
-		return PKGErrorf(u, err, "unable to parse")
+		return PKGErrorf(u, err, "unable to open")
 	}
 
 	b, err := io.ReadAll(r)
@@ -72,8 +72,6 @@ func (u *Unit) Parse() error {
 		return PKGErrorf(u, err, "unable to read")
 	}
 
-	// Automatically add a semicolon to the source if one
-	// isn't there already.
 	source := strings.TrimSpace(string(b))
 
 	// Empty files are OK.
@@ -81,6 +79,13 @@ func (u *Unit) Parse() error {
 		return nil
 	}
 
+	// Files starting with "--pgpkg:ignore" are ignored
+	if strings.HasPrefix(source, "--pgpkg:ignore") {
+		return nil
+	}
+
+	// Automatically add a semicolon to the source if one
+	// isn't there already.
 	if source[len(source)-1] != ';' {
 		source = source + ";"
 	}
