@@ -137,9 +137,14 @@ func (c *PKGErrorContext) Print(contextLines int) {
 //
 // Applications should call pgpkg.Exit(err) after calling project.Open() if err is not nil.
 func Exit(err error) {
-	if err == ErrUserRequest {
+	if err == nil {
 		os.Exit(0)
 	}
+
+	if errors.Is(err, ErrUserRequest) {
+		os.Exit(0)
+	}
+
 	PrintError(err)
 	os.Exit(1)
 }
@@ -148,7 +153,6 @@ func PrintError(err error) {
 	var pkgErr *PKGError
 	ok := errors.As(err, &pkgErr)
 	if !ok {
-		_, _ = fmt.Fprintln(os.Stderr, err)
 		return
 	}
 

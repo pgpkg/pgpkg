@@ -104,7 +104,7 @@ func initTempDb(dsn string, flagSet *flag.FlagSet) (string, error) {
 	err = p.Migrate(tempDSN)
 	if err != nil {
 		// Clean up the database if there's an error; the caller will probably forget to do so.
-		dropErr := dropTempDB(dsn, tempDSN)
+		dropErr := dropTempDB(dsn, tempDbName)
 		return "", errors.Join(err, dropErr)
 	}
 
