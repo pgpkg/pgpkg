@@ -129,8 +129,16 @@ func (s *Statement) getCommentObject() (*ManagedObject, error) {
 			ObjectName:   fmt.Sprintf("%s.%s", AsString(funcObject.Objname[0]), AsString(funcObject.Objname[1])),
 		}, nil
 
+	case pg_query.ObjectType_OBJECT_COLUMN:
+		targetName := commentStmt.GetObject().GetList()
+		return &ManagedObject{
+			ObjectSchema: AsString(targetName.Items[0]),
+			ObjectType:   "comment on column",
+			ObjectName:   fmt.Sprintf("%s.%s.%s", AsString(targetName.Items[0]), AsString(targetName.Items[1]), AsString(targetName.Items[2])),
+		}, nil
+
 	case pg_query.ObjectType_OBJECT_VIEW:
-		targetName := commentStmt.GetObject().GetList() // .List.Items
+		targetName := commentStmt.GetObject().GetList()
 		return &ManagedObject{
 			ObjectSchema: AsString(targetName.Items[0]),
 			ObjectType:   "comment on view",
@@ -138,7 +146,7 @@ func (s *Statement) getCommentObject() (*ManagedObject, error) {
 		}, nil
 
 	default:
-		return nil, PKGErrorf(s, nil, "Only comments on views and functions are supported in MOBs")
+		return nil, PKGErrorf(s, nil, "Only comments on views, columns and functions are supported in MOBs")
 	}
 }
 

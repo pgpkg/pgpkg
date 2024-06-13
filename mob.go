@@ -115,7 +115,7 @@ func (s *stmtStoredState) getDropStatement() string {
 	switch s.objType {
 	case "function", "view", "trigger":
 		return fmt.Sprintf("drop %s if exists %s", s.objType, s.objName)
-	case "comment on function", "comment on view":
+	case "comment on function", "comment on view", "comment on column":
 		return fmt.Sprintf("%s %s is null", s.objType, s.objName)
 	case "cast":
 		return fmt.Sprintf("drop cast (%s)", s.objName)

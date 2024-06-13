@@ -21,3 +21,4 @@ create table gl.account (
     rounding_dps     smallint,                              -- should entries be rounded?
     rounding_account gl.account_k                           -- where the rounding goes
 );
+
