@@ -110,6 +110,10 @@ func (c *PKGErrorContext) Print(contextLines int) {
 		return
 	}
 
+	if c != nil {
+		Stderr.Println(c.Location)
+	}
+
 	lines := strings.Split(c.Source, "\n")
 	lineCount := len(lines)
 
@@ -123,11 +127,11 @@ func (c *PKGErrorContext) Print(contextLines int) {
 		}
 	}
 
-	trace := c
-	for trace != nil {
-		fmt.Fprintln(os.Stderr, trace.Location)
-		trace = trace.Next
-	}
+	//trace := c
+	//for trace != nil {
+	//	fmt.Fprintln(os.Stderr, trace.Location)
+	//	trace = trace.Next
+	//}
 }
 
 // Exit usually prints the error message (with context, if available), and then exits immediately with status 1.

@@ -9,3 +9,4 @@ testops_timestamptz.sql
 testops_boolean.sql
 testops_bigint.sql
 testops_uuid.sql
+testops_jsonb.sql
