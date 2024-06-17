@@ -157,6 +157,7 @@ func PrintError(err error) {
 	var pkgErr *PKGError
 	ok := errors.As(err, &pkgErr)
 	if !ok {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		return
 	}
 
