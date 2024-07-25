@@ -54,7 +54,12 @@ func (u *Unit) addStatement(lineNumber int, sql string, tree *pg_query.RawStmt) 
 		Unit:       u,
 		LineNumber: lineNumber + skipped,
 		Tree:       tree,
-		Source:     sql[offset:],
+	}
+
+	if offset > len(sql) {
+		statement.Source = sql
+	} else {
+		statement.Source = sql[offset:]
 	}
 
 	u.Statements = append(u.Statements, statement)

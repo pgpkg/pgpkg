@@ -2,6 +2,7 @@
 
 ## Priority
 
+- [ ] unmatched $$ at EOL causes a panic
 - [ ] don't run tests if nothing's changed
 - [ ] don't create .pgpkg unless we're going to put something in it.
 - [ ] would be awesome if the REPL option could (perhaps optionally) preserve the test functions. 
