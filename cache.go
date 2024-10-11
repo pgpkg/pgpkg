@@ -109,6 +109,12 @@ func (c *WriteCache) importMigration(srcPkg *Package, targetPath string) error {
 		return nil // no migration scripts; nothing to import.
 	}
 
+	// migrations are managed in the config file, nothing to see here
+	if len(srcPkg.config.Migrations) > 0 {
+		return nil
+	}
+
+	// This code can be removed when @migration.pgpkg is fully deprecated
 	filename := filepath.Join(targetPath, srcSchema.migrationDir, "/@migration.pgpkg")
 	dir := path.Dir(filename)
 	if err := os.MkdirAll(dir, 0777); err != nil {
