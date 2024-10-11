@@ -28,3 +28,25 @@ Schemas = [ "pgpkg" ]
 # Other packages used by this package.
 #
 # Uses = []
+
+#
+# Lists the migration scripts, in order.
+# Migrations are run in order, one at a time.
+# Each migration script is uniquely identified by its *filename*.
+# You can NOT have two migration scripts with the same filename,
+# even if they are on different paths. This restriction, however, makes it easy
+# to move migration scripts around in the project.
+Migrations = [
+    "schema/mob.sql",
+    "schema/migration.sql",
+    "schema/pkg.sql",
+    "schema/testops_numeric.sql",
+    "schema/testops_integer.sql",
+    "schema/testops_text.sql",
+    "schema/testops_timestamptz.sql",
+    "schema/testops_boolean.sql",
+    "schema/testops_bigint.sql",
+    "schema/testops_uuid.sql",
+    "schema/testops_jsonb.sql",
+    "schema/migration@001.sql"
+]

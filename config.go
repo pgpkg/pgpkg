@@ -13,6 +13,7 @@ type configType struct {
 	Schemas    []string
 	Extensions []string
 	Uses       []string
+	Migrations []string
 }
 
 // Read a configuration TOML file and update the package accordingly.

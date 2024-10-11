@@ -359,11 +359,16 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 		// If this is a directory, and it contains migrations, then
 		// process it with a separate walk().
 		if _, err = fs.Stat(p.Source, filepath.Join(path, migrationFilename)); err == nil {
-			if err = p.Schema.loadMigrations(path); err != nil {
+			if err = p.Schema.loadMigrationDir(path); err != nil {
 				return err
 			}
 			return fs.SkipDir
 		}
+	}
+
+	// If this file is part of a migration, ignore it.
+	if p.Schema.migrationPaths[path] {
+		return nil
 	}
 
 	if strings.HasSuffix(name, "_test.sql") {
@@ -403,9 +408,16 @@ func readPackage(project *Project, source Source, dir string) (*Package, error) 
 }
 
 func (p *Package) readSchema() error {
-	p.Schema = &Schema{Bundle: p.newBundle()}
+	p.Schema = NewSchema(p)
 	p.MOB = &MOB{Bundle: p.newBundle()}
 	p.Tests = &Tests{Bundle: p.newBundle()}
+
+	// if the package config explicitly lists migrations, then you can't have a @migrations.pgpkg file.
+	if len(p.config.Migrations) > 0 {
+		if err := p.Schema.loadMigrations(p.config.Migrations); err != nil {
+			return fmt.Errorf("unable to load schema migrations: %w", err)
+		}
+	}
 
 	// Only walk the directory in which the toml file was found, rather than
 	// the entire filesystem provided in pkgFS.

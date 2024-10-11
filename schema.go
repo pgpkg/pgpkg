@@ -1,7 +1,7 @@
 package pgpkg
 
 // A schema is a kind of bundle that implements sequential migrations. It executes statements
-// in a strict, specific order. (FIXME: how this order is defined is TBD)
+// in a strict, specific order.
 //
 // Build units are identified by their filename within the package, which
 // enables us to determine if they have already been run. When new build units
@@ -19,8 +19,16 @@ type Schema struct {
 	*Bundle
 	migrationDir   string          // root of migration directory (ie, the location of @migration.pgpkg)
 	migrationIndex []string        // list of paths that need to be migrated, in order
+	migrationPaths map[string]bool // list of paths that need to be migrated, as a map.
 	migrationState map[string]bool // set of paths that have already been migrated (loaded from DB)
 	migratedState  map[string]bool // set of paths that have been newly migrated
+}
+
+func NewSchema(p *Package) *Schema {
+	return &Schema{
+		Bundle:         p.newBundle(),
+		migrationPaths: make(map[string]bool),
+	}
 }
 
 func (s *Schema) PrintInfo(w InfoWriter) {
@@ -62,7 +70,9 @@ func (s *Schema) loadMigrationState(tx *PkgTx) error {
 			if err = migrations.Scan(&path); err != nil {
 				return fmt.Errorf("unexpected error: %w", err)
 			}
-			migrationState[path] = true
+
+			migrationName := filepath.Base(path)
+			migrationState[migrationName] = true
 		}
 	}
 
@@ -88,11 +98,17 @@ func (s *Schema) Apply(tx *PkgTx) error {
 
 	var err error
 
+	// keep track of the migrations performed, by name.
 	migratedState := make(map[string]bool)
 
 	for _, path := range s.migrationIndex {
 		unitPath := filepath.Join(s.migrationDir, path)
-		if !s.migrationState[path] {
+
+		// Migrations are identified only by the filename, which means users can
+		// refactor and reorganise their file tree without worrying.
+		migrationName := filepath.Base(unitPath)
+
+		if !s.migrationState[migrationName] {
 			unit, ok := s.getUnit(unitPath)
 			if !ok {
 				return fmt.Errorf("error: unit not found: %s", unitPath)
@@ -104,7 +120,7 @@ func (s *Schema) Apply(tx *PkgTx) error {
 			}
 
 			s.Package.StatMigrationCount++
-			migratedState[path] = true
+			migratedState[migrationName] = true
 		}
 	}
 
@@ -113,7 +129,39 @@ func (s *Schema) Apply(tx *PkgTx) error {
 	return nil
 }
 
-func (s *Schema) loadMigrations(migrationDir string) error {
+// Load explicit migrations, based on the config file.
+// This checks to make sure that there are not two files with the same name
+// on different paths.
+func (s *Schema) loadMigrations(migrations []string) error {
+	if s.migrationIndex != nil {
+		return fmt.Errorf("only one of config.Migration or @migration.pgpkg can be specified")
+	}
+
+	uniqueNameMap := make(map[string]bool)
+
+	s.migrationDir = "."
+	s.migrationIndex = migrations
+
+	for _, path := range migrations {
+		migrationName := filepath.Base(path)
+		if uniqueNameMap[migrationName] {
+			return fmt.Errorf("duplicate migration name '%s' found in path %s", migrationName, path)
+		}
+		uniqueNameMap[migrationName] = true
+
+		s.migrationPaths[path] = true
+		if err := s.addUnit(path); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Load legacy migrations from a directory containing "@migrations.pgpkg"
+// You can use either the config file or @migrations.pgpkg, but not both.
+// DEPRECATED: please use config.Migrations instead.
+func (s *Schema) loadMigrationDir(migrationDir string) error {
 
 	if s.migrationIndex != nil {
 		return fmt.Errorf("multiple migrations detected: %s", migrationDir)
@@ -124,14 +172,19 @@ func (s *Schema) loadMigrations(migrationDir string) error {
 		return fmt.Errorf("unable to load migration catalog: %w", err)
 	}
 
+	fmt.Println("@migration.pgpkg is deprecated and will be removed soon. Use the Migrations field in config.toml instead")
+
 	s.migrationDir = migrationDir
 	s.migrationIndex = paths
 
 	var migrationSet = make(map[string]bool)
 	for _, path := range paths {
+		s.migrationPaths[path] = true
 		migrationSet[path] = true
 	}
 
+	// checks that all files in the directory are accounted for.
+	// this is a surprisingly common mistake.
 	return fs.WalkDir(s.Package.Source, migrationDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err

@@ -20,6 +20,25 @@ Schema = "gl"
 Extensions = [ "uuid-ossp" ]
 
 #
+# List of migration scripts, in the order that they need to run.
+#
+Migrations = [
+  "schema/uuid.sql",
+  "schema/types.sql",
+  "schema/team.sql",
+  "schema/adjustment.sql",
+  "schema/account.sql",
+  "schema/tx.sql",
+  "schema/entry.sql",
+  "schema/message.sql",
+  "schema/item.sql",
+  "schema/unallocated.sql",
+  "schema/allocation.sql",
+  "schema/settings.sql",
+]
+
+
+#
 # List of packages that we want access to. pgpkg will arrange to provide
 # access to the schema.
 #

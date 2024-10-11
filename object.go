@@ -3,7 +3,6 @@ package pgpkg
 import (
 	"fmt"
 	pg_query "github.com/pganalyze/pg_query_go/v4"
-	"os"
 	"strings"
 )
 
@@ -182,12 +181,13 @@ func (s *Statement) GetManagedObject() (*ManagedObject, error) {
 
 	default:
 		clip := strings.TrimSpace(strings.Replace(s.Source[:20], "\n", " ", -1))
-		fmt.Fprintf(os.Stderr, "WARNING: %s: unknown statement type (in '%s...'); will attempt to execute anyway\n", s.Location(), clip)
-		s.object = &ManagedObject{
-			ObjectSchema: "unknown",
-			ObjectType:   "unknown",
-			ObjectName:   s.Location(),
-		}
+		return nil, fmt.Errorf("%s: unknown statement type: %s", s.Location(), clip)
+		//fmt.Fprintf(os.Stderr, "WARNING: %s: unknown statement type (in '%s...'); will attempt to execute anyway\n", s.Location(), clip)
+		//s.object = &ManagedObject{
+		//	ObjectSchema: "unknown",
+		//	ObjectType:   "unknown",
+		//	ObjectName:   s.Location(),
+		//}
 	}
 
 	if err != nil {
