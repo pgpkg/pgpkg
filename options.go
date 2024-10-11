@@ -17,6 +17,7 @@ var Options struct {
 	SkipTests      bool           // Don't run the tests. Useful when fixing them!
 	IncludePattern *regexp.Regexp // Pattern to use for running tests
 	ExcludePattern *regexp.Regexp // Pattern to use for running tests
+	ForceRole      string         // Use this role instead of package roles
 }
 
 func showHelp() {
@@ -80,7 +81,7 @@ func ParseArgs(prefix string) error {
 		prefix = prefix + "-"
 	}
 
-	argPattern := fmt.Sprintf("^-?-%s([^=]+)($|=)", prefix)
+	argPattern := fmt.Sprintf("^-?-%s([^=]+)(=(.*))?$", prefix)
 	argExp := regexp.MustCompile(argPattern)
 
 	var parsedArgs []string
@@ -92,8 +93,13 @@ func ParseArgs(prefix string) error {
 		}
 
 		switchName := pgpkgArgs[1]
+		switchValue := pgpkgArgs[3]
 
 		switch switchName {
+		case "argtest":
+			fmt.Println(switchValue)
+			os.Exit(1)
+
 		case "verbose":
 			Options.Verbose = true
 			Options.ShowTests = true
@@ -113,17 +119,20 @@ func ParseArgs(prefix string) error {
 
 		case "include-tests":
 			var err error
-			Options.IncludePattern, err = regexp.Compile(a[22:]) // full argument is --include-tests=
+			Options.IncludePattern, err = regexp.Compile(switchValue)
 			if err != nil {
-				return fmt.Errorf("unable to compile pattern %s", a[14:])
+				return fmt.Errorf("unable to compile pattern %s", switchValue)
 			}
 
 		case "exclude-tests":
 			var err error
-			Options.ExcludePattern, err = regexp.Compile(a[22:]) // full argument is --include-tests=
+			Options.ExcludePattern, err = regexp.Compile(switchValue)
 			if err != nil {
-				return fmt.Errorf("unable to compile pattern %s", a[14:])
+				return fmt.Errorf("unable to compile pattern %s", switchValue)
 			}
+
+		case "force-role":
+			Options.ForceRole = switchValue
 
 		case "help":
 			showHelp()

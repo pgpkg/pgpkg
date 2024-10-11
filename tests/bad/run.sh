@@ -20,7 +20,7 @@ exitStatus=0
 for err in `find . -type d -depth 1`
 do
   # for these BAD tests, a test that runs successfully is actually a problem
-  if pgpkg --dry-run $err > /dev/null 2>&1
+  if pgpkg try $err > /dev/null 2>&1
   then
     # the test passed, which is a problem.
     echo "* PASS: $err (this test should have failed)"

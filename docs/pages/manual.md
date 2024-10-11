@@ -137,9 +137,21 @@ pgpkg maintains its own private schema, unsurprisingly called `pgpkg`. This is d
 
 ### `Schemas`
 
-`Schemas` is a list of one or more schema names that your package will be installed into. pgpkg requires all your
-code and tables to be declared only in these schemas. The schemas listed in this clause are created automatically
-by `pgpkg`.
+`Schemas` lists the schema names that your package will be installed into. pgpkg requires all your
+code and tables to be declared only in these schemas.
+
+`pgpkg` automatically creates each schema exactly as it is named here. Schema names can
+use almost any characters, and are therefore **case-sensitive**.
+
+Schema names with uppercase or non-alphanumeric characters will generally need to be explicitly quoted in your SQL scripts. For example, with this configuration:
+
+    Schemas = [ "wordy schema name" ]
+
+your SQL would need to look like this:
+
+    create table "wordy schema name".table_name (
+      ...
+    );
 
 ### `Extensions`
 

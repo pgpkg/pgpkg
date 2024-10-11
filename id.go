@@ -7,7 +7,7 @@ import (
 
 // These patterns are used to ensure that SQL can't be injected into statements.
 // Take care to ensure that any changes can't be used against us.
-var schemaPattern = regexp.MustCompile("^[a-z0-9][-_a-z0-9]*$")    // schema names
+var schemaPattern = regexp.MustCompile(`^([^"]|""){1,63}$`)
 var rolePattern = regexp.MustCompile("^[$a-z0-9][-._/a-z0-9]*$")   // role names (can have leading $)
 var extensionPattern = regexp.MustCompile("^[a-z0-9][-_a-z0-9]*$") // database extension names
 var packageNamePattern = regexp.MustCompile("^([a-zA-Z0-9_-]+\\.)*[a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)*$")

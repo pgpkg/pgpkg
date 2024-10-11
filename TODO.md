@@ -2,6 +2,9 @@
 
 ## Priority
 
+- [ ] use toml file to list migrations, enable mix of migrations and regular code
+  - create table (etc) can't be used in MOBs so risk is minimal 
+- [ ] use filename instead of whole path for migrations - enforce no dupes policy
 - [ ] unmatched $$ at EOL causes a panic
 - [ ] don't run tests if nothing's changed
 - [ ] don't create .pgpkg unless we're going to put something in it.

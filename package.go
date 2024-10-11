@@ -321,8 +321,13 @@ func (p *Package) parseConfig(tomlPath string) error {
 
 	p.Name = config.Package
 	p.SchemaNames = SanitizeSlice(schemaPattern, config.Schemas)
-	p.RoleName = Sanitize(rolePattern, "$"+p.Name)
 	p.config = config
+
+	if Options.ForceRole != "" {
+		p.RoleName = Sanitize(rolePattern, Options.ForceRole)
+	} else {
+		p.RoleName = Sanitize(rolePattern, "$"+p.Name)
+	}
 
 	return nil
 }

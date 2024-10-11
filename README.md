@@ -48,3 +48,7 @@ pgpkg is [licensed](LICENSE.md) under the same terms as Postgresql itself.
 
 Contributors welcome. Contact me at [mark@commandquery.com](mailto:mark@commandquery.com)
 
+## Release Notes
+
+2024-10-11 --force-role option allows the default package role name to be overridden.
+2024-10-11 removed character set restriction from schema names in TOML files.
