@@ -52,12 +52,11 @@ in the same folder, such as:
     delete.go
     delete.sql
 
-The only exception to this rule is migration directories. There can be a single migration directory (which contains a
-file called `@migration.pgpkg`), and a directory containing migrations scripts (table and type DDLs) cannot also contain
-functions, views or triggers.
-
-Within a migration directory, filenames must also end in `.sql`. The order of execution of migrations is defined in
-`@migration.pgpkg`.
+The only small exception to this rule is migrations. Migrations are scripts listed in the `Migrations` clause of
+`pgpkg.toml`. The file *names* (without the path) of these scripts are used to determine if they have been
+run previously, or not. This means that the name of these scripts cannot be changed once they've been deployed
+in the field. You can, however, safely move the scripts to different folders (provided you update the `Migrations`
+clause to point to the new location of the file).
 
 There are no other unusual restrictions on the names of files.
 

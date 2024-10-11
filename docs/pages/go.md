@@ -105,7 +105,6 @@ Finally, note how your SQL and Go code can live in the same directory:
     ├── main.go
     ├── pgpkg.toml
     ├── schema
-    │   ├── @migration.pgpkg
     │   ├── contact.sql
     │   └── contact@001.sql
     ├── world.sql

@@ -116,7 +116,7 @@ A great feature of pgpkg is that it lets you put your SQL function code next to 
 this, `pgpkg.toml` should be placed at the root of your source tree; in Go, this would usually be in the same
 folder as `go.mod` or `.git`.
 
-With such a configuration, you can put `.sql` files containing SQL function declarations *anywhere*
+With such a configuration, you can put `.sql` files containing SQL function declarations and migrations *anywhere*
 in your source tree.
 
 The schemas listed in `pgpkg.toml` are automatically created by pgpkg when it starts.
@@ -127,6 +127,7 @@ Here's an example `pgpkg.toml`:
     Schemas = [ "schema1", "schema2" ]
     Extensions = [ "pgcrypto", "tablefunc" ]
     Uses = [ "github.com/owner/types", "github.com/owner/constants" ]
+    Migrations = [ "schema1/migration1.sql", "schema2/migration2.sql", "schema1/migration3.sql" ]
 
 pgpkg maintains its own private schema, unsurprisingly called `pgpkg`. This is described in more detail below.
 
@@ -165,6 +166,11 @@ automatically by `pgpgk` if they don't already exist. `pgpkg` reduces privileges
 `pgpkg import <path>` (where <path> is the path to the package you want to import), which will automatically add the
 imported package name to the `Uses` clause.
 
+### `Migrations`
+
+`Migrations` is a list of SQL scripts which will be executed sequentially in the order they appear. Migrations
+are explained in detail [below](#migrated-objects).
+
 ## Functions, Views and Triggers
 
 In pgpkg, functions, views or triggers are called **managed objects**. These objects are declared only once,
@@ -202,11 +208,13 @@ appear in migration scripts, and they should not generally be created or dropped
 
 Unlike managed objects, pgpkg never automatically creates or drops migrated objects. Instead, their state
 is defined by a sequence of *migration scripts* - SQL scripts with no special syntax or filenames - which are
-executed in the order specified by a migration configuration file. 
+executed in the order specified by the `Migrations` clause of your `pgpkg.toml` file.
 
-Migration scripts are stored in a directory whose root contains a file called `@migration.pgpkg`.
-This directory must be a child of the directory containing `pgpkg.toml`. The scripts themselves are
-simple `.sql` files containing any number of SQL statements. 
+Like managed scripts, migration scripts can appear anywhere in your directory tree.
+
+The important difference between a migration script and other scripts is that a given migration script is guaranteed
+to only execute in a given database once. Migration scripts are also guaranteed to execute in the order listed in the
+`Migrations` clause.
 
 You can put any SQL statements at all in a migration script, but you should not generally include functions, views
 or triggers, since these are *managed objects* (see above). Example statements in migration scripts might include
@@ -217,38 +225,28 @@ any or all of:
 * `create domain ...`
 * `create type ...`
 
-The file `@migration.pgpkg` lists the migration scripts in the order that they are to be executed.
-`@migration.pgpkg` can also contain blank lines and comments.
-
-> The "@" in the filename is intended to make the file appear at the top of a directory when viewed in an IDE.
-
-Here's an example `@migration.pgpkg` for a fictional database:
-
-    story.sql        # create the story table  
-    epic.sql         # create an epic table, also adds epic column to story table.
-
 When you need to make changes to a schema, simply create a new SQL file containing the changes, and add it
-to the end of `@migration.pgpkg`.
+to the end of the `Migrations` clause.
 
 > We've found that using a versioning convention on your migration scripts makes it easier to reason about your schema.
 > For example, if you need to make a change to a `story` table created in `story.sql`,
 > put those changes in a file called `story@001.sql`. This will group all changes to the `story` table
 > together in your IDE. Note that this is just a convention, and not a requirement of `pgpkg`.
-> Remember that the specific order that these scripts are run is specified only in the `@migration.pgpgk` file.
+> Remember that the specific order that these scripts are run is specified only in the `Migrations` clause.
 
 When `pgpkg` is run, it finds any scripts in the migration catalog which have not already been executed,
-and executes them. Scripts are always run in the exact order specified in `@migration.pgpkg`.
+and executes them. Scripts are *always* run in the exact order specified in the `Migrations` clause.
 
-**Warning**: The relative path name used for each migration script is used to track if it has been run or not.
-You should not change the path of a migration script once it has been executed.
+> **Warning**: The **base filename** used for each migration script is used to track if it has been run or not.
+> You should not change the filename of a migration script once it has been executed.
 
-Regardless of the number of migration scripts to be run, all scripts are run in a single transaction.
-If any migration script fails, the entire operation is aborted and the database is left unmodified.
+It is, however, safe to move the migration scripts, as long as you update the `Migrations` clause as well.
 
-pgpkg will print an error if a file exists in or under the migration directory, but is not listed in `@migration.pgpkg`.
+Regardless of the number of migration scripts that need to be run for a given migration, all scripts are run in
+a single transaction. If any migration script fails, the entire operation is aborted and the database
+is left unmodified.
 
-Scripts in the migration directory must not declare managed objects. Doing so is likely to cause unexpected
-behaviour.
+Migration scripts should not declare managed objects. Doing so is likely to cause unexpected behaviour.
 
 Migrated objects are expected to be created only in the schemas declared in `pgpkg.toml`. `pgpkg` may refuse to run
 scripts which perform operations outside declared schemas, but note that this is not yet implemented reliability.
@@ -258,7 +256,7 @@ merge migration scripts from git branches into main. pgpkg's approach means that
 are unlikely to create migration script merge conflicts.
 
 In the event that two schema changes are made by different teams and then merged, there is little chance that they
-will be dependent on one another, which means they can be added to `@migration.pgpkg` in any order. Conflicts will only
+will be dependent on one another, which means they can be added to `pgpkg.toml` in any order. Conflicts will only
 arise if teams create identical filenames.
 
 ## Tests
@@ -413,9 +411,9 @@ If any `options` are specified, they are processed as described below.
 if one is not specified), and adds it to the Uses clause of the `pgpkg.toml` file
 if it's not there already.
 
-The import process copies `pgpkg` files including `pgpkg.toml`, `@migration.pgpkg`, the directory
-structure, and all `.sql` files into a cache folder called `.pgpkg` in the target package. If the SQL code
-in the from-package is mixed with native code, the native code is **not** copied.
+The import process copies `pgpkg.toml`, the directory structure, and all `.sql` files into a cache folder called
+`.pgpkg` in the target package. If the SQL code in the from-package is mixed with native code, the native code
+is **not** copied.
 
 If the specified `from-package` has dependencies that have not previously been imported into the current package,
 those dependencies are also imported.

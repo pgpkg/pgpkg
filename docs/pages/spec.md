@@ -27,7 +27,7 @@ are contained in files which may specify one or more SQL statements.
 
 The rules for a `pgpkg` package are simple:
 
-* Migration scripts are stored, exclusively, under a directory containing the file `@migration.pgpkg`.
+* Migration scripts are listed in the `Migrations` clause of `pgpkg.toml`.
   Migrations can contain any valid SQL, but should not normally include functions, views or triggers.
 * Files containing tests are named `*_test.sql` and must only contain `create function` statements.
 * A file which is neither a test nor a migration, by construction, contains only _managed objects_. 
@@ -53,10 +53,8 @@ The general layout of a pgpkg package includes the following files:
     ├── mob1_test.sql     -- SQL files containing test functions
     ├── ...
     ├── pgpkg.toml        -- package configuration (defines the root of the package)
-    └── schema            -- migration files
-        ├── @migration.pgpkg  -- ordered list of files to migrate
-        ├── table.sql     -- SQL files containing migration code
-        └── ...
+    ├── table.sql         -- SQL files containing migration or function code
+    └── ...
 
 `pgpkg` is designed to be used alongside a host language such as Go or Java. For packages
 which are not intended for distribution, it is OK to mix SQL and non-SQL files in the same directory.
@@ -74,6 +72,10 @@ There is not much to a package configuration:
     Schema = "example"
     Extensions = [ "uuid-ossp" ]
     Uses = [ "github.com/pgpkg/another-example" ]
+    Migrations = [
+      "migration1.sql",
+      "migration2.sql" 
+    ]
 
 `Package` is a unique package identifier. It's intended to be a URL where the package can
 be downloaded. It uses the Go naming style.
@@ -103,45 +105,37 @@ See [safety](safety.md) for more information.
 
 ## Migrations
 
-Any directory containing a file called `@migration.pgpkg` is considered to be a
-migration directory. There can only be a single migration directory in a package.
-SQL files can appear directly inside this directory, or inside any subdirectory.
+Files used to migration database objects are listed in the `Migrations` clause of `pgpkg.toml`.
+Managed objects and tests will not be recognised if they appear in this clause.
 
-By convention, this directory is named `schema`, but that is not a requirement of `pgpkg`.
+Only files named in the `Migrations` clause will be used in a migration.
 
-Managed objects and tests will not be recognised if they appear in a migration directory.
-
-Only files named in the `@migration.pgpkg` file will be used in a migration. `pgpkg`
-will print a warning if a SQL file is found in the migration directory, but is
-not listed in `@migration.pgpkg`.
-
-The migration folder can contain SQL scripts that are typical for a database migration tool.
+Migration scripts can contain SQL that is typical for a database migration tool.
 When pgpkg begins a migration, it runs any scripts it hasn't seen before, the order specified
-in `@migration.pgpkg`.
+in `Migrations`.
 
 Scripts are run with the role name  of the package (eg, `$schema`), so objects created by a
 migration are owned by the package's schema.
 
-The path name of migration scripts, relative to the migration directory, is used to determine
-if a migration script needs to be run. This path name includes the name of any subdirectories
-under the migration directory. When successful, the name of each script is stored in the
-`pgpkg` schema's database, thus preventing the script from running again in the future.
+The base file name of migration script, not including its path, is used to determine if a migration script
+needs to be run. When successful, the name of each script is stored in the `pgpkg` schema's database, thus preventing
+the script from running again in the future.
 
 > WARNING: Renaming a migration script may cause the script to run again during a
 > migration. Once you deploy a migration, it should not be renamed.
 
-`@migration.pgpkg`, which must exist in the top level migration directory, lists the filenames of
-the migration scripts that must be run, one file per line. Migration scripts are run strictly
-in the order that they are found in this file. The file may refer to scripts found in subdirectories of the
-migration folder. Comments (starting with `#`) and blank lines are allowed in this file.
+The `Migrations` clause of `pgpkg.toml`, lists the filenames of
+the migration scripts that must be run. Migration scripts are run strictly
+in the order that they are found in the config.
 
-> File names in `pgpkg` **never** determine or influence the order of execution of a migration.
+> File names in `Migrations` **never** determine or influence the order of execution of a migration.
+> Migrations are performed strictly in the order specified, with no exceptions.
 
-Using an index file means you can group migration scripts by name, which makes managing
+Using an indexed list means you can group migration scripts by name in your filesystem, which makes managing
 them much easier. For example, if a script called `example.sql` creates a table called `example`,
 and we later need to add a column to it, we can do that in a file called `example@001.sql` -
 which will appear under the `example.sql` script in most IDEs. However, the new script
-can be added to the end of the `@migration.pgpkg` file, meaning that it will run last.
+can be added to the end of the `Migrations` clause, meaning that it will run last.
 
 Alternatively, we could also put the `create table` and `alter table` scripts in a subdirectory
 called `example`. This will let us group all changes for an entity together, which makes it easier to

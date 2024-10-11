@@ -133,9 +133,13 @@ Let's create a table called 'contact'. Edit `schema/contact.sql`:
     );
 
 We need to tell pgpkg the order in which migration scripts need to be run.
-To do this, edit the file `schema/@migration.pgpkg`, and add the single line:
+To do this, edit the `pgpkg.toml` file, and add a `Migrations` clause:
 
-    contact.sql
+    Package = "github.com/example/hello-pgpkg"
+    Schemas = [ "hello" ]
+    Migrations = [
+        "schema/contact.sql"
+    ]
 
 `pgpkg` keeps track of the migration scripts it has already run, so you can simply 
 apply the updated package again:
@@ -157,11 +161,15 @@ file `schema/contact@001.sql`:
     insert into hello.contact (name) values ('Postgresql Community');
 
 Remember that pgpkg needs to know the order in which migrations will run, so you
-need to add this new migration script to `schema/@migration.pgpkg`. It should now
-look like this:
+need to add this new migration script to `pgpkg.toml`. The `pgpkg.toml` file should now look
+like this:
 
-    contact.sql
-    contact@001.sql
+    Package = "github.com/example/hello-pgpkg"
+    Schemas = [ "hello" ]
+    Migrations = [
+        "schema/contact.sql",
+        "schema/contact@001.sql"
+    ]
 
 You can again apply the updated package to the database:
 
@@ -177,7 +185,7 @@ Let's see if the data has been added:
     (1 row)
 
 Great! Note that the filename `contact@001.sql` is just a convention. It's not
-required by pgpkg, which only cares about the list of filenames in `@migration.pgpkg`.
+required by pgpkg, which only cares about the list of filenames in the `Migrations` clause.
 However, this naming convention means that most IDEs will list migrations in
 order, with `contact.sql` followed by `contact@001.sql`. This makes it much easier to
 understand how objects have changed over many migrations - especially when migrations
@@ -294,7 +302,6 @@ Here's the directory tree that we created:
     ├── func.sql
     ├── pgpkg.toml
     ├── schema
-    │   ├── @migration.pgpkg
     │   ├── contact.sql
     │   └── contact@001.sql
     ├── world.sql
