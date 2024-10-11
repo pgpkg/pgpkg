@@ -1,5 +1,7 @@
 # pgpkg FAQ
 
+## General Questions
+
 ### What is pgpkg?
 
 pgpkg is a command-line tool (and Go library) which makes it easy to write and deploy pl/pgsql database functions and
@@ -161,3 +163,34 @@ table before you drop it, so you can recover it manually if you need to. Remove 
 future migrations. Write SQL unit tests.
 
 And make frequent backups. You know, just in case. 
+
+## pgpkg changes
+
+### What happened to @migration.pgpkg?
+
+> `@migration.pgpkg` is now considered deprecated.
+
+Early versions of `pgpkg` used a special file, `@migration.pgpkg`, to list migration scripts.
+The directory for this file was treated as special.
+
+`@migration.pgpkg` has been replaced with the `Migrations` clause in `pgpkg.toml`. 
+
+To convert from `@migrations.pgpkg` in a directory called `schema` that contains the following:
+
+    table1.sql
+    table2.sql
+    table3.sql
+
+simply add a `Migrations` clause to your `pgpkg.toml` file:
+
+    Migrations = [
+        "schema/table1.sql",
+        "schema/table2.sql",
+        "schema/table3.sql",
+    ]
+
+and remove the `@migration.pgpkg` file.
+
+`pgpkg` uses only the filename part of the path to determine if a migration script has been run already.
+This means that after upgrading from `@migration.pgpkg`, you can move your migration scripts anywhere in your
+directory tree.

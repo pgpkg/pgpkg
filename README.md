@@ -50,5 +50,7 @@ Contributors welcome. Contact me at [mark@commandquery.com](mailto:mark@commandq
 
 ## Release Notes
 
-2024-10-11 --force-role option allows the default package role name to be overridden.
-2024-10-11 removed character set restriction from schema names in TOML files.
+* 2024-10-11 Added `Migrations` clause to `pgpkg.toml`. `@migration.pgpkg` is now deprecated.
+  [See the faq](docs/pages/faq.md#what-happened-to-migrationpgpkg) for more details.
+* 2024-10-11 --force-role option allows the default package role name to be overridden.
+* 2024-10-11 removed character set restriction from schema names in TOML files.

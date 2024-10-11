@@ -2,11 +2,6 @@
 
 ## Priority
 
-- [X] use toml file to list migrations, enable mix of migrations and regular code
-  - create table (etc) can't be used in MOBs so risk is minimal 
-- [X] use filename instead of whole path for migrations - enforce no dupes policy
-- [ ] check that migration config works with imported packages
-- [ ] update docs re @migration.pgpkg
 - [ ] remove @migration.pgpkg (some time after docs updated) 
 - [ ] unmatched $$ at EOL causes a panic
 - [ ] don't run tests if nothing's changed
@@ -194,3 +189,8 @@
 - [X] update README, add release notes, clean up docs. Then we can push it.
 - [X] support for CREATE CAST.
 - [X] support for arbitrary commands in managed objects (this might be removed later)
+- [X] use toml file to list migrations, enable mix of migrations and regular code
+  - create table (etc) can't be used in MOBs so risk is minimal
+- [X] use filename instead of whole path for migrations - enforce no dupes policy
+- [X] check that migration config works with imported packages
+- [X] update docs re @migration.pgpkg
