@@ -9,8 +9,10 @@ In the meantime, you can download a package and install it manually.
 
 > pgpkg is in early alpha state, so we don't have any binaries available yet.
 
-1. If you need to, download and [install Go](https://go.dev/dl/) (1.20 or later).
-2. run: `go install github.com/pgpkg/cmd/pgpkg`
+1. If you need to, download and [install Go](https://go.dev/dl/) (1.23 or later).
+2. run: `go install github.com/pgpkg/pgpkg/cmd/pgpkg@latest`
+
+See the [tutorial](tutorial/tutorial.md) for more information
 
 ## Database Access
 

@@ -28,9 +28,12 @@ then `pgpkg` should work.
 
 ## Installing pgpkg
 
-Install pgpkg:
+We don't currently distribute binaries for pgpkg, but will soon. In the meantime, you need to install
+the latest version of Go (1.23) and have a C compiler available. Then you can install pgpkg with:
 
-    $ go install github.com/pgpkg/cmd/pgpkg
+    $ go install github.com/pgpkg/pgpkg/cmd/pgpkg@latest
+
+By default, this will install pgpkg into `~/go/bin`, which you can add to your `$PATH` if you like.
 
 ## Creating a database
 

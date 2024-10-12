@@ -47,11 +47,12 @@ same operation in a host language like Go, Java or Python. And it's likely to ru
 
 ## Downloading pgpkg
 
-At the moment, the easiest way to try pgpkg is to [install Go](https://go.dev/dl/) (1.20 or later) and run:
+At the moment, the easiest way to try pgpkg is to [install Go](https://go.dev/dl/) (1.23 or later) and run:
 
-    go install github.com/pgpkg/cmd/pgpkg
+    go install github.com/pgpkg/pgpkg/cmd/pgpkg@latest
 
-This will install pgpkg in your GOBIN directory. If that's in your `$PATH` then you're set.
+This will install pgpkg in your GOBIN directory. If that's in your `$PATH` then you're set. See the
+[tutorial](pages/tutorial/tutorial.md) for more information.
 
 ## Status
 
