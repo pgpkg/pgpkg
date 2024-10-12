@@ -142,7 +142,8 @@ pgpkg maintains its own private schema, unsurprisingly called `pgpkg`. This is d
 code and tables to be declared only in these schemas.
 
 `pgpkg` automatically creates each schema exactly as it is named here. Schema names can
-use almost any characters, and are therefore **case-sensitive**.
+use almost any characters, and are therefore **case-sensitive**. In SQL scripts, Postgres converts
+unquoted names to lowercase, so that's what we recommend you use here.
 
 Schema names with uppercase or non-alphanumeric characters will generally need to be explicitly quoted in your SQL scripts. For example, with this configuration:
 

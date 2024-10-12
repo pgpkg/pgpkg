@@ -2,6 +2,8 @@
 
 ## Priority
 
+- [ ] add a URL in the deprecation warning for @migrations.pgpkg pointing to the FAQ
+- [ ] add pointers from the FAQ to the spec and manpage.
 - [ ] remove @migration.pgpkg (some time after docs updated) 
 - [ ] unmatched $$ at EOL causes a panic
 - [ ] don't run tests if nothing's changed

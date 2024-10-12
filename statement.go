@@ -3,7 +3,7 @@ package pgpkg
 import (
 	"fmt"
 	"github.com/lib/pq"
-	pg_query "github.com/pganalyze/pg_query_go/v4"
+	pg_query "github.com/pganalyze/pg_query_go/v5"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,7 +28,7 @@ func AsString(node *pg_query.Node) string {
 func QualifiedName(nodes []*pg_query.Node) string {
 	var names []string
 	for _, node := range nodes {
-		names = append(names, AsString(node))
+		names = append(names, quote(AsString(node)))
 	}
 	return strings.Join(names, ".")
 }
@@ -190,9 +190,8 @@ func (s *Statement) Location() string {
 }
 
 func (s *Statement) LocationOffset(offset int) string {
-	return fmt.Sprintf("%s:%d", s.Unit.Location(), s.LineNumber + offset)
+	return fmt.Sprintf("%s:%d", s.Unit.Location(), s.LineNumber+offset)
 }
-
 
 func (s *Statement) DefaultContext() *PKGErrorContext {
 	return &PKGErrorContext{

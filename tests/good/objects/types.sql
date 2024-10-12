@@ -1,0 +1,1 @@
+create type "object schema".castable as (i integer);

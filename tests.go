@@ -50,10 +50,11 @@ func (t *Tests) parse() error {
 			}
 
 			// Get the unqualified name of the function.
-			fname := strings.ToLower(strings.TrimPrefix(obj.ObjectName, obj.ObjectSchema+"."))
+			fname := strings.ToLower(strings.TrimPrefix(obj.ObjectName, "\""+obj.ObjectSchema+"\"."))
 			argIndex := strings.IndexRune(fname, '(')
-			fname = fname[:argIndex]
-			//fname = strings.TrimSuffix(fname, "()") // FIXME: BUG: test funcs with args won't end in ()!!!!
+
+			// strip the quotes and the args
+			fname = fname[1 : argIndex-1]
 
 			// test_function_name is deprecated. Use function_name_test, to match filename.
 			isTestFunction := strings.HasSuffix(fname, "_test")

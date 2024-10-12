@@ -1,15 +1,14 @@
 package pgpkg
 
 import (
-	pg_query "github.com/pganalyze/pg_query_go/v4"
+	pg_query "github.com/pganalyze/pg_query_go/v5"
 )
 
-// Rewrite and the statement source to:
-// * Add a SECURITY DEFINER
-// * Set the search_path to [schema, temp, public]
-//
-// This makes functions a bit more secure.
+// Rewrite the statement source to set the search_path to [schema, temp, public]
+// NOTE: rewriting doesn't seem to preserve the quotes in function arguments.
+// This appears to be a problem with pg_analyze_go.
 func rewrite(stmt *Statement) error {
+
 	parseResult, err := pg_query.Parse(stmt.Source)
 	if err != nil {
 		return PKGErrorf(stmt, err, "unable to rewrite function")

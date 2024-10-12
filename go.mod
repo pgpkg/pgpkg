@@ -1,14 +1,15 @@
 module github.com/pgpkg/pgpkg
 
-go 1.19
+go 1.23
 
 require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/lib/pq v1.10.7
-	github.com/pganalyze/pg_query_go/v4 v4.2.3
-)
+	//github.com/pganalyze/pg_query_go/v4 v4.2.3
+//)
 
-require (
-	github.com/golang/protobuf v1.4.2 // indirect
-	google.golang.org/protobuf v1.23.0 // indirect
+//require (
+//	github.com/golang/protobuf v1.5.0 // indirect
+	github.com/pganalyze/pg_query_go/v5 v5.1.0 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 )

@@ -52,6 +52,9 @@ in the folder project folder:
     Package = "github.com/example/hello-pgpkg"
     Schemas = [ "hello" ]
 
+> Note that schema names in the `toml` file are **case-sensitive**. In SQL scripts, Postgres converts unquoted
+> names to lowercase, so that's what we recommend you use here.
+
 Create your first stored function in `func.sql`:
 
     create or replace function hello.func() returns void language plpgsql as $$

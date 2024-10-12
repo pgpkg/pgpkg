@@ -2,7 +2,7 @@ package pgpkg
 
 import (
 	"fmt"
-	pg_query "github.com/pganalyze/pg_query_go/v4"
+	pg_query "github.com/pganalyze/pg_query_go/v5"
 	"strings"
 )
 
@@ -30,6 +30,11 @@ func getParamType(fp *pg_query.FunctionParameter) string {
 	return getTypeName(fp.ArgType)
 }
 
+// Convert the identifier to a quoted string. If the string contains ", these are replaced with "".
+func quote(v string) string {
+	return "\"" + strings.Replace(v, "\"", "\"\"", -1) + "\""
+}
+
 func (s *Statement) getFunctionObject() (*ManagedObject, error) {
 	createFunctionStmt := s.Tree.Stmt.GetCreateFunctionStmt()
 	pkg := s.Unit.Bundle.Package
@@ -55,8 +60,11 @@ func (s *Statement) getFunctionObject() (*ManagedObject, error) {
 	return &ManagedObject{
 		ObjectSchema: schema,
 		ObjectType:   "function",
-		ObjectName:   fmt.Sprintf("%s.%s(%s)", schema, AsString(createFunctionStmt.Funcname[1]), strings.Join(args, ",")),
-		ObjectArgs:   args,
+
+		// note that pg_analyze_go doesn't seem to support quoted argument names in functions. To avoid assumptions
+		// about future pg_analyze_go future behaviour, we won't support them here either.
+		ObjectName: fmt.Sprintf("%s.%s(%s)", quote(schema), quote(AsString(createFunctionStmt.Funcname[1])), strings.Join(args, ",")),
+		ObjectArgs: args,
 	}, nil
 }
 
@@ -88,7 +96,7 @@ func (s *Statement) getTriggerObject() (*ManagedObject, error) {
 	return &ManagedObject{
 		ObjectSchema: schema,
 		ObjectType:   "trigger",
-		ObjectName:   fmt.Sprintf("%s on %s.%s", name, schema, table),
+		ObjectName:   fmt.Sprintf("%s on %s.%s", quote(name), quote(schema), quote(table)),
 	}, nil
 }
 
@@ -110,7 +118,7 @@ func (s *Statement) getViewObject() (*ManagedObject, error) {
 	return &ManagedObject{
 		ObjectSchema: schema,
 		ObjectType:   "view",
-		ObjectName:   fmt.Sprintf("%s.%s", schema, name)}, nil
+		ObjectName:   fmt.Sprintf("%s.%s", quote(schema), quote(name))}, nil
 }
 
 func (s *Statement) getCommentObject() (*ManagedObject, error) {
@@ -125,7 +133,7 @@ func (s *Statement) getCommentObject() (*ManagedObject, error) {
 		return &ManagedObject{
 			ObjectSchema: AsString(funcObject.Objname[0]),
 			ObjectType:   "comment on function",
-			ObjectName:   fmt.Sprintf("%s.%s", AsString(funcObject.Objname[0]), AsString(funcObject.Objname[1])),
+			ObjectName:   fmt.Sprintf("%s.%s", quote(AsString(funcObject.Objname[0])), quote(AsString(funcObject.Objname[1]))),
 		}, nil
 
 	case pg_query.ObjectType_OBJECT_COLUMN:
@@ -133,7 +141,7 @@ func (s *Statement) getCommentObject() (*ManagedObject, error) {
 		return &ManagedObject{
 			ObjectSchema: AsString(targetName.Items[0]),
 			ObjectType:   "comment on column",
-			ObjectName:   fmt.Sprintf("%s.%s.%s", AsString(targetName.Items[0]), AsString(targetName.Items[1]), AsString(targetName.Items[2])),
+			ObjectName:   fmt.Sprintf("%s.%s.%s", quote(AsString(targetName.Items[0])), quote(AsString(targetName.Items[1])), quote(AsString(targetName.Items[2]))),
 		}, nil
 
 	case pg_query.ObjectType_OBJECT_VIEW:
@@ -141,7 +149,7 @@ func (s *Statement) getCommentObject() (*ManagedObject, error) {
 		return &ManagedObject{
 			ObjectSchema: AsString(targetName.Items[0]),
 			ObjectType:   "comment on view",
-			ObjectName:   fmt.Sprintf("%s.%s", AsString(targetName.Items[0]), AsString(targetName.Items[1])),
+			ObjectName:   fmt.Sprintf("%s.%s", quote(AsString(targetName.Items[0])), quote(AsString(targetName.Items[1]))),
 		}, nil
 
 	default:

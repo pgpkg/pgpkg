@@ -1,0 +1,7 @@
+### TODO: Rename schema to something quoted
+Package = "github.com/pgpkg/objects"
+Schema = "object schema"
+Migrations = [
+    "types.sql",
+    "tables.sql"
+]
