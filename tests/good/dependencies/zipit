@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo "-----------------"
+for i in {1..100}; do
+  rm a.zip
+  pgpkg export ./a
+  lc=`unzip -l a.zip | wc -l`
+  if [ $lc != 68 ]; then
+    echo "unexpected line count $lc" > /dev/stderr
+    echo "-----------------"
+    exit 1
+  fi
+
+  echo "WORKED OK"
+  echo ""
+done

@@ -1,3 +1,6 @@
 # Quoted schema name
 Package = "github.com/pgpkg/good-schema-name"
 Schema = "good.Schema Name$!"
+Migrations = [
+    "a/a.sql"
+]

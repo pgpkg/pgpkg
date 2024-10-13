@@ -37,12 +37,12 @@ func doExport() {
 
 	err = pgpkg.WriteProject(zipWriter, p)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "pgpkg: unable to export project: %v", err)
+		fmt.Fprintf(os.Stderr, "pgpkg: unable to export project: %v", err)
 		os.Exit(1)
 	}
 
 	if err := zipWriter.Close(); err != nil {
-		fmt.Fprintln(os.Stderr, "pgpkg: unable to export project: %v", err)
+		fmt.Fprintf(os.Stderr, "pgpkg: unable to export project: %v", err)
 		os.Exit(1)
 	}
 

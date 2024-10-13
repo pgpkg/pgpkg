@@ -1,0 +1,4 @@
+Package = "github.com/bookworkhq/gl"
+Schemas = ["gl"]
+Extensions = ["uuid-ossp"]
+Migrations = ["schema/uuid.sql", "schema/types.sql", "schema/team.sql", "schema/adjustment.sql", "schema/account.sql", "schema/tx.sql", "schema/entry.sql", "schema/message.sql", "schema/item.sql", "schema/unallocated.sql", "schema/allocation.sql", "schema/settings.sql"]

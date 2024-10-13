@@ -1,0 +1,4 @@
+# list a migration with two identical file names on different paths
+Package = "github.com/pgpkg/duplicate-migration-names"
+Schema = "duplicateMigrationNames"
+Migrations = [ "a/a.sql", "b/a.sql" ]

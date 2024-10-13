@@ -217,7 +217,7 @@ func (p *Project) Open(dsn string) (*sql.DB, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, ErrUserRequest
+		return nil, ErrDryRun
 	} else {
 		err = tx.Commit()
 	}

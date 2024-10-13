@@ -1,3 +1,6 @@
 # A deliberate syntax error to help with test reporting.
 Package = "github.com/pgpkg/pgpkg-table-ref"
 Schema = "table_ref"
+Migrations = [
+    "schema/ref.sql"
+]

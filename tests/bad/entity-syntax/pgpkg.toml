@@ -1,3 +1,6 @@
 # A deliberate syntax error to help with test reporting.
 Package = "github.com/pgpkg/pgpkg-entity-syntax"
 Schema = "entity_syntax"
+Migrations = [
+    "schema/syntax.sql"
+]

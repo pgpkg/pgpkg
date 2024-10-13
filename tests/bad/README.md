@@ -4,4 +4,6 @@ Each subdirectory in this directory contains a package that is expected to fail 
 The failure might be caused by any issue, including bad packaging, a migration problem, or
 a pgpkg test failure.
 
-If a test doesn't fail, then the test script fails.
+These tests are listed in pkg_test.go and should be flagged with "expectFailure" set to true.
+
+Run tests from the pgpkg directory using "go test ."

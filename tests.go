@@ -1,10 +1,10 @@
 package pgpkg
 
-// This file runs the tests. Tests are a bit more complicated than you might expect because
+// This file runs the user-defined tests. Tests are a bit more complicated than you might expect because
 // we don't want any results to be written to the database, but we need to maintain
 // various states so we can report errors and get stack traces.
 //
-// Nothing is overly complex; but it's not as simple as just running the units.
+// Nothing is overly complex; but it's not as simple as just executing the units directly.
 
 import (
 	"fmt"
