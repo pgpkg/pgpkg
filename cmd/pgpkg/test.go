@@ -23,10 +23,10 @@ func doTest(dsn string) {
 
 	// The purpose of "pgpkg test" is just to build the schema in a test database
 	// and return, reporting any errors along the way. So that's what we do!
-	tempDbName, err := initTempDb(dsn, flagSet)
+	tempDB, err := initTempDb(dsn, flagSet)
 	if err != nil {
 		pgpkg.Exit(err)
 	}
 
-	dropTempDBOrExit(dsn, tempDbName)
+	dropTempDBOrExit(dsn, tempDB.DBName)
 }

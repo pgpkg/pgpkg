@@ -10,6 +10,13 @@ import (
 	"os"
 )
 
+type TempDB struct {
+	DSN     string
+	DBName  string
+	Path    string
+	Project *pgpkg.Project
+}
+
 // Return a SAFE, random, database name fragment.
 // Take care to ensure that any changes to this function return names that are always safe to use
 // in un-escaped SQL statements.
@@ -78,20 +85,20 @@ func dropTempDBOrExit(dsn string, replDb string) {
 // Set up a project in a temp DB, and return the database's name.
 // Before exiting, the database should be removed by the caller with dropTempDBOrExit().
 // This is used by "pgpkg repl" and "pgpgk test".
-func initTempDb(dsn string, flagSet *flag.FlagSet) (string, error) {
+func initTempDb(dsn string, flagSet *flag.FlagSet) (*TempDB, error) {
 	pkgPath, err := findPkg(flagSet.Args())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	p, err := pgpkg.NewProjectFrom(pkgPath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	tempDbName, err := createTempDB(dsn)
 	if err != nil {
-		return "", fmt.Errorf("pgpkg: unable to create REPL database: %w\n", err)
+		return nil, fmt.Errorf("pgpkg: unable to create REPL database: %w\n", err)
 	}
 
 	// Add the REPL dbname to the DSN, which will override the PGDATABASE environment variable.
@@ -105,8 +112,13 @@ func initTempDb(dsn string, flagSet *flag.FlagSet) (string, error) {
 	if err != nil {
 		// Clean up the database if there's an error; the caller will probably forget to do so.
 		dropErr := dropTempDB(dsn, tempDbName)
-		return "", errors.Join(err, dropErr)
+		return nil, errors.Join(err, dropErr)
 	}
 
-	return tempDbName, nil
+	return &TempDB{
+		DSN:     tempDSN,
+		DBName:  tempDbName,
+		Path:    pkgPath,
+		Project: p,
+	}, nil
 }
