@@ -58,6 +58,9 @@ described in more detail, later.
 
 ## Running pgpkg
 
+The following is an introduction to the `pgpkg` commands. Detailed information about each command
+can be found later in this document.
+
 > Note: by default, `pgpkg` will search for a `pgpkg.toml` file by starting in your working directory and searching
 > the parents. In the following examples, we assume you're in a subdirectory of your package directory, but you can
 > also specify a project directory.
@@ -68,7 +71,8 @@ on the new database:
     pgpkg repl
 
 `repl` is a great tool for quickly testing and exploring your code while developing a new package.
-The database is dropped when you quit `psql`.
+The database is dropped when you quit `psql`. The `--watch` option updates the `repl` database while
+you work.
 
 To perform a test installation of your package into an existing database (specified by the `PG*` environment
 variables): 
@@ -398,11 +402,15 @@ If any `options` are specified, they are processed as described below.
 
 `pgpkg repl` creates a temporary database, deploys the schema into it (effectively using `pgpkg deploy`), and starts
 an interactive `psql`session. This allows you to explore, interact and debug your schema. The temporary database is
-dropped when `psql`is exited.
+dropped when `psql` is quit.
 
 The optional `package` argument is documented in `pgpkg deploy`.
 
-If any `options` are specified, they are processed as described below.
+`--watch`: this option watches the package directory tree for changes. When changes are
+detected, the package is redeployed into the `repl` database. This lets you make changes to
+a `repl` database in real time without needing to re-run pgpkg.
+
+If any other `options` are specified, they are processed as described below.
 
 ### `import` - import a package into the current package
 
