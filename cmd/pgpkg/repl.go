@@ -37,6 +37,15 @@ func doReplSession(tempDB *TempDB) error {
 	return nil
 }
 
+func doWatchUpdate(tempDB *TempDB) error {
+	p, err := pgpkg.NewProjectFrom(tempDB.PkgPath)
+	if err != nil {
+		return err
+	}
+
+	return p.Migrate(tempDB.DSN)
+}
+
 func doRepl(dsn string) {
 	if err := pgpkg.ParseArgs(""); err != nil {
 		pgpkg.Exit(err)
@@ -57,10 +66,21 @@ func doRepl(dsn string) {
 	defer dropTempDBOrExit(dsn, tempDB.DBName)
 
 	if *watchFlag {
-		go watch(tempDB.Path, func(e notify.EventInfo) {
-			fmt.Println("received watch event:", e)
+		watch, err := NewWatch(tempDB.PkgPath)
+		if err != nil {
+			pgpkg.Exit(err)
+		}
+
+		go watch.Watch(func(e []notify.EventInfo) {
+			err := doWatchUpdate(tempDB)
+			if err != nil {
+				pgpkg.Stdout.Printf("[%s] %s\n", "watch", err)
+			} else {
+				pgpkg.Stdout.Printf("[%s] %s\n", "watch", "updated successfully")
+			}
 		})
 	}
+
 	if err = doReplSession(tempDB); err != nil {
 		fmt.Fprintf(os.Stderr, "psql error: %v\n", err)
 	}

@@ -13,7 +13,7 @@ import (
 type TempDB struct {
 	DSN     string
 	DBName  string
-	Path    string
+	PkgPath string
 	Project *pgpkg.Project
 }
 
@@ -118,7 +118,7 @@ func initTempDb(dsn string, flagSet *flag.FlagSet) (*TempDB, error) {
 	return &TempDB{
 		DSN:     tempDSN,
 		DBName:  tempDbName,
-		Path:    pkgPath,
+		PkgPath: pkgPath,
 		Project: p,
 	}, nil
 }
