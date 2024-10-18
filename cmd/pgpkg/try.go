@@ -1,5 +1,5 @@
 package main
 
 func doTry(dsn string) {
-	apply(dsn, false)
+	apply("try", dsn, false)
 }

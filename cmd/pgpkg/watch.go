@@ -24,7 +24,14 @@ func NewWatch(pkgPath string) (*Watch, error) {
 	return &Watch{c: c}, nil
 }
 
-// Watch watches the filesystem for changes to ".sql" files.
+// Watch watches the filesystem for changes to ".sql" and ".toml" files.
+// It waits a few moments after receiving a change event before calling
+// the action function. This is because changes are often clustered together.
+// For example, when editing a file in vi, we get several notifications of
+// the vi swap (which we ignore), file moves, renames, etc. as Vi does its stuff.
+//
+// When Watch does eventually call the action, it passes the full set of events
+// that triggered it.
 func (w *Watch) Watch(then func([]notify.EventInfo)) {
 	defer notify.Stop(w.c)
 
@@ -44,9 +51,8 @@ func (w *Watch) Watch(then func([]notify.EventInfo)) {
 			timer.Reset(delay)
 		} else {
 			timer = time.AfterFunc(delay, func() {
-				fmt.Print("\r")
 				then(events)
-				fmt.Print("pgpkg> ")
+				events = events[0:0]
 			})
 		}
 	}

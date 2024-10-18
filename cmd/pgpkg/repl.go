@@ -37,13 +37,31 @@ func doReplSession(tempDB *TempDB) error {
 	return nil
 }
 
-func doWatchUpdate(tempDB *TempDB) error {
-	p, err := pgpkg.NewProjectFrom(tempDB.PkgPath)
+// Start the watch process. Returns an error if the watch can't start.
+// Otherwise, a goroutine is started which performs the watch operation,
+// and this function returns nil.
+func startReplWatch(tempDB *TempDB) error {
+	watch, err := NewWatch(tempDB.PkgPath)
 	if err != nil {
-		return err
+		pgpkg.Exit(err)
 	}
 
-	return p.Migrate(tempDB.DSN)
+	go watch.Watch(func(e []notify.EventInfo) {
+		fmt.Print("\r")
+		p, err := pgpkg.NewProjectFrom(tempDB.PkgPath)
+		if err == nil {
+			err = p.Migrate(tempDB.DSN)
+		}
+
+		if err != nil {
+			pgpkg.Stdout.Printf("[%s] %s\n", "watch", err)
+		} else {
+			pgpkg.Stdout.Printf("[%s] %s\n", "watch", "updated successfully")
+		}
+		fmt.Print("pgpkg> ")
+	})
+
+	return nil
 }
 
 func doRepl(dsn string) {
@@ -66,19 +84,9 @@ func doRepl(dsn string) {
 	defer dropTempDBOrExit(dsn, tempDB.DBName)
 
 	if *watchFlag {
-		watch, err := NewWatch(tempDB.PkgPath)
-		if err != nil {
+		if err = startReplWatch(tempDB); err != nil {
 			pgpkg.Exit(err)
 		}
-
-		go watch.Watch(func(e []notify.EventInfo) {
-			err := doWatchUpdate(tempDB)
-			if err != nil {
-				pgpkg.Stdout.Printf("[%s] %s\n", "watch", err)
-			} else {
-				pgpkg.Stdout.Printf("[%s] %s\n", "watch", "updated successfully")
-			}
-		})
 	}
 
 	if err = doReplSession(tempDB); err != nil {
