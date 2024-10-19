@@ -363,16 +363,16 @@ complete.
 
 ### `deploy` - deploy packages
 
-    pgpkg deploy [options] [package]
+    pgpkg deploy [pgpkg-options] [deploy-options] [package]
 
-`pgpkg deploy` installs a package into the database (or updates them if they are already present),
-and - unless directed otherwise with *options* - runs the SQL unit tests.
+`pgpkg deploy` installs or updates a package in the database, and runs the SQL unit tests (unless directed
+otherwise with *pgpkg-options).
 
 If `package` is specified, it should name a directory or ZIP file containing the package to be installed.
 If not specified, `pgpkg` will search the current working directory and parent directories to find a `pgpkg.toml`
 file, and install from there. This allows the command to be run from any subdirectory of a package.
 
-If any `options` are specified, they are processed as described below.
+If any `pgpkg-options` are specified, they are processed as described below.
 
 If the installation succeeds and the tests pass, `pgpkg deploy` will commit the transaction, resulting in permanent
 changes to the database.
@@ -385,20 +385,37 @@ been performed are then applied in the order specified.
 
 `pgpkg` will create the schemas and extensions specified in the `pgpkg.toml` file.
 
+#### deploy options
+
+`--watch`: (experimental) this option watches the package directory tree for changes, and prevents pgpkg from
+terminating. When changes are detected, another deployment is performed. This lets you make changes to
+a database in real time without needing to re-run pgpkg.
+
+> **Warning**: `pgpkg deploy --watch` will deploy migrations as they are updated, which is very unsafe.
+> You should take great care when using `--watch` with `deploy`.
+
+See [below](#pgpgk-options) for a description of the `pgpkg-options`.
+
 ### `try` - deployment dry run
 
-    pgpkg try [options] [package]
+    pgpkg try [pgpkg-options] [try-options] [package]
 
 `pgpkg try` is identical to `pgpkg deploy`, except that, even if deployment is successful, the database transaction is
 aborted, and the database is left unchanged. `pgpkg try` lets you try a deployment before committing to it.
 
 The optional `package` argument is documented in `pgpkg deploy`. 
 
-If any `options` are specified, they are processed as described below.
+#### try options
+
+`--watch`: (experimental) this option watches the package directory tree for changes, and prevents pgpkg from
+terminating. When changes are detected, another dry run is performed. This lets you make changes to
+a schema in real time without needing to re-run pgpkg.
+
+See [below](#pgpgk-options) for a description of the `pgpkg-options`.
 
 ### `repl` - interact with packages
 
-    pgpkg repl [options] [package]
+    pgpkg repl [pgpkg-options] [repl-options] [package]
 
 `pgpkg repl` creates a temporary database, deploys the schema into it (effectively using `pgpkg deploy`), and starts
 an interactive `psql`session. This allows you to explore, interact and debug your schema. The temporary database is
@@ -406,11 +423,13 @@ dropped when `psql` is quit.
 
 The optional `package` argument is documented in `pgpkg deploy`.
 
-`--watch`: this option watches the package directory tree for changes. When changes are
+#### repl options
+
+`--watch`: (experimental) this option watches the package directory tree for changes. When changes are
 detected, the package is redeployed into the `repl` database. This lets you make changes to
 a `repl` database in real time without needing to re-run pgpkg.
 
-If any other `options` are specified, they are processed as described below.
+See [below](#pgpgk-options) for a description of the `pgpkg-options`.
 
 ### `import` - import a package into the current package
 
@@ -470,7 +489,7 @@ This will ensure that the schema is upgraded before the application starts.
 > either the schema files or the pgpkg binary. See
 > [the pgpkg tutorial](tutorial/go.md) for more information.
 
-## Options
+## pgpgk options
 
 `pgpkg` supports a number of command-line options.
 

@@ -144,7 +144,10 @@ brews:
     #
     # Templates: allowed.
     # Default: inferred from global metadata.
-    description: "pgpkg makes writing and deploying pl/pgsql functions easy."
+    description: |
+      pgpkg is a small, fast CLI tool and Go library that enables ergonomic, simple, reliable, and
+      composable integration of PostgreSQL functions into native code workflows, with transactional migrations,
+      SQL unit tests, seamless deployment and more.
 
     # SPDX identifier of your app's license.
     #
