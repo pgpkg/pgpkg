@@ -40,7 +40,7 @@ func apply(subcommand string, dsn string, commit bool) {
 
 	// This is here just so we can easily add new flags later if needed.
 	flagSet := flag.NewFlagSet(subcommand, flag.ExitOnError)
-	watchFlag := flagSet.Bool("watch", false, "do not quit; watch for changes and reload them")
+	watchFlag := flagSet.Bool("watch", false, "(experimental) do not exit; watch for changes and reload them")
 	if err := flagSet.Parse(os.Args[2:]); err != nil {
 		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
 	}
@@ -62,6 +62,7 @@ func apply(subcommand string, dsn string, commit bool) {
 		pgpkg.Exit(err)
 	}
 
+	pgpkg.Stdout.Println("[warning] --watch is experimental; use with care. please report issues to https://github.com/pgpkg/pgpkg/issues")
 	doWatch(pkgPath, dsn)
 }
 

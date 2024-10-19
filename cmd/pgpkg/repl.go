@@ -71,7 +71,7 @@ func doRepl(dsn string) {
 
 	// This is here just so we can easily add new flags later if needed.
 	flagSet := flag.NewFlagSet("repl", flag.ExitOnError)
-	watchFlag := flagSet.Bool("watch", false, "watch for changes")
+	watchFlag := flagSet.Bool("watch", false, "(experimental) watch for changes, and reload the schema as needed")
 	if err := flagSet.Parse(os.Args[2:]); err != nil {
 		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
 	}
@@ -87,6 +87,8 @@ func doRepl(dsn string) {
 		if err = startReplWatch(tempDB); err != nil {
 			pgpkg.Exit(err)
 		}
+
+		pgpkg.Stdout.Println("[warning] --watch is experimental; use with care. please report issues to https://github.com/pgpkg/pgpkg/issues")
 	}
 
 	if err = doReplSession(tempDB); err != nil {
