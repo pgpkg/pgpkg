@@ -37,13 +37,31 @@ func doReplSession(tempDB *TempDB) error {
 	return nil
 }
 
-func doWatchUpdate(tempDB *TempDB) error {
-	p, err := pgpkg.NewProjectFrom(tempDB.PkgPath)
+// Start the watch process. Returns an error if the watch can't start.
+// Otherwise, a goroutine is started which performs the watch operation,
+// and this function returns nil.
+func startReplWatch(tempDB *TempDB) error {
+	watch, err := NewWatch(tempDB.PkgPath)
 	if err != nil {
-		return err
+		pgpkg.Exit(err)
 	}
 
-	return p.Migrate(tempDB.DSN)
+	go watch.Watch(func(e []notify.EventInfo) {
+		fmt.Print("\r")
+		p, err := pgpkg.NewProjectFrom(tempDB.PkgPath)
+		if err == nil {
+			err = p.Migrate(tempDB.DSN)
+		}
+
+		if err != nil {
+			pgpkg.Stdout.Printf("[%s] %s\n", "watch", err)
+		} else {
+			pgpkg.Stdout.Printf("[%s] %s\n", "watch", "updated successfully")
+		}
+		fmt.Print("pgpkg> ")
+	})
+
+	return nil
 }
 
 func doRepl(dsn string) {
@@ -53,7 +71,7 @@ func doRepl(dsn string) {
 
 	// This is here just so we can easily add new flags later if needed.
 	flagSet := flag.NewFlagSet("repl", flag.ExitOnError)
-	watchFlag := flagSet.Bool("watch", false, "watch for changes")
+	watchFlag := flagSet.Bool("watch", false, "(experimental) watch for changes, and reload the schema as needed")
 	if err := flagSet.Parse(os.Args[2:]); err != nil {
 		pgpkg.Exit(fmt.Errorf("unable to parse arguments: %w", err))
 	}
@@ -66,19 +84,11 @@ func doRepl(dsn string) {
 	defer dropTempDBOrExit(dsn, tempDB.DBName)
 
 	if *watchFlag {
-		watch, err := NewWatch(tempDB.PkgPath)
-		if err != nil {
+		if err = startReplWatch(tempDB); err != nil {
 			pgpkg.Exit(err)
 		}
 
-		go watch.Watch(func(e []notify.EventInfo) {
-			err := doWatchUpdate(tempDB)
-			if err != nil {
-				pgpkg.Stdout.Printf("[%s] %s\n", "watch", err)
-			} else {
-				pgpkg.Stdout.Printf("[%s] %s\n", "watch", "updated successfully")
-			}
-		})
+		pgpkg.Stdout.Println("[warning] --watch is experimental; use with care. please report issues to https://github.com/pgpkg/pgpkg/issues")
 	}
 
 	if err = doReplSession(tempDB); err != nil {
