@@ -5,7 +5,7 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "releaser" ]
   pull_request:
     branches: [ "main" ]
 
