@@ -5,7 +5,7 @@ name: Go
 
 on:
   push:
-    branches: [ "main", "releaser" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -60,11 +60,3 @@ jobs:
 
     - name: Test
       run: go test -v ./...
-
-    - name: Set up GoReleaser
-      uses: goreleaser/goreleaser-action@v4
-      with:
-        version: 'latest'
-        args: release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
