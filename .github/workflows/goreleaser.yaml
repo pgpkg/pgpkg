@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "v*.*.*"  # Trigger only on tags, following a versioning scheme
-    branches:
-      - releaser  # for testing.
 
 jobs:
   release:
