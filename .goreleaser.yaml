@@ -53,6 +53,8 @@ changelog:
 # Homebrew configuration
 # ------------------------------------------------------------------------------------------------------------------------
 
+# WARNING: This is here so we can do a homebrew release at some point, but it needs to be in the homebrew repo.announce:
+# for now, homebrew is disabled in the github action with "args: release --skip=brew". Look for that in the action.
 brews:
   -
     # Name of the recipe
