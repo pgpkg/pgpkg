@@ -22,14 +22,10 @@ builds:
       - linux
     goarch:
       - amd64
-#      - arm64
     ldflags:
       - -s -w
-  - env:
+    env:
       - CGO_ENABLED=1
-#    goos:
-#      - linux
-#      - darwin
 
 archives:
   - format: tar.gz
@@ -255,7 +251,7 @@ brews:
       #
       # Default: default repository branch.
       # Templates: allowed.
-      branch: goreleaser
+      # branch: main
 
       # Optionally a token can be provided, if it differs from the token
       # provided to GoReleaser
