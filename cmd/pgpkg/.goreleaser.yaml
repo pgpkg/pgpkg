@@ -16,11 +16,20 @@ before:
     - go generate ./...
 
 builds:
-  - env:
-      - CGO_ENABLED=1
+  - id: pgpkg
+    main: ./cmd/pgpkg  # Path to your CLI entry point
     goos:
       - linux
-      - darwin
+    goarch:
+      - amd64
+#      - arm64
+    ldflags:
+      - -s -w
+  - env:
+      - CGO_ENABLED=1
+#    goos:
+#      - linux
+#      - darwin
 
 archives:
   - format: tar.gz
