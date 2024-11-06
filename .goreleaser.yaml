@@ -16,15 +16,19 @@ before:
     - go generate ./...
 
 builds:
-  - env:
-      - CGO_ENABLED=1
+  - id: pgpkg
+    main: ./cmd/pgpkg  # Path to your CLI entry point
     goos:
-      # - linux
-      # - windows
-      - darwin
+      - linux
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w
+    env:
+      - CGO_ENABLED=1
 
 archives:
-  - format: tar.gz
+  - format: binary
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -49,6 +53,8 @@ changelog:
 # Homebrew configuration
 # ------------------------------------------------------------------------------------------------------------------------
 
+# WARNING: This is here so we can do a homebrew release at some point, but it needs to be in the homebrew repo.announce:
+# for now, homebrew is disabled in the github action with "args: release --skip=homebrew". Look for that in the action.
 brews:
   -
     # Name of the recipe
@@ -145,9 +151,9 @@ brews:
     # Templates: allowed.
     # Default: inferred from global metadata.
     description: |
-      pgpkg is a small, fast CLI tool and Go library that enables ergonomic, simple, reliable, and
-      composable integration of PostgreSQL functions into native code workflows, with transactional migrations,
-      SQL unit tests, seamless deployment and more.
+      pgpkg is a small, fast CLI tool and Go library that enables seamless integration of
+      PostgreSQL functions into native code workflows. It integrates code management, transactional
+      migrations, SQL unit tests, importable packages, code watching, an SQL REPL, and more.
 
     # SPDX identifier of your app's license.
     #
@@ -247,7 +253,7 @@ brews:
       #
       # Default: default repository branch.
       # Templates: allowed.
-#      branch: main
+      # branch: main
 
       # Optionally a token can be provided, if it differs from the token
       # provided to GoReleaser
