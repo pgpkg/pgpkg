@@ -9,15 +9,16 @@ import (
 // Options is a list of global options used by pgpkg.
 
 var Options struct {
-	Verbose        bool           // print lots of stuff
-	Summary        bool           // print a summary of the installation
-	DryRun         bool           // rollback after installation (default)
-	ShowTests      bool           // Show the result of each SQL test that was run.
-	ShowSkipped    bool           // Show skipped tests
-	SkipTests      bool           // Don't run the tests. Useful when fixing them!
-	IncludePattern *regexp.Regexp // Pattern to use for running tests
-	ExcludePattern *regexp.Regexp // Pattern to use for running tests
-	ForceRole      string         // Use this role instead of package roles
+	Verbose         bool           // print lots of stuff
+	Summary         bool           // print a summary of the installation
+	DryRun          bool           // rollback after installation (default)
+	ShowTests       bool           // Show the result of each SQL test that was run.
+	ShowSkipped     bool           // Show skipped tests
+	SkipTests       bool           // Don't run the tests. Useful when fixing them!
+	KeepTestScripts bool           // Keep the test functions, useful for Go unit testing, use only with temporary databases.
+	IncludePattern  *regexp.Regexp // Pattern to use for running tests
+	ExcludePattern  *regexp.Regexp // Pattern to use for running tests
+	ForceRole       string         // Use this role instead of package roles
 }
 
 func showHelp() {
@@ -25,32 +26,38 @@ func showHelp() {
 
 Usage
 
-    pgpkg [options] pkg
+    pgpkg [options] [pkg]
 
 where "pkg" is a directory (or the child of a directory) containing "pgpkg.toml", or a ZIP file.
+If not set, pkg searches for pgpkg.toml in the current and parent directories.
 
 pgpkg works using the current Postgresql environment (PGHOST, PGDATABASE, ...).
 
 Transactions and Testing Options
 
 --dry-run
-    perform a full schema migration (including tests), but don't commit the results.
+    Perform a full schema migration (including tests), but don't commit the results.
     The database is therefore left unchanged.
 
 --show-tests
     This option prints a pass/fail status for each test that's run.
 
 --skip-tests
-    do not run any tests before committing the changes. You should take care with this option.
+    Do not run any tests before committing the changes. You should take care with this option.
+
+--keep-test-scripts
+    Do not purge the test scripts when finished. Useful for integrating with Go unit tests.
+	WARNING: Migrations performed using -keep-test-scripts cannot be upgraded later.
+	Only use this option on temporary, disposable databases. 
 
 --include-tests=[regexp]
-    only run tests whose SQL function name matches the given regexp.
+    Only run tests whose SQL function name matches the given regexp.
 
 --exclude-tests=[regexp]
-    run all tests, except those whose SQL function name matches the given regexp.
+    Run all tests, except those whose SQL function name matches the given regexp.
 
 --show-skipped
-    logs all tests, even if they are skipped. By default, only tests that run are logged.
+    Logs all tests, even if they are skipped. By default, only tests that run are logged.
 
 Logging Options
 
@@ -58,10 +65,10 @@ pgpkg normally runs silently (unless your SQL code includes raise notice message
 to display more information:
 
 --verbose
-    This option print logs describing what pgpkg is up to.
+    This option prints logs describing what pgpkg is up to.
 
 --summary
-    This option print a summary of pgpkg operations when it finishes.`)
+    This option prints a summary of pgpkg operations when it finishes.`)
 }
 
 // ParseArgs parses the os.Args for a standard set of OS arguments.
@@ -116,6 +123,9 @@ func ParseArgs(prefix string) error {
 
 		case "skip-tests":
 			Options.SkipTests = true
+
+		case "keep-test-scripts":
+			Options.KeepTestScripts = true
 
 		case "include-tests":
 			var err error

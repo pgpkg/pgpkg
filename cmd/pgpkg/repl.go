@@ -11,9 +11,9 @@ import (
 )
 
 // Start an interactive psql session with the given DSN, and wait for it to exit.
-func doReplSession(tempDB *TempDB) error {
+func doReplSession(dsn string) error {
 	// Create a new command
-	cmd := exec.Command("psql", "-v", "PROMPT1=pgpkg> ", "-v", "PROMPT2=pgpkg| ", tempDB.DSN)
+	cmd := exec.Command("psql", "-v", "PROMPT1=pgpkg> ", "-v", "PROMPT2=pgpkg| ", dsn)
 
 	// Set the command's input and output to standard input and output
 	cmd.Stdin = os.Stdin
@@ -81,7 +81,7 @@ func doRepl(dsn string) {
 		pgpkg.Exit(err)
 	}
 
-	defer dropTempDBOrExit(dsn, tempDB.DBName)
+	defer pgpkg.DropTempDBOrExit(dsn, tempDB.DBName)
 
 	if *watchFlag {
 		if err = startReplWatch(tempDB); err != nil {
@@ -91,7 +91,7 @@ func doRepl(dsn string) {
 		pgpkg.Stdout.Println("[warning] --watch is experimental; use with care. please report issues to https://github.com/pgpkg/pgpkg/issues")
 	}
 
-	if err = doReplSession(tempDB); err != nil {
+	if err = doReplSession(tempDB.DSN); err != nil {
 		fmt.Fprintf(os.Stderr, "psql error: %v\n", err)
 	}
 }

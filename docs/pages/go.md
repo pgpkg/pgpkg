@@ -1,7 +1,9 @@
 ## Deploying with Go
 
 One of pgpkg's features is that it plays nicely with other languages. It plays especially
-nicely with Go, but you can use the features of pgpkg with any language.
+nicely with Go, but you can use most features of pgpkg with any language by calling the CLI.
+
+## Integrating with Go
 
 In this example we're going to integrate our application with a Go program.
 
@@ -112,3 +114,115 @@ Finally, note how your SQL and Go code can live in the same directory:
 
 This makes switching between Go and plpgsql code in your IDE completely seamless.
 
+## Unit Testing with pgpkg and Go
+
+One of the more painful aspects of unit testing in database applications is setting up the data
+for testing. `pgpkg`'s testing framework can help with this by helping with the creation of temporary
+test databases, and providing a mechanism for calling test functions within a unit test.
+
+### Test Setup
+
+Setting up a database for unit testing is pretty easy. Here's an example script that creates a temporary
+database, migrates it to the current version, creates some test data, runs some Go tests, and drops the database
+when it's done. A script like this will typically complete in a few hundred ms:
+
+Let's call this `app_test.go`:
+
+```
+//go:embed pgpkg.toml schema *.sql
+var pgpkgSchema embed.FS
+
+func TestSomeLogic(t *testing.T) {
+
+    // Don't delete test scripts (see below).
+    pgpkg.Options.KeepTestScripts = true
+
+    var err error
+
+    // Create a temporary database for this test. The DSN "" means we
+    // will connect to the database in PGDATABASE and friends, to create
+    // the temporary database that will be used in the test.
+    tempDb, err := pgpkg.CreateTempDB("")
+    if err != nil {
+    	t.Fatalf("unable to create temp db: %v", err)
+    }
+    
+    // Tell pgpkg the name of the database we're going to use.
+    var dsn = "dbname=" + tempDb
+    
+    // Automatically drop the database when we're done.
+    defer func() {
+    	PGXPool.Close()
+    	err := pgpkg.DropTempDB("", tempDb)
+    	if err != nil {
+    		t.Fatalf("unable to drop temporary database %s: %v", dsn, err)
+    	}
+    }()
+    
+    // Initialise pgpkg
+    if err := pgpkg.ParseArgs("pgpkg"); err != nil {
+    	pgpkg.Exit(err)
+    }
+    
+    project := pgpkg.NewProject()
+    if _, err := project.AddEmbeddedFS(pgpkgSchema, "."); err != nil {
+    	pgpkg.Exit(err)
+    }
+    
+    // Migrate the database to the current version.
+    if err := project.Migrate(Config.DatabaseDSN); err != nil {
+    	pgpkg.Exit(err)
+    }
+    
+    // Set up your data.
+    _, err = sql.Exec("select app.init_data()")
+    
+    // Run your tests
+    // ...
+}
+```
+
+The test is run using the normal `go test` commands.
+
+## Using KeepTestScripts
+
+> WARNING: only use KeepTestScripts with temporary, disposable databases. Migrations performed using
+> KeepTestScripts **cannot be upgraded** after being created.
+
+When running tests, `pgpkg` creates all the objects listed in all the `_test.sql` files that it finds. It then runs all
+functions with names ending in `_test` as unit tests. Function names not ending in `_test`, and all views and triggers,
+are available to the unit tests as library objects, for example to set up testing data or perform checks.
+
+In a typical migration, all the unit test and utility functions are automatically deleted after running successfully.
+However, by setting the `KeepTestScripts` option, these objects are retained after the migration is complete, and
+can therefore be used in your Go unit tests.
+
+> The --keep-test-scripts option can be used with the pgpkg CLI to retain test functions for non-go
+> language tests.
+
+By putting our data loading functions into `_test.sql` scripts and setting `KeepTestScripts` on a temporary
+database for our Go unit test, we can create complex data loading functions in SQL as part of our Go unit tests -
+without polluting our production databases.
+
+## Example Data Loading Function
+
+In the above example we had a file called `app_test.go` containing a Go unit test that calls the SQL
+function `app.init_data()` to initialise the data that will be used in the unit test.
+
+The `app.init_data()` function can be created in a file called `app_test.sql` as follows:
+
+```postgresql
+-- Take care that your data loading function's name does not end in _test,
+-- which would make it a unit test.
+create or replace
+    function app.init_data()
+      returns void language 'plpgsql' as $$
+    begin
+        -- ...
+    end;
+$$;
+```
+
+
+If your pgpkg.toml is in the root of your Go source tree, the `app_test.go` and `app_test.sql` files will be next
+to each other in the directory listing and IDE, making this mechanism exceptionally ergonomic.

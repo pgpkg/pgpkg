@@ -132,23 +132,29 @@ func (t *Tests) runTest(tx *PkgTx, testName string, testStmt *Statement) error {
 func (t *Tests) Run(tx *PkgTx) error {
 
 	// Rollback, and return either the error or an error from the rollback.
-	defer func() {
-		if tx != nil {
-			_, rberr := tx.Exec("rollback to savepoint test")
-			if rberr != nil {
-				panic(rberr)
+	if !Options.KeepTestScripts {
+		defer func() {
+			if tx != nil {
+				_, rberr := tx.Exec("rollback to savepoint test")
+				if rberr != nil {
+					panic(rberr)
+				}
 			}
-		}
-	}()
+		}()
+	}
 
-	// Create a savepoint for the entire set of tests.
-	_, err := tx.Exec("savepoint test")
-	if err != nil {
-		return fmt.Errorf("unable to begin test savepoint: %w", err)
+	// Create a savepoint for the entire set of tests. This savepoint ensures that the
+	// test scripts are removed after testing is complete.
+	// Note that there is a separate savepoint for the individual tests.
+	if !Options.KeepTestScripts {
+		_, err := tx.Exec("savepoint test")
+		if err != nil {
+			return fmt.Errorf("unable to begin test savepoint: %w", err)
+		}
 	}
 
 	// Parse all the functions.
-	err = t.parse()
+	err := t.parse()
 	if err != nil {
 		return err
 	}

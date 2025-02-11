@@ -17,6 +17,9 @@ similar to Node packages or Go modules, but note that dependency support is stil
 
 The best place to start is [the pgpkg man page](docs/pages/manual.md).
 
+An initial, detailed set of documentation is [here](docs/index.md). I have been focusing on writing the manual and tutorial,
+so other documents may currently be out of date.
+
 ## Tutorial
 
 The [tutorial for using pgpkg](docs/pages/tutorial/tutorial.md) contains a worked example for
@@ -34,11 +37,6 @@ I work on making it easier to use when I have time. The [TODO](TODO.md) list con
 expect to fix over time.
 
 PRs and issues are welcome.
-
-## Documentation
-
-Initial set of documentation is [here](docs/index.md). I have been focusing on writing the manual and tutorial,
-so other documents may currently be out of date.
 
 ## License
 

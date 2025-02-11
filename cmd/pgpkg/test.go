@@ -28,5 +28,5 @@ func doTest(dsn string) {
 		pgpkg.Exit(err)
 	}
 
-	dropTempDBOrExit(dsn, tempDB.DBName)
+	pgpkg.DropTempDBOrExit(dsn, tempDB.DBName)
 }
