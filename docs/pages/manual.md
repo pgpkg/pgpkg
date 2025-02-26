@@ -272,7 +272,7 @@ using `psql` or other tools (however, we do support this workflow during develop
 below).
 
 Tests are run as part of every migration. During development, you can run a complete schema build from scratch
-in a temporary database, and run all the tests, with
+in a temporary database, and run all the tests, using:
 
     pgpkg test
 
@@ -325,6 +325,29 @@ There are also two unitary operators, `??` and `?!` for testing predicates:
 pgpkg typically runs without printing anything to the console. However, there are
 [several pgpkg options for dealing with tests](#transactions-and-testing) which
 can print more information about them.
+
+### before-functions
+
+If you need to perform database setup before tests are run, use a `_before` function in one of your `_test` files.
+All `_before` functions are executed (in unspecified order) before the first test is started. All before functions are
+always executed even if there are test exclusion or inclusion constraints.
+
+Before functions are intended to perform global setup that's required for the tests. Here's an example of a
+`_before` function in a file called `before_all_tests.sql`:
+
+    --
+    -- Sets a specific request principal for unit tests.
+    --
+    create or replace
+        function cards.test_before()
+            returns void language 'plpgsql' as $$
+        begin
+            set request.principal to 'ad0d8484-dd56-4a43-9609-a61cd69a2a42';
+        end;
+    $$;
+
+This function is called once, before any other tests are executed, and sets the GUC "request.principal"
+to some well-known value, so that tests requiring this context can execute successfully.
 
 ## Other SQL Files
 

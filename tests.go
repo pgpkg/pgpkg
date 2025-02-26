@@ -14,14 +14,47 @@ import (
 
 type Tests struct {
 	*Bundle
-	state      *stmtApplyState
-	NamedTests map[string]*Statement
+	state       *stmtApplyState
+	NamedTests  map[string]*Statement
+	BeforeTests map[string]*Statement
+}
+
+type TestFunctionType int
+
+const (
+	TestFunctionOther  TestFunctionType = iota // utility function, declared but not executed
+	TestFunctionTest                           // test function, called during testing
+	TestFunctionBefore                         // before function, called once, before tests start.
+)
+
+// Given a function name, is it a test function, a before function, or a utility function?
+func getTestFunctionType(name string) TestFunctionType {
+	if strings.HasSuffix(name, "_test") {
+		return TestFunctionTest
+	}
+
+	if strings.HasSuffix(name, "_before") {
+		return TestFunctionBefore
+	}
+
+	if strings.HasSuffix(name, "_after") {
+		_, _ = fmt.Fprintf(os.Stderr, "warning: test name %s is reserved for future use\n", name)
+		return TestFunctionOther
+	}
+
+	if strings.HasPrefix(name, "test_") {
+		_, _ = fmt.Fprintf(os.Stderr, "warning: test name %s is deprecated; use %s_test instead\n", name, name[5:])
+		return TestFunctionTest
+	}
+
+	return TestFunctionOther
 }
 
 func (t *Tests) parse() error {
 	var pending []*Statement
 
 	namedTests := make(map[string]*Statement)
+	beforeTests := make(map[string]*Statement)
 	definitions := make(map[string]*Statement)
 
 	for _, u := range t.Units {
@@ -56,21 +89,8 @@ func (t *Tests) parse() error {
 			// strip the quotes and the args
 			fname = fname[1 : argIndex-1]
 
-			// test_function_name is deprecated. Use function_name_test, to match filename.
-			isTestFunction := strings.HasSuffix(fname, "_test")
-			if !isTestFunction {
-				isTestFunction = strings.HasPrefix(fname, "test_")
-				if isTestFunction {
-					fmt.Fprintf(os.Stderr, "warning: test name %s is deprecated; use %s_test instead\n", fname, fname[5:])
-				}
-			}
-
-			if isTestFunction && len(obj.ObjectArgs) != 0 {
-				return PKGErrorf(stmt, nil, "test functions cannot receive arguments: %s %s", obj.ObjectType, obj.ObjectName)
-			}
-
 			// Check for duplicate test definitions. This can be a subtle bug because
-			// all the statements are probably "create or replace".
+			// all the statements are probably "create or replace", so we make it explicit.
 			objName := obj.ObjectType + ":" + obj.ObjectName
 			dupeStmt, dupe := definitions[objName]
 			if dupe {
@@ -78,11 +98,25 @@ func (t *Tests) parse() error {
 					"duplicate declaration for %s %s; also defined in %s",
 					obj.ObjectType, obj.ObjectName, dupeStmt.Location())
 			}
+
+			// We save and execute definitions for all functions in the test scripts,
+			// even if they are non-test objects.
 			definitions[objName] = stmt
 
-			if isTestFunction {
+			testFunctionType := getTestFunctionType(fname)
+
+			if (testFunctionType != TestFunctionOther) && len(obj.ObjectArgs) != 0 {
+				return PKGErrorf(stmt, nil, "test functions cannot receive arguments: %s %s", obj.ObjectType, obj.ObjectName)
+			}
+
+			switch testFunctionType {
+			case TestFunctionTest:
 				t.Package.StatTestCount++
 				namedTests[obj.ObjectName] = stmt
+			case TestFunctionBefore:
+				beforeTests[obj.ObjectName] = stmt
+			default:
+				// do nothing.
 			}
 
 			pending = append(pending, stmt)
@@ -90,6 +124,7 @@ func (t *Tests) parse() error {
 	}
 
 	t.NamedTests = namedTests
+	t.BeforeTests = beforeTests
 	t.state = &stmtApplyState{pending: pending}
 	return nil
 }
@@ -125,8 +160,20 @@ func (t *Tests) runTest(tx *PkgTx, testName string, testStmt *Statement) error {
 	pe.Context = getErrorContext(tx, cmd, testErr)
 	tx = nil
 	return pe
+}
 
-	return testErr
+func (t *Tests) runBefore(tx *PkgTx, beforeName string, beforeStmt *Statement) error {
+	cmd := fmt.Sprintf("select %s", beforeName)
+	_, testErr := tx.Exec(cmd)
+
+	if testErr == nil {
+		return nil
+	}
+
+	pe := PKGErrorf(beforeStmt, testErr, "before-test script failed: %s", beforeName)
+	pe.Context = getErrorContext(tx, cmd, testErr)
+	tx = nil
+	return pe
 }
 
 func (t *Tests) Run(tx *PkgTx) error {
@@ -164,6 +211,16 @@ func (t *Tests) Run(tx *PkgTx) error {
 		return err
 	}
 
+	// Run the before-tests. These are run in this outer savepoint so the results are
+	// available to all the tests within. Note that before-functions are global, not just limited
+	// to the current file.
+	for beforeName, beforeStmt := range t.BeforeTests {
+		if err = t.runBefore(tx, beforeName, beforeStmt); err != nil {
+			return err
+		}
+	}
+
+	// Run the actual tests.
 	for testName, testStmt := range t.NamedTests {
 		if Options.IncludePattern != nil {
 			if !Options.IncludePattern.MatchString(testName) {
@@ -183,9 +240,7 @@ func (t *Tests) Run(tx *PkgTx) error {
 			}
 		}
 
-		err := t.runTest(tx, testName, testStmt)
-
-		if err != nil {
+		if err = t.runTest(tx, testName, testStmt); err != nil {
 			return err
 		}
 	}
