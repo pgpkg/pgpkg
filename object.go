@@ -90,7 +90,7 @@ func (s *Statement) getTriggerObject() (*ManagedObject, error) {
 	}
 
 	if !pkg.isValidSchema(schema) {
-		return nil, PKGErrorf(s, nil, "trigger table schema %s is not declared in package", schema)
+		fmt.Printf("WARNING: the schema '%s' for trigger '%s' is not declared in package '%s'; continuing anyway\n", schema, name, pkg.Name)
 	}
 
 	return &ManagedObject{
