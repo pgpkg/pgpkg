@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/lib/pq v1.10.7
-	github.com/pganalyze/pg_query_go/v5 v5.1.0
+	github.com/pganalyze/pg_query_go/v6 v6.1.0
 	github.com/rjeczalik/notify v0.9.3
 )
 

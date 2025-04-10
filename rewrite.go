@@ -1,7 +1,7 @@
 package pgpkg
 
 import (
-	pg_query "github.com/pganalyze/pg_query_go/v5"
+	pg_query "github.com/pganalyze/pg_query_go/v6"
 )
 
 // Rewrite the statement source to set the search_path to [schema, temp, public]
