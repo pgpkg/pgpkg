@@ -158,7 +158,7 @@ func (s *Statement) getCommentObject() (*ManagedObject, error) {
 }
 
 // GetManagedObject returns identifying information about an object from a CREATE
-// statement, such as function, view or trigger. NOTE: This functon
+// statement, such as function, view or trigger. NOTE: This function
 // might not support all object types, but you can add more as needed.
 //
 // The result is cached since it's used repeatedly during MOB processing.

@@ -520,6 +520,8 @@ This will ensure that the schema is upgraded before the application starts.
 
 `--show-tests`: This option prints a pass/fail status for each test that's run.
 
+`--sort-tests`: This option runs the tests in a fixed order, instead of the default random order.
+
 `--skip-tests`: do not run any tests before committing the changes. You should take care with this option. 
 
 `--include-tests=[regexp]`: only run tests whose SQL function name matches the given regexp.  

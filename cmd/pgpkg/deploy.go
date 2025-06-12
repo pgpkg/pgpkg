@@ -48,7 +48,6 @@ func apply(subcommand string, dsn string, commit bool) {
 		pgpkg.Exit(err)
 	}
 
-	// This is here just so we can easily add new flags later if needed.
 	flagSet := flag.NewFlagSet(subcommand, flag.ExitOnError)
 	watchFlag := flagSet.Bool("watch", false, "(experimental) do not exit; watch for changes and reload them")
 	replFlag := flagSet.Bool("repl", false, "start a REPL session after deployment (use with --watch)")

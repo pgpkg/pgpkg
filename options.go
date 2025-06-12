@@ -13,6 +13,7 @@ var Options struct {
 	Summary         bool           // print a summary of the installation
 	DryRun          bool           // rollback after installation (default)
 	ShowTests       bool           // Show the result of each SQL test that was run.
+	SortTests       bool           // Execute tests in a well defined order
 	ShowSkipped     bool           // Show skipped tests
 	SkipTests       bool           // Don't run the tests. Useful when fixing them!
 	KeepTestScripts bool           // Keep the test functions, useful for Go unit testing, use only with temporary databases.
@@ -41,6 +42,10 @@ Transactions and Testing Options
 
 --show-tests
     This option prints a pass/fail status for each test that's run.
+
+--sort-tests
+    Tests normally run in random order. This option runs tests in a fixed order,
+	so that the test run is repeatable. This can be helpful during large refactors.
 
 --skip-tests
     Do not run any tests before committing the changes. You should take care with this option.
@@ -117,6 +122,9 @@ func ParseArgs(prefix string) error {
 
 		case "show-tests":
 			Options.ShowTests = true
+
+		case "sort-tests":
+			Options.SortTests = true
 
 		case "show-skipped":
 			Options.ShowSkipped = true

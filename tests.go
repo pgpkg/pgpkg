@@ -9,6 +9,7 @@ package pgpkg
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -176,6 +177,29 @@ func (t *Tests) runBefore(tx *PkgTx, beforeName string, beforeStmt *Statement) e
 	return pe
 }
 
+type testStatement struct {
+	name string
+	stmt *Statement
+}
+
+func (t *Tests) getTestStatements() []*testStatement {
+	result := make([]*testStatement, 0, len(t.NamedTests))
+	for name, stmt := range t.NamedTests {
+		result = append(result, &testStatement{
+			name: name,
+			stmt: stmt,
+		})
+	}
+
+	if Options.SortTests {
+		sort.Slice(result, func(i, j int) bool {
+			return result[i].name < result[j].name
+		})
+	}
+
+	return result
+}
+
 func (t *Tests) Run(tx *PkgTx) error {
 
 	// Rollback, and return either the error or an error from the rollback.
@@ -221,26 +245,26 @@ func (t *Tests) Run(tx *PkgTx) error {
 	}
 
 	// Run the actual tests.
-	for testName, testStmt := range t.NamedTests {
+	for _, test := range t.getTestStatements() {
 		if Options.IncludePattern != nil {
-			if !Options.IncludePattern.MatchString(testName) {
+			if !Options.IncludePattern.MatchString(test.name) {
 				if Options.ShowSkipped {
-					Stdout.Println("- [skip]", testName)
+					Stdout.Println("- [skip]", test.name)
 				}
 				continue
 			}
 		}
 
 		if Options.ExcludePattern != nil {
-			if Options.ExcludePattern.MatchString(testName) {
+			if Options.ExcludePattern.MatchString(test.name) {
 				if Options.ShowSkipped {
-					Stdout.Println("- [skip]", testName)
+					Stdout.Println("- [skip]", test.name)
 				}
 				continue
 			}
 		}
 
-		if err = t.runTest(tx, testName, testStmt); err != nil {
+		if err = t.runTest(tx, test.name, test.stmt); err != nil {
 			return err
 		}
 	}
