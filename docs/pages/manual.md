@@ -53,8 +53,9 @@ from elsewhere and used as dependencies in your project.
 
 In pgpkg, SQL functions, views and triggers can be declared in any `.sql` file in the directory tree, meaning
 that your SQL functions can be intermingled with your native code. Other database objects, such as tables, domains
-and UDTs, are stored in a special directory and are migrated sequentially. The structure of a package is
-described in more detail, later.
+and UDTs, configured in `pgpkg.toml`, and migrated sequentially.
+
+The structure of a package is described in more detail later in this document.
 
 ## Running pgpkg
 
