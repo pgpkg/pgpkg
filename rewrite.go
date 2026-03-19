@@ -9,7 +9,7 @@ import (
 // This appears to be a problem with pg_analyze_go.
 func rewrite(stmt *Statement) error {
 
-	parseResult, err := pg_query.Parse(stmt.Source)
+	parseResult, err := Parse(stmt.Source)
 	if err != nil {
 		return PKGErrorf(stmt, err, "unable to rewrite function")
 	}
@@ -24,7 +24,7 @@ func rewrite(stmt *Statement) error {
 
 	createFuncStmt.Options = append(createFuncStmt.Options /* getSecurityDefinerOption(), */, getSetSchemaOption(schemaNames))
 
-	stmt.Source, err = pg_query.Deparse(parseResult)
+	stmt.Source, err = Deparse(parseResult)
 	if err != nil {
 		return PKGErrorf(stmt, err, "unable to generate rewritten function")
 	}

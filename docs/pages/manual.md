@@ -51,7 +51,7 @@ package configuration. pgpkg will create the schemas if they don't exist.
 pgpkg packages may also contain a directory called `.pgpkg`. This directory is a cache of packages imported
 from elsewhere and used as dependencies in your project.
 
-In pgpkg, SQL functions, views and triggers can be declared in any `.sql` file in the directory tree, meaning
+In pgpkg, SQL functions, views, triggers and casts can be declared in any `.sql` file in the directory tree, meaning
 that your SQL functions can be intermingled with your native code. Other database objects, such as tables, domains
 and UDTs, are configured as migrations in `pgpkg.toml`, and migrated sequentially.
 
@@ -87,7 +87,7 @@ To perform a permanent installation of your package into an existing database:
 
     pgpkg deploy
 
-`deploy` will replace all functions, views and triggers previously installed with `pgpgk` with the latest versions,
+`deploy` will replace all functions, views, triggers and casts previously installed with `pgpgk` with the latest versions,
 and will run a sequential migration of tables and other objects. Note that database objects created outside of
 `pgpkg` won't be modified unless explicitly instructed in your `.sql` files.
 
@@ -177,9 +177,9 @@ imported package name to the `Uses` clause.
 `Migrations` is a list of SQL scripts which will be executed sequentially in the order they appear. Migrations
 are explained in detail [below](#migrated-objects).
 
-## Functions, Views and Triggers
+## Functions, Views, Triggers and Casts
 
-In pgpkg, functions, views or triggers are called **managed objects**. These objects are declared only once,
+In pgpkg, functions, views, triggers and casts are called **managed objects**. These objects are declared only once,
 in any `.sql` file in your tree. They are explicitly tracked by pgpkg, and installed or upgraded automatically as part
 of the deployment process.
 
@@ -210,7 +210,7 @@ appear in migration scripts, and they should not generally be created or dropped
 ## Migrated Objects
 
 **Migrated objects** are tables, domains, types, rules, roles, and any other database objects that are not
-*managed objects* - that is, any database object that is not a function, view or trigger.
+*managed objects* - that is, any database object that is not a function, view, trigger or cast.
 
 Unlike managed objects, pgpkg never automatically creates or drops migrated objects. Instead, their state
 is defined by a sequence of *migration scripts* - SQL scripts with no special syntax or filenames - which are
@@ -222,8 +222,8 @@ The important difference between a migration script and other scripts is that a 
 to only execute in a given database once. Migration scripts are also guaranteed to execute in the order listed in the
 `Migrations` clause.
 
-You can put any SQL statements at all in a migration script, but you should not generally include functions, views
-or triggers, since these are *managed objects* (see above). Example statements in migration scripts might include
+You can put any SQL statements at all in a migration script, but you should not generally include functions, views,
+triggers and casts, since these are *managed objects* (see above). Example statements in migration scripts might include
 any or all of:
 
 * `create table ...`
