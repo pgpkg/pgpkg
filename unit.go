@@ -6,9 +6,10 @@ package pgpkg
 //
 
 import (
-	pg_query "github.com/pganalyze/pg_query_go/v6"
 	"io"
 	"strings"
+
+	pg_query "github.com/pganalyze/pg_query_go/v6"
 )
 
 // Unit (ie, build unit) represents potentially parsable tree of SQL source code
@@ -96,7 +97,7 @@ func (u *Unit) Parse() error {
 	}
 	u.Source = source
 
-	parseResult, err := pg_query.Parse(source)
+	parseResult, err := Parse(source)
 	if err != nil {
 		// unfortunately parser errors return almost no information, so the best
 		// we can do is identify the build unit. This seems to be a problem with
