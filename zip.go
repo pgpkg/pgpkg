@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"fmt"
 	"path"
-	"path/filepath"
 )
 
 // Creates a ZIP archive of a project(s).
@@ -18,7 +17,7 @@ func writeMigration(zw *zip.Writer, pkgPath string, schema *Schema) error {
 		return nil // no migration scripts; nothing to import.
 	}
 
-	filename := filepath.Join(pkgPath, schema.migrationDir, "/@migration.pgpkg")
+	filename := path.Join(pkgPath, schema.migrationDir, "/@migration.pgpkg")
 	mw, err := zw.Create(filename)
 	if err != nil {
 		return fmt.Errorf("unable to create migration file %s: %w", filename, err)
@@ -34,7 +33,7 @@ func writeMigration(zw *zip.Writer, pkgPath string, schema *Schema) error {
 }
 
 func zipWriteConfig(zw *zip.Writer, pkgPath string, p *Package) error {
-	filename := filepath.Join(pkgPath, "pgpkg.toml")
+	filename := path.Join(pkgPath, "pgpkg.toml")
 	tw, err := zw.Create(filename)
 	if err != nil {
 		return fmt.Errorf("unable to create toml file %s: %w", filename, err)
@@ -45,7 +44,7 @@ func zipWriteConfig(zw *zip.Writer, pkgPath string, p *Package) error {
 
 func zipWriteUnits(zw *zip.Writer, pkgPath string, bundle *Bundle) error {
 	for _, unit := range bundle.Units {
-		unitpath := filepath.Join(pkgPath, unit.Path)
+		unitpath := path.Join(pkgPath, unit.Path)
 
 		if err := unit.Parse(); err != nil {
 			return fmt.Errorf("unable to parse %s: %w", unitpath, err)

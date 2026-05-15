@@ -2,13 +2,13 @@ package pgpkg
 
 import (
 	"fmt"
-	"github.com/lib/pq"
 	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/lib/pq"
 )
 
 const migrationFilename = "@migration.pgpkg"
@@ -334,7 +334,7 @@ func (p *Package) parseConfig(tomlPath string) error {
 
 var validNames = regexp.MustCompile("[^#]*")
 
-func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
+func (p *Package) addUnit(unitPath string, d fs.DirEntry, err error) error {
 	if err != nil {
 		return err
 	}
@@ -358,8 +358,8 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 	if d.IsDir() {
 		// If this is a directory, and it contains migrations, then
 		// process it with a separate walk().
-		if _, err = fs.Stat(p.Source, filepath.Join(path, migrationFilename)); err == nil {
-			if err = p.Schema.loadMigrationDir(path); err != nil {
+		if _, err = fs.Stat(p.Source, path.Join(unitPath, migrationFilename)); err == nil {
+			if err = p.Schema.loadMigrationDir(unitPath); err != nil {
 				return err
 			}
 			return fs.SkipDir
@@ -367,16 +367,16 @@ func (p *Package) addUnit(path string, d fs.DirEntry, err error) error {
 	}
 
 	// If this file is part of a migration, ignore it.
-	if p.Schema.migrationPaths[path] {
+	if p.Schema.migrationPaths[unitPath] {
 		return nil
 	}
 
 	if strings.HasSuffix(name, "_test.sql") {
-		return p.Tests.addUnit(path)
+		return p.Tests.addUnit(unitPath)
 	}
 
 	if strings.HasSuffix(name, ".sql") {
-		return p.MOB.addUnit(path)
+		return p.MOB.addUnit(unitPath)
 	}
 
 	// Files that aren't recognised are just ignored. This lets us mix pgpkg sql with

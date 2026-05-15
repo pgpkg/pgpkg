@@ -11,6 +11,7 @@ import (
 	"bufio"
 	"fmt"
 	"io/fs"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -101,8 +102,8 @@ func (s *Schema) Apply(tx *PkgTx) error {
 	// keep track of the migrations performed, by name.
 	migratedState := make(map[string]bool)
 
-	for _, path := range s.migrationIndex {
-		unitPath := filepath.Join(s.migrationDir, path)
+	for _, migrationPath := range s.migrationIndex {
+		unitPath := path.Join(s.migrationDir, migrationPath)
 
 		// Migrations are identified only by the filename, which means users can
 		// refactor and reorganise their file tree without worrying.
@@ -209,7 +210,7 @@ func (s *Schema) loadMigrationDir(migrationDir string) error {
 }
 
 func (s *Schema) loadCatalog(migrationDir string) ([]string, error) {
-	catalog, err := s.Package.Source.Open(filepath.Join(migrationDir, migrationFilename))
+	catalog, err := s.Package.Source.Open(path.Join(migrationDir, migrationFilename))
 	if err != nil {
 		return nil, err
 	}

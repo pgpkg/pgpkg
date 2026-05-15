@@ -29,7 +29,7 @@
 - [ ] --[in|ex]clude-tests skips tests in other schemas, should only skip top level package tests (or: should include schema name in patterns)
 - [ ] occasional error "unable to drop REPL database pgpkg.xxxxxxxx: unable to drop temp database "pgpkg.isovixpo" when trying `pgpkg repl`
 - [ ] the assertion operators don't do anything with null (ie, perform null =? 0 does nothing).
-- [ ] change uses of "filepath" to just use "path", ie. filepath.Join() should be path.Join()
+- [ ] change uses of "filepath" to just use "path", ie. filepath.join() should be path.Join()
 - [ ] when a function can't be installed due to an error, and another function depends on it,
   the second function is printed as the error; but the problem is the first function. we should print
   ALL incomplete MOBs if we can't progress, or, at least, the first one to not install.

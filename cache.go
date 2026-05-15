@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 )
 
 // Cache represents a dependency cache which contains the source of any dependencies listed in
@@ -69,7 +68,7 @@ func (c *WriteCache) importUnits(bundle *Bundle, cachePath string) error {
 	dirs := make(map[string]bool)
 
 	for _, unit := range bundle.Units {
-		unitpath := filepath.Join(cachePath, unit.Path)
+		unitpath := path.Join(cachePath, unit.Path)
 
 		if err := unit.Parse(); err != nil {
 			return fmt.Errorf("unable to parse %s: %w", unitpath, err)
@@ -115,7 +114,7 @@ func (c *WriteCache) importMigration(srcPkg *Package, targetPath string) error {
 	}
 
 	// This code can be removed when @migration.pgpkg is fully deprecated
-	filename := filepath.Join(targetPath, srcSchema.migrationDir, "/@migration.pgpkg")
+	filename := path.Join(targetPath, srcSchema.migrationDir, "/@migration.pgpkg")
 	dir := path.Dir(filename)
 	if err := os.MkdirAll(dir, 0777); err != nil {
 		return err

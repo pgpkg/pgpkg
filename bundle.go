@@ -2,7 +2,7 @@ package pgpkg
 
 import (
 	"io/fs"
-	"path/filepath"
+	"path"
 )
 
 // Bundle represents functional unit of a package, consisting of many Units.
@@ -35,8 +35,8 @@ func (b *Bundle) HasUnits() bool {
 }
 
 // Open an arbitrary file from the bundle.
-func (b *Bundle) Open(path string) (fs.File, error) {
-	return b.Package.Source.Open(filepath.Join(b.Path, path))
+func (b *Bundle) Open(bundlePath string) (fs.File, error) {
+	return b.Package.Source.Open(path.Join(b.Path, bundlePath))
 }
 
 func (b *Bundle) getUnit(path string) (*Unit, bool) {
@@ -62,5 +62,5 @@ func (b *Bundle) addUnit(path string) error {
 }
 
 func (b *Bundle) Location() string {
-	return filepath.Join(b.Package.Location, b.Path)
+	return path.Join(b.Package.Location, b.Path)
 }

@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 )
 
@@ -52,13 +51,13 @@ func (f *FSSource) Open(name string) (fs.File, error) {
 	return f.fs.Open(name)
 }
 
-func (f *FSSource) Sub(path string) (Source, error) {
-	subfs, err := fs.Sub(f.fs, path)
+func (f *FSSource) Sub(pathname string) (Source, error) {
+	subfs, err := fs.Sub(f.fs, pathname)
 	if err != nil {
 		return nil, err
 	}
 
-	return &FSSource{location: filepath.Join(f.location, path), fs: subfs}, nil
+	return &FSSource{location: path.Join(f.location, pathname), fs: subfs}, nil
 }
 
 func (f *FSSource) Location() string {
@@ -87,13 +86,13 @@ func NewDirSource(path string) *DirSource {
 	return &DirSource{dir: path, fs: os.DirFS(path)}
 }
 
-func (ds *DirSource) Sub(path string) (Source, error) {
-	subfs, err := fs.Sub(ds.fs, path)
+func (ds *DirSource) Sub(pathname string) (Source, error) {
+	subfs, err := fs.Sub(ds.fs, pathname)
 	if err != nil {
 		return nil, err
 	}
 
-	return &DirSource{dir: filepath.Join(ds.dir, path), fs: subfs}, nil
+	return &DirSource{dir: path.Join(ds.dir, pathname), fs: subfs}, nil
 }
 
 func (ds *DirSource) Location() string {
@@ -166,7 +165,7 @@ func (zs *ZipByteSource) Sub(dir string) (Source, error) {
 		return nil, err
 	}
 
-	return &ZipByteSource{fs: newFs, location: filepath.Join(zs.location, dir)}, nil
+	return &ZipByteSource{fs: newFs, location: path.Join(zs.location, dir)}, nil
 }
 
 func (zs *ZipByteSource) Cache() (Cache, error) {
